@@ -1,0 +1,57 @@
+services:
+  postgres:
+    extends:
+      file: ../../docker-compose.yml
+      service: postgres
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: ["gpu"]
+    command: >
+      --model ${LLM_MODEL_VLLM}
+      --max-model-len 8192
+      --max-num-batched-tokens 2048
+      --gpu-memory-utilization 0.95
+      --kv-cache-dtype fp8
+      --enable-prefix-caching
+      --max-num-seqs 8
+      --host 0.0.0.0
+      --port 8080
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+    shm_size: "8gb"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    extends:
+      file: ../../docker-compose.yml
+      service: app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vllm:
+        condition: service_healthy
+    environment:
+      OPENROUTER_BASE_URL: http://vllm:8080/v1
+      OPENROUTER_API_KEY: ${LLM_API_KEY:-local}
+      LLM_MODEL: ${LLM_MODEL_VLLM}
+
+volumes:
+  postgres_data:
+  rendered_data:
+  huggingface_cache:

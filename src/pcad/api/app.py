@@ -48,6 +48,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.mount("/rendered", StaticFiles(directory=RENDERED_DIR), name="rendered")
 
     @app.get("/")
+    def landing() -> FileResponse:
+        return FileResponse(STATIC_DIR / "landing" / "index.html")
+
+    @app.get("/demo")
+    @app.get("/demo/")
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
 

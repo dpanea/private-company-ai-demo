@@ -7,6 +7,7 @@ from pathlib import Path
 import uvicorn
 
 from pcad.config import Settings
+from pcad.db import connect
 from pcad.ingestion.runner import run_demo_ingestion
 from pcad.logging_utils import configure_logging
 from pcad.migrations import apply_migrations
@@ -28,6 +29,10 @@ def main() -> None:
     ingest.add_argument("--skip-embeddings", action="store_true")
     ingest.add_argument("--synthetic-dir", type=Path, default=Path("data/synthetic"))
 
+    bootstrap = subparsers.add_parser("bootstrap-demo")
+    bootstrap.add_argument("--skip-embeddings", action="store_true")
+    bootstrap.add_argument("--synthetic-dir", type=Path, default=Path("data/synthetic"))
+
     args = parser.parse_args()
     settings = Settings.from_env()
     configure_logging(settings.log_level, color=str(settings.log_color).lower())
@@ -48,5 +53,25 @@ def main() -> None:
         )
         print(json.dumps(report.as_dict(), indent=2, sort_keys=True))
         return
+    if args.command == "bootstrap-demo":
+        document_count = _rag_document_count(settings)
+        if document_count > 0:
+            print(json.dumps({"ingested": False, "rag_documents": document_count}, indent=2, sort_keys=True))
+            return
+        report = run_demo_ingestion(
+            settings,
+            synthetic_dir=args.synthetic_dir,
+            clean=True,
+            skip_embeddings=args.skip_embeddings,
+        )
+        print(json.dumps({"ingested": True, "report": report.as_dict()}, indent=2, sort_keys=True))
+        return
     parser.error(f"Unknown command {args.command}")
 
+
+def _rag_document_count(settings: Settings) -> int:
+    with connect(settings) as conn:
+        row = conn.execute("SELECT count(*) FROM rag_documents").fetchone()
+    if row is None:
+        return 0
+    return int(row[0])

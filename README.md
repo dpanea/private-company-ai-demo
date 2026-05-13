@@ -1,58 +1,87 @@
-# private-company-ai-demo
+# Private Company AI Demo
 
-Public demo and open-source reference architecture for a **Private Company Memory Layer** — a system that turns messy company artifacts (emails, PDFs, meeting transcripts, Word documents, CRM exports) into source-backed account briefings, "what changed" summaries, proactive risk alerts, and follow-up drafts, without sending sensitive client data to generic cloud AI tools.
+## What This Is
 
-This repository serves three purposes:
+This repository is a public demo and open-source reference architecture for a private company memory layer. It ingests synthetic company artifacts, normalizes them into AI-ready account memory, and answers account questions through guided workflows with source citations.
 
-1. **Marketing spear** — a concrete object that can be sent to buyers, partners, and conference contacts.
-2. **Open-source reference architecture** — a working example of private/sovereign RAG on top of company data.
-3. **Credibility artifact** — proof of architectural competence for technical evaluators and partner consultancies.
+## Try It
 
-## Repository status
+The intended public deployment is `https://demo.danielpanea.com`. Locally, the landing page is served at `/` and the working synthetic demo is served at `/demo`.
 
-This repository is being implemented across six packages documented in [`docs/`](docs/). See [docs/00-overview.md](docs/00-overview.md) for the orchestration plan.
+## Architecture
 
-## Installation
+```mermaid
+flowchart LR
+    A["Synthetic company artifacts"] --> B["Parsers and normalization"]
+    B --> C["Postgres + pgvector"]
+    C --> D["Hybrid retrieval"]
+    D --> E["Conversation service"]
+    E --> F["Source-backed workflows"]
+```
 
-Python dependencies are managed with `uv`:
+The demo covers messy sources, AI-ready document generation, embeddings, hybrid retrieval, citation validation, anonymous sessions, visitor-scoped synthetic notes, and a vanilla HTML/CSS/JS frontend. The detailed implementation plan lives in [`docs/`](docs/), especially [`docs/00-overview.md`](docs/00-overview.md).
+
+## Why This Exists
+
+Most useful company context is trapped across inboxes, decks, meeting notes, PDFs, and CRM records. The company-memory-layer idea is to make that context queryable by an AI assistant while preserving ownership, deployment control, and evidence trails. Commercial positioning and client-specific implementation material live outside this public repo.
+
+## Demo Scope vs. Production Scope
+
+This repository is a reference architecture, not a turnkey product. It intentionally does not include:
+
+- Incremental and event-driven ingestion sync.
+- Format detection and content-type sniffing.
+- OCR for arbitrary scanned documents; the demo OCRs one known PDF, while production-grade OCR requires layout-aware models.
+- Deduplication.
+- Attachment recovery from email threads.
+- Mail thread reconstruction beyond `In-Reply-To` and `References` headers.
+- Schema evolution and migrations against live data.
+- Per-user permissions and row-level security.
+- Multi-tenant isolation.
+- Audit logging and retention controls.
+- Failure handling, dead-letter queues, and observability beyond basic logs.
+- Evaluation methodology, gold-question test sets, and hallucination measurement.
+- Production deployment runbooks for backup, monitoring, model rotation, and incident response.
+
+## Local Development
+
+Install dependencies:
 
 ```bash
 uv sync
 ```
 
-Synthetic scanned-PDF generation uses `pdf2image`, which requires Poppler command-line tools. On Debian or Ubuntu:
-
-```bash
-sudo apt-get install poppler-utils
-```
-
-Generate the synthetic corpus with:
+Generate or refresh the synthetic corpus:
 
 ```bash
 uv run python scripts/generate_synthetic.py --output data/synthetic --reference-date 2026-05-13 --clean
 ```
 
-## Demo scope vs. production scope
-
-The application in this repository is a **reference architecture, not a turnkey product**. Demo-scope shortcuts are documented and intentional. Production deployments require adaptation that lives outside this repo. See [docs/06-package-deployment-landing.md](docs/06-package-deployment-landing.md) for the explicit list.
-
-## Local ingestion dependencies
-
-The ingestion pipeline parses PDFs and runs OCR for scanned synthetic files. Install these system packages before running OCR locally:
-
-- `poppler-utils` for PDF page rendering through `pdf2image`
-- `tesseract-ocr` and `tesseract-ocr-eng` for English OCR through Tesseract
-
-Run the demo ingestion with:
+Start Postgres, run migrations, ingest the corpus, and serve the app:
 
 ```bash
+docker compose up -d postgres
+uv run pcad migrate
 uv run pcad ingest-demo --clean
+uv run pcad serve
 ```
 
-## License
+Open `http://127.0.0.1:8000/` for the landing page or `http://127.0.0.1:8000/demo` for the demo.
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+## Deployment
 
-## Author
+For the public CPU demo, create a real `.env` from `.env.example` and run:
 
-Daniel Panea Lichtig — [danielpanea.com](https://danielpanea.com)
+```bash
+docker compose up -d --build
+```
+
+The app container runs migrations and ingests the demo corpus on first boot if `rag_documents` is empty. It binds to `127.0.0.1:8000`; use the example config in [`deploy/caddy/`](deploy/caddy/) to terminate HTTPS and reverse-proxy traffic.
+
+## Sovereign Deployment With vLLM
+
+[`deploy/vllm/`](deploy/vllm/) contains a parallel compose file that swaps chat completions from OpenRouter to a local vLLM OpenAI-compatible server. The public demo does not use this stack. Daniel should test it once on real GPU hardware and add a screenshot or short recording before publishing the repo.
+
+## License and Credits
+
+Apache-2.0. Built by [Daniel Panea Lichtig](https://danielpanea.com).

@@ -2,18 +2,66 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_USER: pcad
-      POSTGRES_PASSWORD: pcad
-      POSTGRES_DB: pcad
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pcad -d pcad"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      LLM_MODEL: ${LLM_MODEL}
+      LLM_REASONING_EFFORT: ${LLM_REASONING_EFFORT:-low}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS}
+      APP_TITLE: ${APP_TITLE}
+      HTTP_REFERER: ${HTTP_REFERER}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_COLOR: ${LOG_COLOR:-false}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-pcad_session}
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-7}
+      SESSION_SECRET: ${SESSION_SECRET}
+      RATE_LIMIT_PER_IP_PER_MINUTE: ${RATE_LIMIT_PER_IP_PER_MINUTE:-20}
+      RATE_LIMIT_PER_SESSION_PER_HOUR: ${RATE_LIMIT_PER_SESSION_PER_HOUR:-50}
+      DAILY_TOKEN_BUDGET: ${DAILY_TOKEN_BUDGET:-1500000}
+      CONTEXT_TOKEN_BUDGET: ${CONTEXT_TOKEN_BUDGET:-6000}
+      AGENT_GENERATION_MAX_ATTEMPTS: ${AGENT_GENERATION_MAX_ATTEMPTS:-3}
+    volumes:
+      - rendered_data:/app/data/rendered
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:
+  rendered_data:

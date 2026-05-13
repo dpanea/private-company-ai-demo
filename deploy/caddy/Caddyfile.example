@@ -1,0 +1,18 @@
+demo.danielpanea.com {
+    encode gzip
+    reverse_proxy 127.0.0.1:8000
+
+    @api path /api/*
+    rate_limit @api {
+        zone api {
+            key {client_ip}
+            events 60
+            window 1m
+        }
+    }
+
+    log {
+        output file /var/log/caddy/demo.log
+        format json
+    }
+}
