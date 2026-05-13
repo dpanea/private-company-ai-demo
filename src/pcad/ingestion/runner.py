@@ -23,6 +23,7 @@ from pcad.ingestion.parsers.mbox import ParsedEmail, parse_mbox
 from pcad.ingestion.parsers.meeting_md import parse_meeting_md
 from pcad.ingestion.parsers.pdf import parse_pdf
 from pcad.models import RagDocument, RawArtifact, SourceCitation, SyntheticDataset
+from pcad.retrieval.alerts import ProactiveAlertGenerator
 
 
 logger = logging.getLogger(__name__)
@@ -113,6 +114,9 @@ def run_demo_ingestion(
             _insert_rag_documents(conn, docs)
 
     embedding_calls = 0 if skip_embeddings else index_pending_embeddings(settings)
+    alert_generator = ProactiveAlertGenerator(settings)
+    for account in dataset.accounts:
+        alert_generator.generate_for_account(account.account_id)
     elapsed = time.monotonic() - started
     report = IngestionReport(
         users=len(dataset.users),

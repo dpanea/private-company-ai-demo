@@ -41,6 +41,7 @@ EXPECTED_TABLES = {
     "conversation_messages",
     "fake_notes",
     "proactive_alerts",
+    "daily_budget_usage",
 }
 
 
@@ -82,6 +83,7 @@ def test_apply_migrations_runs_and_is_idempotent(empty_db: str) -> None:
         "0007_conversation",
         "0008_fake_notes",
         "0009_proactive_alerts",
+        "0010_daily_budget_usage",
     ]
     assert second == []
 
