@@ -1,0 +1,94 @@
+import { addFakeNote, listFakeNotes } from "../api.js";
+import { state } from "../state.js";
+import { escapeHtml, qs, showToast, trapDialogFocus } from "../util/dom.js";
+
+export function openFakeNoteModal(accountId) {
+  const root = qs("#modal-root");
+  root.innerHTML = renderFakeNoteDialog();
+  const dialog = root.querySelector("dialog");
+  const releaseTrap = trapDialogFocus(dialog);
+
+  dialog.addEventListener("close", () => {
+    releaseTrap();
+    root.innerHTML = "";
+  }, { once: true });
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  dialog.querySelector("[data-pcad-close-modal]")?.addEventListener("click", () => dialog.close());
+  dialog.querySelector("form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await submitFakeNote(dialog, accountId);
+  });
+
+  dialog.showModal();
+  dialog.querySelector("input[name='title']")?.focus();
+}
+
+async function submitFakeNote(dialog, accountId) {
+  const form = dialog.querySelector("form");
+  const data = new FormData(form);
+  const payload = {
+    note_type: data.get("note_type"),
+    title: String(data.get("title") || "").trim(),
+    body: String(data.get("body") || "").trim(),
+    note_date: data.get("note_date"),
+  };
+  if (!payload.title || !payload.body || !payload.note_date) {
+    showToast("Fill in the title, body, and date before adding the note.", "warning");
+    return;
+  }
+
+  try {
+    const result = await addFakeNote(accountId, payload);
+    state.update("alertsByAccount", (alertsByAccount) => ({ ...alertsByAccount, [accountId]: result.alerts || alertsByAccount[accountId] || [] }));
+    const notes = await listFakeNotes(accountId);
+    state.update("fakeNotesByAccount", (notesByAccount) => ({ ...notesByAccount, [accountId]: notes }));
+    dialog.close();
+    showToast("Synthetic note added. The system has updated its company memory.", "success");
+  } catch (error) {
+    showToast(error.detail || "The synthetic note could not be added.", "error");
+  }
+}
+
+function renderFakeNoteDialog() {
+  const today = new Date().toISOString().slice(0, 10);
+  return `
+    <dialog aria-labelledby="fake-note-title" data-pcad-fake-note-modal>
+      <div class="modal-head">
+        <div>
+          <p class="kicker">Session-scoped demo input</p>
+          <h2 id="fake-note-title">Add a synthetic note</h2>
+        </div>
+        <button class="icon-button" type="button" data-pcad-close-modal aria-label="Close note form">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="callout warning">This public demo uses synthetic data only. Do not enter real or confidential client information. Notes are stored only for your browser session.</div>
+        <form class="field-grid">
+          <div class="form-field">
+            <label for="note-type">Type</label>
+            <select id="note-type" name="note_type">
+              ${["meeting_summary", "email_summary", "task", "risk", "general"].map((value) => `<option value="${value}">${escapeHtml(value.replaceAll("_", " "))}</option>`).join("")}
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="note-title">Title</label>
+            <input id="note-title" name="title" type="text" maxlength="140" required>
+          </div>
+          <div class="form-field">
+            <label for="note-body">Body</label>
+            <textarea id="note-body" name="body" required></textarea>
+          </div>
+          <div class="form-field">
+            <label for="note-date">Note date</label>
+            <input id="note-date" name="note_date" type="date" value="${today}" required>
+          </div>
+          <div class="modal-actions">
+            <button class="secondary-action" type="button" data-pcad-close-modal>Cancel</button>
+            <button class="primary-action" type="submit">Add note</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+  `;
+}
