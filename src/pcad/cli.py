@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
+import uvicorn
+
 from pcad.config import Settings
 from pcad.ingestion.runner import run_demo_ingestion
 from pcad.logging_utils import configure_logging
@@ -15,6 +17,11 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("migrate")
+
+    serve = subparsers.add_parser("serve")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--reload", action="store_true")
 
     ingest = subparsers.add_parser("ingest-demo")
     ingest.add_argument("--clean", action="store_true")
@@ -28,6 +35,9 @@ def main() -> None:
     if args.command == "migrate":
         applied = apply_migrations(settings)
         print(json.dumps({"applied": applied}, indent=2))
+        return
+    if args.command == "serve":
+        uvicorn.run("pcad.api.app:create_app", host=args.host, port=args.port, reload=args.reload, factory=True)
         return
     if args.command == "ingest-demo":
         report = run_demo_ingestion(

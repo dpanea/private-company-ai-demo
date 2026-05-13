@@ -65,8 +65,8 @@ class Settings:
         load_dotenv()
         settings = cls(
             database_url=os.environ.get("DATABASE_URL", "postgresql://pcad:pcad@localhost:5432/pcad"),
-            openrouter_api_key=_env_optional("OPENROUTER_API_KEY"),
-            openrouter_base_url=os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+            openrouter_api_key=_env_optional("LLM_API_KEY") or _env_optional("OPENROUTER_API_KEY"),
+            openrouter_base_url=os.environ.get("LLM_BASE_URL", os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")),
             llm_model=os.environ.get("LLM_MODEL", "qwen/qwen-2.5-7b-instruct"),
             llm_reasoning_effort=os.environ.get("LLM_REASONING_EFFORT", "low"),
             embedding_model=os.environ.get("EMBEDDING_MODEL", "qwen/qwen3-embedding-8b"),
