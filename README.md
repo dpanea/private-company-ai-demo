@@ -16,6 +16,19 @@ This repository currently contains specifications only. Implementation is planne
 
 The application in this repository is a **reference architecture, not a turnkey product**. Demo-scope shortcuts are documented and intentional. Production deployments require adaptation that lives outside this repo. See [docs/06-package-deployment-landing.md](docs/06-package-deployment-landing.md) for the explicit list.
 
+## Local ingestion dependencies
+
+The ingestion pipeline parses PDFs and runs OCR for scanned synthetic files. Install these system packages before running OCR locally:
+
+- `poppler-utils` for PDF page rendering through `pdf2image`
+- `tesseract-ocr` and `tesseract-ocr-eng` for English OCR through Tesseract
+
+Run the demo ingestion with:
+
+```bash
+uv run pcad ingest-demo --clean
+```
+
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
