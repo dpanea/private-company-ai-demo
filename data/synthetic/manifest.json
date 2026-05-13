@@ -1,0 +1,144 @@
+{
+  "accounts": [
+    {
+      "account_id": "SYN_ACC_0001",
+      "account_name": "Brannfeld Industrial GmbH",
+      "account_slug": "brannfeld_industrial",
+      "artifacts": [
+        {
+          "format": "mbox",
+          "message_count": 8,
+          "path": "accounts/brannfeld_industrial/emails.mbox",
+          "type": "email_thread"
+        },
+        {
+          "format": "pdf",
+          "has_text_layer": true,
+          "path": "accounts/brannfeld_industrial/proposal_2026_q2.pdf",
+          "type": "pdf"
+        },
+        {
+          "format": "pdf",
+          "has_text_layer": false,
+          "path": "accounts/brannfeld_industrial/signed_nda_scanned.pdf",
+          "requires_ocr": true,
+          "type": "pdf"
+        },
+        {
+          "format": "docx",
+          "path": "accounts/brannfeld_industrial/account_plan.docx",
+          "type": "docx"
+        },
+        {
+          "format": "markdown",
+          "path": "accounts/brannfeld_industrial/meeting_2026_04_15_intro.md",
+          "type": "meeting_transcript"
+        },
+        {
+          "format": "markdown",
+          "path": "accounts/brannfeld_industrial/meeting_2026_04_28_technical.md",
+          "type": "meeting_transcript"
+        },
+        {
+          "format": "markdown",
+          "path": "accounts/brannfeld_industrial/meeting_2026_05_02_stakeholder.md",
+          "type": "meeting_transcript"
+        }
+      ]
+    },
+    {
+      "account_id": "SYN_ACC_0002",
+      "account_name": "Rynvoss Logistics BV",
+      "account_slug": "rynvoss_logistics",
+      "artifacts": [
+        {
+          "format": "mbox",
+          "message_count": 6,
+          "path": "accounts/rynvoss_logistics/emails.mbox",
+          "type": "email_thread"
+        },
+        {
+          "format": "pdf",
+          "has_text_layer": true,
+          "path": "accounts/rynvoss_logistics/proposal_2026_q2.pdf",
+          "type": "pdf"
+        },
+        {
+          "format": "pdf",
+          "has_text_layer": true,
+          "path": "accounts/rynvoss_logistics/mutual_nda.pdf",
+          "type": "pdf"
+        },
+        {
+          "format": "docx",
+          "path": "accounts/rynvoss_logistics/account_plan.docx",
+          "type": "docx"
+        },
+        {
+          "format": "markdown",
+          "path": "accounts/rynvoss_logistics/meeting_2026_03_31_intro.md",
+          "type": "meeting_transcript"
+        },
+        {
+          "format": "markdown",
+          "path": "accounts/rynvoss_logistics/meeting_2026_04_17_procurement.md",
+          "type": "meeting_transcript"
+        }
+      ]
+    },
+    {
+      "account_id": "SYN_ACC_0003",
+      "account_name": "Caldrisa Dental Group",
+      "account_slug": "caldrisa_dental",
+      "artifacts": [
+        {
+          "format": "mbox",
+          "message_count": 7,
+          "path": "accounts/caldrisa_dental/emails.mbox",
+          "type": "email_thread"
+        },
+        {
+          "format": "pdf",
+          "has_text_layer": true,
+          "path": "accounts/caldrisa_dental/product_specification.pdf",
+          "type": "pdf"
+        },
+        {
+          "format": "pdf",
+          "has_text_layer": true,
+          "path": "accounts/caldrisa_dental/data_processing_addendum.pdf",
+          "type": "pdf"
+        },
+        {
+          "format": "docx",
+          "path": "accounts/caldrisa_dental/compliance_memo.docx",
+          "type": "docx"
+        },
+        {
+          "format": "markdown",
+          "path": "accounts/caldrisa_dental/meeting_2026_04_18_clinical.md",
+          "type": "meeting_transcript"
+        },
+        {
+          "format": "markdown",
+          "path": "accounts/caldrisa_dental/meeting_2026_04_29_compliance.md",
+          "type": "meeting_transcript"
+        },
+        {
+          "format": "markdown",
+          "path": "accounts/caldrisa_dental/meeting_2026_05_07_pilot_scope.md",
+          "type": "meeting_transcript"
+        }
+      ]
+    }
+  ],
+  "crm": {
+    "accounts": "crm/accounts.csv",
+    "activities": "crm/activities.csv",
+    "contacts": "crm/contacts.csv",
+    "contracts": "crm/contracts.csv",
+    "opportunities": "crm/opportunities.csv",
+    "users": "crm/users.csv"
+  },
+  "reference_date": "2026-05-13"
+}

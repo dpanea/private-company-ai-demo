@@ -1,0 +1,4 @@
+account_id,account_name,account_type,industry,website,phone,billing_country,billing_city,owner_id,parent_account_id,created_at,updated_at,source_url,raw_record_id,raw_record_hash
+SYN_ACC_0001,Brannfeld Industrial GmbH,Prospect,Industrial automation / manufacturing,https://brannfeld-industrial.example,+49 89 5550 100,Germany,Munich,SYN_USR_0001,,2026-03-20T08:00:00+00:00,2026-05-12T09:00:00+00:00,,CRM_ACC_0001,hash_account_0001
+SYN_ACC_0002,Rynvoss Logistics BV,Prospect,Logistics / freight,https://rynvoss-logistics.example,+31 10 555 2100,Netherlands,Rotterdam,SYN_USR_0001,,2026-03-20T08:00:00+00:00,2026-05-11T09:00:00+00:00,,CRM_ACC_0002,hash_account_0002
+SYN_ACC_0003,Caldrisa Dental Group,Prospect,Healthcare / dental clinic chain,https://caldrisa-dental.example,+34 91 555 3100,Spain,Madrid,SYN_USR_0001,,2026-03-20T08:00:00+00:00,2026-05-10T09:00:00+00:00,,CRM_ACC_0003,hash_account_0003

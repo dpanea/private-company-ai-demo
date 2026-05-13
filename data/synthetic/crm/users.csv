@@ -1,0 +1,2 @@
+user_id,name,email,is_active,profile_or_role,created_at,updated_at
+SYN_USR_0001,Daniel Panea Lichtig,daniel@danielpanea.com,true,Principal Architect,2026-05-13T09:00:00+00:00,2026-05-13T09:00:00+00:00

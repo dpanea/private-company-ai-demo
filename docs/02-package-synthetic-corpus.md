@@ -13,7 +13,7 @@
 ```text
 data/synthetic/
 ├── accounts/
-│   ├── tannmark_industrial/
+│   ├── brannfeld_industrial/
 │   │   ├── emails.mbox
 │   │   ├── proposal_2026_q2.pdf
 │   │   ├── signed_nda_scanned.pdf            # deliberately scanned + slightly rotated for OCR demo
@@ -21,9 +21,9 @@ data/synthetic/
 │   │   ├── meeting_2026_04_15_intro.md
 │   │   ├── meeting_2026_04_28_technical.md
 │   │   └── meeting_2026_05_02_stakeholder.md
-│   ├── maasvalk_logistics/
+│   ├── rynvoss_logistics/
 │   │   └── (similar shape)
-│   └── velmara_dental/
+│   └── caldrisa_dental/
 │       └── (similar shape)
 ├── crm/
 │   ├── accounts.csv
@@ -72,9 +72,9 @@ Every account name, contact name, email domain, and product name in the corpus m
 - Industry-mismatched real brand names (e.g., "Iberia Dental" — Iberia is a major airline; using it as a dental brand is nonsensical and confusing).
 - Names that collide with well-known European Mittelstand brands.
 
-The current three names (Tannmark Industrial GmbH, Maasvalk Logistics BV, Velmara Dental Group) were chosen as invented portmanteaus and should be re-verified once before the corpus is published. If a collision is discovered, replace the name throughout the codebase before shipping — the names appear in account IDs, email domains, file paths, story arcs, and embedded prose, so a global rename via `grep -ri` is required.
+The current three names (Brannfeld Industrial GmbH, Rynvoss Logistics BV, Caldrisa Dental Group) were chosen as invented portmanteaus and should be re-verified once before the corpus is published. If a collision is discovered, replace the name throughout the codebase before shipping — the names appear in account IDs, email domains, file paths, story arcs, and embedded prose, so a global rename via `grep -ri` is required.
 
-### Account 1: Tannmark Industrial GmbH
+### Account 1: Brannfeld Industrial GmbH
 
 - **Industry:** Industrial automation / manufacturing
 - **Country:** Germany (Bavaria)
@@ -88,7 +88,7 @@ The current three names (Tannmark Industrial GmbH, Maasvalk Logistics BV, Velmar
   - 1 account plan docx (~2 pages, internal Daniel-style notes)
   - 3 meeting transcripts (.md, speaker-labeled)
 
-### Account 2: Maasvalk Logistics
+### Account 2: Rynvoss Logistics
 
 - **Industry:** Logistics / freight
 - **Country:** Netherlands (Rotterdam)
@@ -102,7 +102,7 @@ The current three names (Tannmark Industrial GmbH, Maasvalk Logistics BV, Velmar
   - 1 account plan docx
   - 2 meeting transcripts (intro + procurement question call)
 
-### Account 3: Velmara Dental Group
+### Account 3: Caldrisa Dental Group
 
 - **Industry:** Healthcare / dental clinic chain
 - **Country:** Spain (Madrid) — note: account is Spanish-headquartered but **all content is in English** per the language decision in [00-overview.md](00-overview.md). Treat it as an international group with English business operations.
@@ -112,6 +112,7 @@ The current three names (Tannmark Industrial GmbH, Maasvalk Logistics BV, Velmar
 - **Source artifacts:**
   - 7 emails
   - 1 product specification PDF (~3 pages)
+  - 1 data processing addendum PDF (clean text-based)
   - 1 compliance memo docx
   - 3 meeting transcripts
 
@@ -128,7 +129,7 @@ These guidelines exist because the demo's credibility depends on the content fee
   - One email with a clear unresolved question (used by alerts in Package 4).
   - One email with positive customer signal (e.g. "this looks great, let's move forward with…").
   - One email that explicitly raises a procurement, security, or compliance concern.
-- Email domains should match the account: `*@tannmark-industrial.de`, `*@maasvalk-logistics.nl`, `*@velmara-dental.es`. Daniel's side uses `*@danielpanea.com`.
+- Email domains should match the account: `*@brannfeld-industrial.de`, `*@rynvoss-logistics.nl`, `*@caldrisa-dental.es`. Daniel's side uses `*@danielpanea.com`.
 - Use plausible business sentences, not lorem ipsum. ~80–250 words per email.
 
 ### Proposal and product-spec PDFs
@@ -165,10 +166,10 @@ This produces a PDF that *looks like* a faxed/scanned legal document. Package 3 
 - Plain Markdown with speaker labels, e.g.:
 
   ```markdown
-  # Meeting: Tannmark — Technical deep-dive
+  # Meeting: Brannfeld — Technical deep-dive
 
   **Date:** 2026-04-28
-  **Attendees:** Lukas Wagner (Tannmark IT Lead), Daniel Panea, Stefan Möller (Tannmark Operations Director)
+  **Attendees:** Lukas Wagner (Brannfeld IT Lead), Daniel Panea, Stefan Möller (Brannfeld Operations Director)
 
   ---
 
@@ -200,7 +201,7 @@ Field shapes match the Pydantic models from Package 1. IDs use a clear synthetic
 
 - Use consistent dates throughout: emails, meetings, activities, and contract dates should tell the same story per account.
 - Anchor "today" at **2026-05-13** (the date of spec authoring) so retrieval logic for "what changed this week" makes sense. The `generate_synthetic.py` script accepts a `--reference-date` parameter that defaults to `2026-05-13` so dates can be shifted later without rewriting content.
-- Most recent activity per account should be within the last 14 days for Tannmark and Velmara, and ~21 days ago for Maasvalk (to make the "stalled" alert fire).
+- Most recent activity per account should be within the last 14 days for Brannfeld and Caldrisa, and ~21 days ago for Rynvoss (to make the "stalled" alert fire).
 
 ## manifest.json
 
@@ -212,34 +213,34 @@ A machine-readable index that Package 3 reads to discover artifacts:
   "accounts": [
     {
       "account_id": "SYN_ACC_0001",
-      "account_slug": "tannmark_industrial",
-      "account_name": "Tannmark Industrial GmbH",
+      "account_slug": "brannfeld_industrial",
+      "account_name": "Brannfeld Industrial GmbH",
       "artifacts": [
         {
-          "path": "accounts/tannmark_industrial/emails.mbox",
+          "path": "accounts/brannfeld_industrial/emails.mbox",
           "type": "email_thread",
           "format": "mbox"
         },
         {
-          "path": "accounts/tannmark_industrial/proposal_2026_q2.pdf",
+          "path": "accounts/brannfeld_industrial/proposal_2026_q2.pdf",
           "type": "pdf",
           "format": "pdf",
           "has_text_layer": true
         },
         {
-          "path": "accounts/tannmark_industrial/signed_nda_scanned.pdf",
+          "path": "accounts/brannfeld_industrial/signed_nda_scanned.pdf",
           "type": "pdf",
           "format": "pdf",
           "has_text_layer": false,
           "requires_ocr": true
         },
         {
-          "path": "accounts/tannmark_industrial/account_plan.docx",
+          "path": "accounts/brannfeld_industrial/account_plan.docx",
           "type": "docx",
           "format": "docx"
         },
         {
-          "path": "accounts/tannmark_industrial/meeting_2026_04_15_intro.md",
+          "path": "accounts/brannfeld_industrial/meeting_2026_04_15_intro.md",
           "type": "meeting_transcript",
           "format": "markdown"
         }
@@ -272,7 +273,7 @@ uv run python scripts/generate_synthetic.py --output data/synthetic [--reference
 
 - The CRM-side data shape (account / contact / opportunity / contract / activity records) can be patterned after [core/synthetic.py](../../uniendo-nodos-private-ai/src/un_private_ai/core/synthetic.py), but **content must be rewritten** to:
   - English
-  - The three new accounts (Tannmark, Maasvalk, Velmara Dental)
+  - The three new accounts (Brannfeld, Rynvoss, Caldrisa Dental)
   - Story arcs documented above
 - Do **not** copy the Spanish account names (Comercio Norte Azul, etc.) — those are Uniendo Nodos client-flavored.
 

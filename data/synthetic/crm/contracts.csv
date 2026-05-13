@@ -1,0 +1,2 @@
+contract_id,account_id,opportunity_id_if_available,contract_number,status,start_date,end_date,activated_date,customer_signed_contact_id,owner_id,created_at,updated_at,source_url,raw_record_id,raw_record_hash
+SYN_CTR_0001,SYN_ACC_0003,SYN_OPP_0003,CAL-PILOT-DRAFT-2026-01,Draft,2026-06-01,2026-07-15,,SYN_CON_0008,SYN_USR_0001,2026-05-10T09:00:00+00:00,2026-05-12T09:00:00+00:00,,CRM_CTR_0001,hash_contract_0001

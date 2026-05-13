@@ -10,7 +10,27 @@ This repository serves three purposes:
 
 ## Repository status
 
-This repository currently contains specifications only. Implementation is planned across six packages documented in [`docs/`](docs/). See [docs/00-overview.md](docs/00-overview.md) for the orchestration plan.
+This repository is being implemented across six packages documented in [`docs/`](docs/). See [docs/00-overview.md](docs/00-overview.md) for the orchestration plan.
+
+## Installation
+
+Python dependencies are managed with `uv`:
+
+```bash
+uv sync
+```
+
+Synthetic scanned-PDF generation uses `pdf2image`, which requires Poppler command-line tools. On Debian or Ubuntu:
+
+```bash
+sudo apt-get install poppler-utils
+```
+
+Generate the synthetic corpus with:
+
+```bash
+uv run python scripts/generate_synthetic.py --output data/synthetic --reference-date 2026-05-13 --clean
+```
 
 ## Demo scope vs. production scope
 
