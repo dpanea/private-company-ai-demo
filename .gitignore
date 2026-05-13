@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# uv
+.uv/
+
+# Environments and secrets
+.env
+.env.local
+.env.production
+*.pem
+*.key
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Test and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Build artifacts
+*.log
+
+# Database dumps
+*.sql.gz
+dump.sql
+
+# Locally generated artifact images (PDF page rasters)
+data/rendered/
+
+# Hugging Face model cache (sovereign deployment)
+huggingface_cache/
+
+# Node modules (only if frontend tooling is ever added — currently none)
+node_modules/
