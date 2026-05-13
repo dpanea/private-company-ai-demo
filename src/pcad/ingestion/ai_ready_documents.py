@@ -60,6 +60,7 @@ class DocumentBuilder:
         self.dataset = dataset
         self.users = {u.user_id: u for u in dataset.users}
         self.accounts = {a.account_id: a for a in dataset.accounts}
+        self.opps_by_id = {o.opportunity_id: o for o in dataset.opportunities}
         self.contacts_by_account = self._group(dataset.contacts, "account_id")
         self.opps_by_account = self._group(dataset.opportunities, "account_id")
         self.contracts_by_account = self._group(dataset.contracts, "account_id")
@@ -69,6 +70,7 @@ class DocumentBuilder:
         self.meeting_summaries = meeting_summaries or []
         self.raw_artifacts = raw_artifacts or dataset.raw_artifacts
         self.raw_by_id = {artifact.artifact_id: artifact for artifact in self.raw_artifacts}
+        self.raw_artifacts_by_account = self._group(self.raw_artifacts, "account_id")
         self.email_threads_by_account = self._group(self.email_threads, "account_id")
         self.meetings_by_account = self._group(self.meeting_summaries, "account_id")
 
@@ -183,7 +185,7 @@ class DocumentBuilder:
 
     def contract_snapshot(self, contract: Contract) -> RagDocument:
         account = self.accounts[contract.account_id]
-        opportunity = next((o for o in self.dataset.opportunities if o.opportunity_id == contract.opportunity_id_if_available), None)
+        opportunity = self.opps_by_id.get(contract.opportunity_id_if_available) if contract.opportunity_id_if_available else None
         activities = _recent(self.activities_by_account.get(account.account_id, []), 5)
         doc_id = f"contract_snapshot:{contract.contract_id}"
         content = _section_lines(
@@ -275,10 +277,9 @@ class DocumentBuilder:
     def risk_summary(self, account: Account) -> RagDocument:
         doc_id = f"risk_summary:{account.account_id}"
         risks: list[tuple[str, str, str]] = []
-        for artifact in self.raw_artifacts:
-            if artifact.account_id == account.account_id:
-                for sentence in _risk_sentences(artifact.extracted_text):
-                    risks.append((artifact.artifact_id, artifact.title, sentence))
+        for artifact in self.raw_artifacts_by_account.get(account.account_id, []):
+            for sentence in _risk_sentences(artifact.extracted_text):
+                risks.append((artifact.artifact_id, artifact.title, sentence))
         for activity in self.activities_by_account.get(account.account_id, []):
             text = " ".join(part for part in [activity.subject, activity.description] if part)
             if activity.priority == "High" and activity.status != "Completed":

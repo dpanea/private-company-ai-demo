@@ -21,18 +21,6 @@ CSV_MODELS: dict[str, type[BaseModel]] = {
 }
 
 
-def parse_crm_csvs(crm_dir: Path) -> SyntheticDataset:
-    """Load the six CRM CSVs into a SyntheticDataset."""
-    return SyntheticDataset(
-        users=_load_csv(crm_dir / "users.csv", UserOwner),
-        accounts=_load_csv(crm_dir / "accounts.csv", Account),
-        contacts=_load_csv(crm_dir / "contacts.csv", Contact),
-        opportunities=_load_csv(crm_dir / "opportunities.csv", Opportunity),
-        contracts=_load_csv(crm_dir / "contracts.csv", Contract),
-        activities=_load_csv(crm_dir / "activities.csv", Activity),
-    )
-
-
 def parse_crm_manifest_csvs(synthetic_dir: Path, paths: dict[str, str]) -> SyntheticDataset:
     """Load CRM CSVs from manifest-relative paths."""
     return SyntheticDataset(

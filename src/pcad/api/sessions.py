@@ -44,10 +44,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
         token = request.cookies.get(self.settings.session_cookie_name)
         session_id = _load_signed_session_id(self.serializer, token, self.settings.session_ttl_days) if token else None
         if session_id:
-            existing = _get_session(self.settings, session_id)
-            if existing:
-                _touch_session(self.settings, session_id)
-                return _get_session(self.settings, session_id) or existing
+            refreshed = _touch_and_load_session(self.settings, session_id)
+            if refreshed:
+                return refreshed
         return create_session(self.settings)
 
 
@@ -82,19 +81,18 @@ def _load_signed_session_id(serializer: URLSafeTimedSerializer, token: str | Non
     return payload["sid"]
 
 
-def _get_session(settings: Settings, session_id: str) -> Session | None:
+def _touch_and_load_session(settings: Settings, session_id: str) -> Session | None:
+    """Refresh expiry and return the session in a single round-trip, or None if expired/missing."""
     with connect_dict(settings) as conn:
         row = conn.execute(
-            "SELECT * FROM sessions WHERE session_id = %s AND expires_at > now()",
-            (session_id,),
-        ).fetchone()
-    return Session.model_validate(dict(row)) if row else None
-
-
-def _touch_session(settings: Settings, session_id: str) -> None:
-    with connect_dict(settings) as conn:
-        conn.execute(
-            "UPDATE sessions SET last_seen_at = now(), expires_at = now() + (%s || ' days')::interval WHERE session_id = %s",
+            """
+            UPDATE sessions
+            SET last_seen_at = now(),
+                expires_at = now() + (%s || ' days')::interval
+            WHERE session_id = %s AND expires_at > now()
+            RETURNING session_id, created_at, last_seen_at, expires_at
+            """,
             (settings.session_ttl_days, session_id),
-        )
+        ).fetchone()
         conn.commit()
+    return Session.model_validate(dict(row)) if row else None

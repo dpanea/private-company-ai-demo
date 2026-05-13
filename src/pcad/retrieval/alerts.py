@@ -1,23 +1,12 @@
 from __future__ import annotations
 
 import hashlib
-import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
-
-from psycopg.types.json import Jsonb
 
 from pcad.config import Settings
 from pcad.db import connect_dict
 from pcad.models import ProactiveAlert
-
-
-OBJECTION_RE = re.compile(r"\b(concern|objection|blocker|issue with|worried about|blocked)\b", re.IGNORECASE)
-RESOLVED_RE = re.compile(r"\b(resolved|addressed|answered|followed up)\b", re.IGNORECASE)
-POSITIVE_RE = re.compile(
-    r"(let's move forward|ready to proceed|looks great|approved by|we're on board)",
-    re.IGNORECASE,
-)
 
 
 class ProactiveAlertGenerator:
@@ -117,7 +106,12 @@ def _approaching_close_date(conn: Any, account_id: str, today: date) -> list[Pro
     alerts = []
     for row in rows:
         days = (row["close_date"] - today).days if row["close_date"] else 999
-        severity = "critical" if days <= 0 and not row["is_closed"] else "warning"
+        if days <= 0:
+            severity = "critical"
+        elif days <= 7:
+            severity = "warning"
+        else:
+            severity = "info"
         alerts.append(
             _new_alert(
                 account_id,
@@ -144,13 +138,14 @@ def _stalled_account(conn: Any, account_id: str, today: date) -> list[ProactiveA
 def _unresolved_objection(conn: Any, account_id: str, session_id: str | None) -> list[ProactiveAlert]:
     rows = conn.execute(
         """
-        SELECT doc_id, title, content_markdown, source_record_ids, generated_at
+        SELECT doc_id, title, content_markdown, source_record_ids,
+               coalesce(last_source_updated_at, generated_at) AS objection_at
         FROM rag_documents
         WHERE account_id = %s
           AND (session_id IS NULL OR session_id = %s)
           AND doc_type IN ('email_thread_summary', 'meeting_summary')
           AND content_markdown ~* '(concern|objection|blocker|issue with|worried about|blocked)'
-        ORDER BY generated_at
+        ORDER BY objection_at
         """,
         (account_id, session_id),
     ).fetchall()
@@ -158,11 +153,14 @@ def _unresolved_objection(conn: Any, account_id: str, session_id: str | None) ->
     for row in rows:
         later = conn.execute(
             """
-            SELECT subject, description FROM activities
-            WHERE account_id = %s AND coalesce(description, '') || ' ' || coalesce(subject, '') ~* '(resolved|addressed|answered|followed up)'
+            SELECT 1 FROM activities
+            WHERE account_id = %s
+              AND activity_date > %s::timestamptz
+              AND coalesce(description, '') || ' ' || coalesce(subject, '') ~* '(resolved|addressed|answered|followed up)'
+            ORDER BY activity_date ASC
             LIMIT 1
             """,
-            (account_id,),
+            (account_id, row["objection_at"]),
         ).fetchone()
         if later:
             continue
@@ -212,11 +210,12 @@ def _champion_positive_signal(conn: Any, account_id: str, session_id: str | None
         WHERE account_id = %s
           AND (session_id IS NULL OR session_id = %s)
           AND doc_type IN ('email_thread_summary', 'meeting_summary')
+          AND coalesce(last_source_updated_at, generated_at) >= %s::timestamptz
           AND content_markdown ~* '(let''s move forward|ready to proceed|looks great|approved by|we''re on board)'
         ORDER BY generated_at DESC
         LIMIT 3
         """,
-        (account_id, session_id),
+        (account_id, session_id, cutoff),
     ).fetchall()
     alerts = []
     for row in rows:

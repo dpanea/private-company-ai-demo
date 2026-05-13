@@ -7,7 +7,10 @@ from typing import Literal
 from pdf2image import convert_from_path
 from pypdf import PdfReader
 
-from pcad.ingestion.ocr import ocr_pdf
+from pcad.ingestion.ocr import ocr_images
+
+
+RENDER_DPI = 200  # high enough for both readable PNG display and Tesseract OCR
 
 
 @dataclass(frozen=True)
@@ -25,14 +28,26 @@ def parse_pdf(
     rendered_root: Path | None = None,
     artifact_id: str | None = None,
 ) -> ParsedPdf:
-    """Extract text and optional page renderings from a PDF."""
+    """Extract text from a PDF and optionally save page renderings.
+
+    PDFs without a text layer fall back to OCR. Pages are rasterized once at
+    `RENDER_DPI` and the resulting PIL images are reused for both OCR input and
+    the saved PNGs in `rendered_root`.
+    """
     reader = PdfReader(path)
     text_per_page = [(page.extract_text() or "").strip() for page in reader.pages]
     extraction_method: Literal["plain_text", "ocr"] = "plain_text"
-    if sum(len(text) for text in text_per_page) < 50 and ocr_fallback:
-        text_per_page = ocr_pdf(path)
-        extraction_method = "ocr"
-    rendered_paths = render_pdf_pages(path, rendered_root, artifact_id) if rendered_root else []
+    needs_ocr = sum(len(text) for text in text_per_page) < 50 and ocr_fallback
+    rendered_paths: list[Path] = []
+
+    if needs_ocr or rendered_root is not None:
+        images = convert_from_path(path, dpi=RENDER_DPI)
+        if needs_ocr:
+            text_per_page = ocr_images(images)
+            extraction_method = "ocr"
+        if rendered_root is not None:
+            rendered_paths = _save_pages(images, rendered_root, artifact_id or path.stem)
+
     return ParsedPdf(
         page_count=len(reader.pages),
         text_per_page=text_per_page,
@@ -41,18 +56,15 @@ def parse_pdf(
     )
 
 
-def render_pdf_pages(path: Path, rendered_root: Path | None, artifact_id: str | None) -> list[Path]:
-    if rendered_root is None:
-        return []
-    target = rendered_root / _safe_path_part(artifact_id or path.stem)
+def _save_pages(images: list, rendered_root: Path, artifact_id: str) -> list[Path]:
+    target = rendered_root / _safe_path_part(artifact_id)
     target.mkdir(parents=True, exist_ok=True)
-    images = convert_from_path(path, dpi=150)
-    rendered_paths: list[Path] = []
+    paths: list[Path] = []
     for index, image in enumerate(images, start=1):
-        rendered_path = target / f"page_{index}.png"
-        image.save(rendered_path, "PNG")
-        rendered_paths.append(rendered_path)
-    return rendered_paths
+        out = target / f"page_{index}.png"
+        image.save(out, "PNG")
+        paths.append(out)
+    return paths
 
 
 def _safe_path_part(value: str) -> str:

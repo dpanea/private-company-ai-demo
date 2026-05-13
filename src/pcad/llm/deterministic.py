@@ -4,6 +4,8 @@ import json
 from collections.abc import Iterator
 from typing import Any
 
+from pcad.llm.client import TokenUsage
+
 
 class DeterministicLlm:
     """Small deterministic LLM test double used by package-4 tests."""
@@ -11,10 +13,14 @@ class DeterministicLlm:
     def __init__(self, response: str | None = None) -> None:
         self.response = response
         self.calls: list[list[dict[str, str]]] = []
+        self.last_usage = TokenUsage()
 
     def embed(self, text: str) -> list[float]:
         seed = sum(ord(ch) for ch in text) or 1
         return [float((seed + index) % 997) / 997.0 for index in range(8)]
+
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        return [self.embed(text) for text in texts]
 
     def complete(
         self,

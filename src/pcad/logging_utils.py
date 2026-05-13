@@ -16,14 +16,12 @@ COLORS = {
     "CRITICAL": "\033[35m",
     "CLI": "\033[36m",
     "AGENT": "\033[35m",
-    "INTENT": "\033[94m",
+    "API": "\033[94m",
+    "INGESTION": "\033[95m",
+    "LLM": "\033[92m",
     "RETRIEVAL": "\033[34m",
-    "OPENROUTER": "\033[92m",
     "POSTGRES": "\033[33m",
-    "DOCUMENTS": "\033[95m",
-    "SYNTHETIC": "\033[96m",
     "CONFIG": "\033[90m",
-    "TESTS": "\033[37m",
     "APP": "\033[37m",
 }
 
@@ -82,13 +80,6 @@ def configure_logging(level: str = "INFO", color: str | None = None) -> None:
                 handler.setFormatter(ComponentFormatter(use_color=use_color))
 
 
-def safe_count(value: object) -> int:
-    try:
-        return len(value)  # type: ignore[arg-type]
-    except TypeError:
-        return 0
-
-
 def _should_use_color(color_mode: str) -> bool:
     if color_mode in {"1", "true", "yes", "always"}:
         return True
@@ -108,16 +99,14 @@ def _component_for_logger(name: str) -> str:
     module = parts[1] if len(parts) > 1 else "app"
     return {
         "agent": "AGENT",
+        "api": "API",
         "cli": "CLI",
         "config": "CONFIG",
         "db": "POSTGRES",
-        "documents": "DOCUMENTS",
-        "intent": "INTENT",
+        "ingestion": "INGESTION",
+        "llm": "LLM",
         "migrations": "POSTGRES",
-        "openrouter": "OPENROUTER",
-        "postgres": "POSTGRES",
         "retrieval": "RETRIEVAL",
-        "synthetic": "SYNTHETIC",
     }.get(module, "APP")
 
 

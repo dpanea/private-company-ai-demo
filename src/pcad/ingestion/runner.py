@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import psycopg
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
@@ -386,12 +385,13 @@ def _insert_raw_artifacts(conn: Connection[Any], raw_artifacts: list[RawArtifact
 
 
 def _insert_rag_documents(conn: Connection[Any], docs: list[RagDocument]) -> None:
-    for doc in docs:
-        conn.execute(
-            """
-            INSERT INTO rag_documents (doc_id, doc_type, title, content_markdown, metadata_json, source_record_ids, source_record_hashes, account_id, opportunity_id, contract_id, owner_id, session_id, last_source_updated_at, generated_at, source_hash)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """,
+    cur = conn.cursor()
+    cur.executemany(
+        """
+        INSERT INTO rag_documents (doc_id, doc_type, title, content_markdown, metadata_json, source_record_ids, source_record_hashes, account_id, opportunity_id, contract_id, owner_id, session_id, last_source_updated_at, generated_at, source_hash)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        [
             (
                 doc.doc_id,
                 doc.doc_type,
@@ -408,9 +408,13 @@ def _insert_rag_documents(conn: Connection[Any], docs: list[RagDocument]) -> Non
                 doc.last_source_updated_at,
                 doc.generated_at,
                 doc.source_hash,
-            ),
-        )
-        _insert_citations(conn, doc.citations)
+            )
+            for doc in docs
+        ],
+    )
+    all_citations = [citation for doc in docs for citation in doc.citations]
+    if all_citations:
+        _insert_citations(conn, all_citations)
 
 
 def _insert_citations(conn: Connection[Any], citations: list[SourceCitation]) -> None:

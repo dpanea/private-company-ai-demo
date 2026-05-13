@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
+from typing import Any
 
 import pytesseract
-from pdf2image import convert_from_path
 
 
 logger = logging.getLogger(__name__)
 
 
-def ocr_pdf(path: Path) -> list[str]:
-    """OCR a PDF page by page using Tesseract."""
-    pages = convert_from_path(path, dpi=200)
-    text_per_page = [pytesseract.image_to_string(page, lang="eng").strip() for page in pages]
+def ocr_images(images: list[Any]) -> list[str]:
+    """OCR a list of PIL images page by page using Tesseract."""
+    text_per_page = [pytesseract.image_to_string(image, lang="eng").strip() for image in images]
     total_chars = sum(len(text) for text in text_per_page)
-    logger.info("ocr.pdf.done path=%s pages=%s chars=%s", path, len(pages), total_chars)
+    logger.info("ocr.pages.done pages=%s chars=%s", len(images), total_chars)
     return text_per_page
 

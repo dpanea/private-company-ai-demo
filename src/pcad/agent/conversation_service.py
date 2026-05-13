@@ -16,7 +16,7 @@ from pcad.config import Settings
 from pcad.db import connect_dict
 from pcad.llm.citations import citation_label, normalize_citation_format, repair_missing_citations, validate_citations
 from pcad.llm.client import LlmClient, OpenAICompatibleClient
-from pcad.llm.prompts import DEFAULT_CONTEXT_TOKEN_BUDGET, DEFAULT_GENERATION_MAX_ATTEMPTS, RESPONSE_MAX_TOKENS, build_answer_messages, estimate_tokens, render_context_prompt
+from pcad.llm.prompts import DEFAULT_CONTEXT_TOKEN_BUDGET, DEFAULT_GENERATION_MAX_ATTEMPTS, RESPONSE_MAX_TOKENS, build_answer_messages, render_context_prompt
 from pcad.models import ConversationMessage, ConversationThread
 from pcad.retrieval.alerts import ProactiveAlertGenerator
 from pcad.retrieval.intent import IntentResolver, IntentResult
@@ -188,7 +188,9 @@ class ConversationService:
             return
 
         yield _sse("status", {"status": "generating"})
-        messages = _messages_for_prepared(prepared, self.settings.context_token_budget or DEFAULT_CONTEXT_TOKEN_BUDGET)
+        budget = self.settings.context_token_budget or DEFAULT_CONTEXT_TOKEN_BUDGET
+        context_prompt = render_context_prompt(prepared.pack, token_budget=budget)
+        messages = build_answer_messages(context_prompt, attempt=1, previous_answer="", previous_validation={})
         accumulated: list[str] = []
         stream_fn = getattr(self.llm_client, "complete_stream", None)
         if callable(stream_fn):
@@ -205,10 +207,12 @@ class ConversationService:
             raw_answer = self.llm_client.complete(messages, max_tokens=RESPONSE_MAX_TOKENS)
             yield _sse("token", {"content": raw_answer})
 
-        answer, validation = self._finalize_answer_text(prepared, raw_answer)
+        answer, validation = self._finalize_answer_text(prepared, raw_answer, context_prompt)
         if answer != raw_answer:
-            yield _sse("token", {"content": answer[len(raw_answer):] if answer.startswith(raw_answer) else ""})
-        record_token_usage(self.settings, tokens_in=estimate_tokens(render_context_prompt(prepared.pack)), tokens_out=estimate_tokens(answer))
+            yield _sse("replace", {"content": answer})
+        usage = getattr(self.llm_client, "last_usage", None)
+        if usage and (usage.prompt_tokens or usage.completion_tokens):
+            record_token_usage(self.settings, tokens_in=usage.prompt_tokens, tokens_out=usage.completion_tokens)
         yield from self._finalize_answer(thread_id, clean, prepared, answer, validation, session_id)
 
     def _prepare_pipeline(
@@ -240,14 +244,18 @@ class ConversationService:
         pack = self.retriever.build_context_pack(user_request, plan, fresh, conversation_history=history or [])
         return PreparedPipeline(intent=intent, account_id=account_id, account_name=account_name, pack=pack, new_doc_ids=[item["doc_id"] for item in pack["retrieved_documents"]])
 
-    def _finalize_answer_text(self, prepared: PreparedPipeline, raw_answer: str) -> tuple[str, dict[str, Any]]:
+    def _finalize_answer_text(
+        self,
+        prepared: PreparedPipeline,
+        raw_answer: str,
+        context_prompt: str,
+    ) -> tuple[str, dict[str, Any]]:
         answer = normalize_citation_format(raw_answer, prepared.pack)
         validation = validate_citations(answer, prepared.pack)
         attempts = max(1, self.settings.agent_generation_max_attempts or DEFAULT_GENERATION_MAX_ATTEMPTS)
         for attempt in range(2, attempts + 1):
             if validation["valid"]:
                 break
-            context_prompt = render_context_prompt(prepared.pack, token_budget=self.settings.context_token_budget)
             messages = build_answer_messages(context_prompt, attempt=attempt, previous_answer=answer, previous_validation=validation)
             answer = normalize_citation_format(self.llm_client.complete(messages, max_tokens=RESPONSE_MAX_TOKENS), prepared.pack)
             validation = validate_citations(answer, prepared.pack)
@@ -374,11 +382,6 @@ def _workflow_seed_to_prompt(seed: str, account_name: str) -> str:
     if seed not in WORKFLOW_SEEDS:
         raise ValueError(f"Unknown workflow_seed {seed!r}")
     return WORKFLOW_SEEDS[seed].format(account_name=account_name)
-
-
-def _messages_for_prepared(prepared: PreparedPipeline, context_token_budget: int) -> list[dict[str, str]]:
-    context_prompt = render_context_prompt(prepared.pack, token_budget=context_token_budget)
-    return build_answer_messages(context_prompt, attempt=1, previous_answer="", previous_validation={})
 
 
 def _account_resolution_error_answer(error: AccountResolutionError) -> str:

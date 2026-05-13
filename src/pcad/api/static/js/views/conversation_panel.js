@@ -109,16 +109,13 @@ async function sendCurrentMessage(account, text) {
     onToken(token) {
       state.set("streamingTokens", `${state.get("streamingTokens")}${token.content || ""}`);
     },
-    async onDone(payload) {
+    onReplace(payload) {
+      state.set("streamingTokens", payload.content || "");
+    },
+    onDone(payload) {
       appendMessage(threadId, payload.assistant_message);
       if (payload.thread) {
         state.set("threads", [payload.thread, ...state.get("threads").filter((thread) => thread.thread_id !== payload.thread.thread_id)]);
-      }
-      try {
-        const messages = await listMessages(threadId);
-        state.update("messagesByThread", (current) => ({ ...current, [threadId]: messages }));
-      } catch {
-        // The stream already delivered the final message; refreshing is best effort.
       }
       state.set("isStreaming", false);
       state.set("streamingThreadId", null);

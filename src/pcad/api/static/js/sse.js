@@ -68,6 +68,7 @@ function dispatchSseEvent(rawEvent, handlers) {
   if (eventName === "user_message") handlers.onUserMessage?.(data);
   if (eventName === "status") handlers.onStatus?.(data);
   if (eventName === "token") handlers.onToken?.(data);
+  if (eventName === "replace") handlers.onReplace?.(data);
   if (eventName === "done") handlers.onDone?.(data);
   if (eventName === "error") handlers.onError?.(data);
 }

@@ -4,7 +4,6 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
 
 from pcad.config import Settings
 from pcad.db import connect_dict
@@ -14,6 +13,11 @@ BUDGET_MESSAGE = (
     "The public demo has hit its daily budget for this account. The system is still here to demonstrate the architecture — "
     "try again tomorrow, or book a private walkthrough for live interaction."
 )
+
+# Evict bucket entries whose `updated_at` is older than `EVICTION_FACTOR * window_seconds`.
+# Bounds memory when many unique IPs / sessions hit the limiter and never return.
+EVICTION_FACTOR = 4
+MAX_BUCKETS = 10_000
 
 
 @dataclass
@@ -45,11 +49,19 @@ class InMemoryRateLimiter:
         with self._lock:
             bucket = self._buckets.get(key)
             if bucket is None:
+                self._evict_stale(window_seconds)
                 bucket = TokenBucket(limit, window_seconds, float(limit), time.monotonic())
                 self._buckets[key] = bucket
             bucket.capacity = limit
             bucket.refill_seconds = window_seconds
             return bucket.allow()
+
+    def _evict_stale(self, window_seconds: float) -> None:
+        if len(self._buckets) < MAX_BUCKETS:
+            return
+        cutoff = time.monotonic() - EVICTION_FACTOR * window_seconds
+        for key in [k for k, b in self._buckets.items() if b.updated_at < cutoff]:
+            del self._buckets[key]
 
 
 ip_rate_limiter = InMemoryRateLimiter()
@@ -58,7 +70,6 @@ session_message_limiter = InMemoryRateLimiter()
 
 def check_daily_budget(settings: Settings) -> bool:
     with connect_dict(settings) as conn:
-        _ensure_budget_table(conn)
         row = conn.execute(
             "SELECT coalesce(tokens_in, 0) + coalesce(tokens_out, 0) AS total FROM daily_budget_usage WHERE usage_date = %s",
             (date.today(),),
@@ -69,7 +80,6 @@ def check_daily_budget(settings: Settings) -> bool:
 
 def record_token_usage(settings: Settings, *, tokens_in: int = 0, tokens_out: int = 0, cost_estimate_eur: float = 0.0) -> None:
     with connect_dict(settings) as conn:
-        _ensure_budget_table(conn)
         conn.execute(
             """
             INSERT INTO daily_budget_usage (usage_date, tokens_in, tokens_out, cost_estimate_eur)
@@ -82,17 +92,3 @@ def record_token_usage(settings: Settings, *, tokens_in: int = 0, tokens_out: in
             (date.today(), tokens_in, tokens_out, cost_estimate_eur),
         )
         conn.commit()
-
-
-def _ensure_budget_table(conn: Any) -> None:
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS daily_budget_usage (
-            usage_date date PRIMARY KEY,
-            tokens_in integer NOT NULL DEFAULT 0,
-            tokens_out integer NOT NULL DEFAULT 0,
-            cost_estimate_eur numeric NOT NULL DEFAULT 0,
-            updated_at timestamptz NOT NULL DEFAULT now()
-        )
-        """
-    )

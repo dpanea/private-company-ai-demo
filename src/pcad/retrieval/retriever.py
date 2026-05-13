@@ -6,8 +6,6 @@ from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from psycopg.rows import dict_row
-
 from pcad.config import Settings
 from pcad.db import connect_dict
 from pcad.llm.client import EmbeddingClient
@@ -329,12 +327,10 @@ def _rrf_merge(*rankers: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
             if doc_id not in merged:
                 entry = dict(row)
                 entry["rrf_score"] = 0.0
-                entry["score"] = 0.0
                 entry["reasons"] = list(row.get("reasons") or [])
                 merged[doc_id] = entry
             entry = merged[doc_id]
             entry["rrf_score"] += contribution
-            entry["score"] = entry["rrf_score"] + DOC_TYPE_BOOSTS.get(entry["doc_type"], 0.0)
             for reason in row.get("reasons") or []:
                 if reason not in entry["reasons"]:
                     entry["reasons"].append(reason)
@@ -342,7 +338,11 @@ def _rrf_merge(*rankers: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
 
 
 def _rank_hybrid_results(rows: Iterable[dict[str, Any]], *, limit: int) -> list[dict[str, Any]]:
-    return sorted(rows, key=lambda row: (float(row["score"]), float(row.get("rrf_score", 0.0))), reverse=True)[:limit]
+    ranked = []
+    for row in rows:
+        row["score"] = row["rrf_score"] + DOC_TYPE_BOOSTS.get(row["doc_type"], 0.0)
+        ranked.append(row)
+    return sorted(ranked, key=lambda r: (float(r["score"]), float(r["rrf_score"])), reverse=True)[:limit]
 
 
 def _select_account_candidate(candidates: list[AccountCandidate]) -> AccountCandidate:

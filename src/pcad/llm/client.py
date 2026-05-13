@@ -5,7 +5,7 @@ import logging
 import urllib.error
 import urllib.request
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from pcad.config import Settings
@@ -14,11 +14,21 @@ from pcad.config import Settings
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class TokenUsage:
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+
+
 class EmbeddingClient(Protocol):
     def embed(self, text: str) -> list[float]: ...
 
+    def embed_batch(self, texts: list[str]) -> list[list[float]]: ...
+
 
 class LlmClient(Protocol):
+    last_usage: TokenUsage
+
     def complete(
         self,
         messages: list[dict[str, str]],
@@ -39,9 +49,14 @@ class LlmClient(Protocol):
 
 @dataclass
 class OpenAICompatibleClient:
-    """OpenAI-compatible chat completions and embeddings client."""
+    """OpenAI-compatible chat completions and embeddings client.
+
+    Records the last LLM call's `usage` block on `self.last_usage` so callers
+    (rate limiting, budget tracking) can use real token counts.
+    """
 
     settings: Settings
+    last_usage: TokenUsage = field(default_factory=TokenUsage)
 
     def _base_url(self) -> str:
         return getattr(self.settings, "llm_base_url", self.settings.openrouter_base_url).rstrip("/")
@@ -83,15 +98,20 @@ class OpenAICompatibleClient:
             raise RuntimeError(f"OpenAI-compatible request failed: {exc}") from exc
 
     def embed(self, text: str) -> list[float]:
-        payload: dict[str, Any] = {"model": self.settings.embedding_model, "input": text}
+        return self.embed_batch([text])[0]
+
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        payload: dict[str, Any] = {"model": self.settings.embedding_model, "input": texts}
         if self.settings.embedding_dimensions:
             payload["dimensions"] = self.settings.embedding_dimensions
         response = self._post("/embeddings", payload)
         try:
-            values = response["data"][0]["embedding"]
+            data = response["data"]
+            return [[float(v) for v in item["embedding"]] for item in data]
         except (KeyError, IndexError, TypeError) as exc:
             raise RuntimeError(f"Unexpected embedding response shape: {response}") from exc
-        return [float(value) for value in values]
 
     def complete(
         self,
@@ -111,6 +131,7 @@ class OpenAICompatibleClient:
         if response_format is not None:
             payload["response_format"] = response_format
         response = self._post("/chat/completions", payload)
+        self._record_usage(response.get("usage"))
         content = _extract_chat_content(response)
         if not content:
             choice = (response.get("choices") or [{}])[0]
@@ -154,6 +175,8 @@ class OpenAICompatibleClient:
                         data = json.loads(chunk)
                     except json.JSONDecodeError:
                         continue
+                    if "usage" in data and data["usage"]:
+                        self._record_usage(data["usage"])
                     delta = (data.get("choices") or [{}])[0].get("delta") or {}
                     text = delta.get("content")
                     if text:
@@ -162,6 +185,14 @@ class OpenAICompatibleClient:
             detail = exc.read().decode("utf-8", errors="replace")
             logger.error("llm.stream.failed status=%s", exc.code)
             raise RuntimeError(f"OpenAI-compatible HTTP {exc.code}: {detail}") from exc
+
+    def _record_usage(self, usage: dict[str, Any] | None) -> None:
+        if not usage:
+            return
+        self.last_usage = TokenUsage(
+            prompt_tokens=int(usage.get("prompt_tokens") or 0),
+            completion_tokens=int(usage.get("completion_tokens") or 0),
+        )
 
 
 def _extract_chat_content(response: dict[str, Any]) -> str:
