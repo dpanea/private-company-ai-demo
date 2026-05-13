@@ -550,10 +550,7 @@ dependencies = [
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
     { name = "pypdf" },
-<<<<<<< HEAD
-=======
     { name = "pytesseract" },
->>>>>>> codex/implement-ingestion
     { name = "python-docx" },
     { name = "python-dotenv" },
     { name = "reportlab" },
@@ -580,10 +577,7 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.0" },
     { name = "pydantic", specifier = ">=2.8.0" },
     { name = "pypdf", specifier = ">=4.0.0" },
-<<<<<<< HEAD
-=======
     { name = "pytesseract", specifier = ">=0.3.10" },
->>>>>>> codex/implement-ingestion
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23.0" },
     { name = "python-docx", specifier = ">=1.1.0" },
@@ -826,8 +820,6 @@ wheels = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
 name = "pytesseract"
 version = "0.3.13"
 source = { registry = "https://pypi.org/simple" }
@@ -841,7 +833,6 @@ wheels = [
 ]
 
 [[package]]
->>>>>>> codex/implement-ingestion
 name = "pytest"
 version = "9.0.3"
 source = { registry = "https://pypi.org/simple" }

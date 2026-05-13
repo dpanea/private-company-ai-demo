@@ -144,6 +144,10 @@ Specific microcopy that must appear somewhere visible:
 - Class names are stable enough for JS wiring (BEM, plain semantic names, or hash-free single names — all acceptable).
 - No `<script>` tags with logic. A single `<script type="module" src="/static/js/main.js"></script>` is added later by the coding agent.
 
+
+### Actual Claude Design output
+In design-reference/ you will find Two HTML pages, one for the landing page and one for the demo in itself. What is important is the general style layouts, fonts, etc. Not the specific text which will be adapted to our case and our context since the Claude design did not have sufficient context to fill in everything with the correct text.
+
 ### What the coding agent will add after Claude Design
 
 The coding agent (this Package 5's implementer) will:
