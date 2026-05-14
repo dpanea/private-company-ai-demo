@@ -141,19 +141,22 @@ docker compose up -d --build
 
 The app container runs migrations and bootstraps the demo corpus on first boot when `rag_documents` is empty. It binds to `127.0.0.1:8000`; use the Caddy config under [`deploy/caddy/`](deploy/caddy/) to terminate HTTPS and reverse-proxy traffic.
 
+### Sovereign Deployment With vLLM
+
 [`deploy/vllm/`](deploy/vllm/) contains the sovereign deployment path: a parallel compose file that swaps hosted chat completions for a local vLLM OpenAI-compatible server. The public demo does not use that stack.
 
-## Demo Scope vs Production Scope
+## Demo Scope vs. Production Scope
 
 This repository is a reference architecture, not a turnkey product. It intentionally does not include:
 
-- Incremental, event-driven ingestion sync.
+- Incremental and event-driven ingestion sync.
 - Format detection and content-type sniffing.
 - Production OCR for arbitrary scanned documents.
 - Deduplication and attachment recovery from email threads.
 - Mail thread reconstruction beyond `In-Reply-To` and `References` headers.
 - Schema evolution and migrations against live production data.
 - Per-user permissions, auth, row-level security, or multi-tenant isolation.
+- Multi-tenant isolation.
 - Audit logging, retention controls, dead-letter queues, and production observability.
 - Evaluation methodology, gold-question test sets, and hallucination measurement.
 - Backup, monitoring, model-rotation, and incident-response runbooks.

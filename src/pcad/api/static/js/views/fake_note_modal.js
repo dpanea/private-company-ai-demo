@@ -1,4 +1,4 @@
-import { addFakeNote, listFakeNotes } from "../api.js";
+import { addFakeNote, listAccountArtifacts, listFakeNotes } from "../api.js";
 import { state } from "../state.js";
 import { escapeHtml, qs, showToast, trapDialogFocus } from "../util/dom.js";
 
@@ -40,19 +40,42 @@ async function submitFakeNote(dialog, accountId) {
   }
 
   try {
+    setFakeNoteSubmitting(dialog, true);
     const result = await addFakeNote(accountId, payload);
     state.update("alertsByAccount", (alertsByAccount) => ({ ...alertsByAccount, [accountId]: result.alerts || alertsByAccount[accountId] || [] }));
-    const notes = await listFakeNotes(accountId);
+    const [notes, artifacts] = await Promise.all([listFakeNotes(accountId), listAccountArtifacts(accountId)]);
     state.update("fakeNotesByAccount", (notesByAccount) => ({ ...notesByAccount, [accountId]: notes }));
+    state.update("artifactsByAccount", (artifactsByAccount) => ({ ...artifactsByAccount, [accountId]: artifacts }));
     dialog.close();
     showToast("Synthetic note added. The system has updated its company memory.", "success");
   } catch (error) {
+    setFakeNoteSubmitting(dialog, false);
     showToast(error.detail || "The synthetic note could not be added.", "error");
   }
 }
 
+function setFakeNoteSubmitting(dialog, isSubmitting) {
+  const form = dialog.querySelector("form");
+  form?.querySelectorAll("input, select, textarea, button").forEach((element) => {
+    element.disabled = isSubmitting;
+  });
+  const submit = form?.querySelector("button[type='submit']");
+  if (submit) {
+    submit.innerHTML = isSubmitting
+      ? '<span class="button-spinner" aria-hidden="true"></span><span>Adding...</span>'
+      : "Add note";
+  }
+  dialog.querySelector("[data-pcad-close-modal]")?.toggleAttribute("disabled", isSubmitting);
+}
+
 function renderFakeNoteDialog() {
   const today = new Date().toISOString().slice(0, 10);
+  const noteTypes = [
+    ["meeting_transcript", "Meeting"],
+    ["docx", "Word document"],
+    ["pdf", "PDF"],
+    ["email", "Email"],
+  ];
   return `
     <dialog aria-labelledby="fake-note-title" data-pcad-fake-note-modal>
       <div class="modal-head">
@@ -68,7 +91,7 @@ function renderFakeNoteDialog() {
           <div class="form-field">
             <label for="note-type">Type</label>
             <select id="note-type" name="note_type">
-              ${["meeting_summary", "email_summary", "task", "risk", "general"].map((value) => `<option value="${value}">${escapeHtml(value.replaceAll("_", " "))}</option>`).join("")}
+              ${noteTypes.map(([value, label]) => `<option value="${value}">${escapeHtml(label)}</option>`).join("")}
             </select>
           </div>
           <div class="form-field">

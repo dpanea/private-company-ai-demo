@@ -91,12 +91,24 @@ def account(account_id: str, request: Request) -> dict[str, Any]:
 
 @router.get("/accounts/{account_id}/artifacts")
 def account_artifacts(account_id: str, request: Request) -> list[dict[str, Any]]:
+    session_id = get_session_id(request)
     with connect_dict(get_settings(request)) as conn:
         rows = conn.execute(
             "SELECT artifact_id, account_id, artifact_type, title, mime_type, source_path, rendered_path, metadata, extraction_method, created_at, ingested_at FROM raw_artifacts WHERE account_id = %s ORDER BY created_at DESC",
             (account_id,),
         ).fetchall()
-    return [_serialize_artifact_row(dict(row)) for row in rows]
+        fake_note_rows = conn.execute(
+            """
+            SELECT *
+            FROM fake_notes
+            WHERE account_id = %s AND session_id = %s
+            ORDER BY created_at DESC
+            """,
+            (account_id, session_id),
+        ).fetchall()
+    artifacts = [_serialize_artifact_row(dict(row)) for row in rows]
+    artifacts.extend(_fake_note_artifact(dict(row)) for row in fake_note_rows)
+    return sorted(artifacts, key=lambda item: item["created_at"], reverse=True)
 
 
 @router.get("/accounts/{account_id}/alerts")
@@ -248,6 +260,10 @@ def _insert_fake_note_doc(conn: Any, note: FakeNote, account_name: str) -> None:
     doc_id = _fake_doc_id(note.note_id)
     source_hash = "sha256:" + hashlib.sha256(f"{note.note_id}\n{note.body}".encode("utf-8")).hexdigest()
     doc_type = {
+        "meeting_transcript": "meeting_summary",
+        "email": "email_thread_summary",
+        "pdf": "recent_activity_timeline",
+        "docx": "recent_activity_timeline",
         "meeting_summary": "meeting_summary",
         "email_summary": "email_thread_summary",
         "risk": "risk_summary",
@@ -298,6 +314,32 @@ def _serialize_artifact_row(row: dict[str, Any]) -> dict[str, Any]:
     return row
 
 
+def _fake_note_artifact(note: dict[str, Any]) -> dict[str, Any]:
+    artifact_type = _fake_note_artifact_type(str(note.get("note_type") or ""))
+    created_at = note.get("created_at") or datetime.now(timezone.utc)
+    return {
+        "artifact_id": f"crm:FakeNote:{note['note_id']}",
+        "account_id": note["account_id"],
+        "artifact_type": artifact_type,
+        "title": note["title"],
+        "mime_type": _artifact_mime_type(artifact_type),
+        "source_path": f"session/fake-notes/{note['note_id']}",
+        "rendered_path": None,
+        "extracted_text": _fake_note_markdown(note),
+        "metadata": {
+            "source_system": "visitor_fake_note",
+            "source_object": "FakeNote",
+            "source_record_id": note["note_id"],
+            "date": note["note_date"],
+            "synthetic": True,
+        },
+        "extraction_method": _artifact_extraction_method(artifact_type),
+        "created_at": created_at,
+        "ingested_at": created_at,
+        "page_urls": [],
+    }
+
+
 def _virtual_crm_artifact(artifact_id: str, request: Request) -> dict[str, Any] | None:
     parts = artifact_id.split(":", 2)
     if len(parts) != 3 or parts[0] != "crm":
@@ -311,17 +353,36 @@ def _virtual_crm_artifact(artifact_id: str, request: Request) -> dict[str, Any] 
     record = dict(row)
     title = _crm_record_title(source_object, record)
     account_id = record.get("account_id") or (record.get("account_id_if_available") if source_object == "Contract" else None)
+    artifact_type = "crm_record"
+    mime_type = "text/markdown"
+    extraction_method = "csv_row"
+    source_path = f"synthetic/crm/{source_object}/{record_id}"
+    extracted_text = _crm_record_markdown(source_object, title, record)
+    metadata = {"source_object": source_object, "source_record_id": record_id}
+    if source_object == "FakeNote":
+        artifact_type = _fake_note_artifact_type(str(record.get("note_type") or ""))
+        mime_type = _artifact_mime_type(artifact_type)
+        extraction_method = _artifact_extraction_method(artifact_type)
+        source_path = f"session/fake-notes/{record_id}"
+        extracted_text = _fake_note_markdown(record)
+        metadata = {
+            "source_system": "visitor_fake_note",
+            "source_object": source_object,
+            "source_record_id": record_id,
+            "date": record.get("note_date"),
+            "synthetic": True,
+        }
     return {
         "artifact_id": artifact_id,
         "account_id": account_id,
-        "artifact_type": "crm_record",
+        "artifact_type": artifact_type,
         "title": title,
-        "mime_type": "text/markdown",
-        "source_path": f"synthetic/crm/{source_object}/{record_id}",
+        "mime_type": mime_type,
+        "source_path": source_path,
         "rendered_path": None,
-        "extracted_text": _crm_record_markdown(source_object, title, record),
-        "metadata": {"source_object": source_object, "source_record_id": record_id},
-        "extraction_method": "csv_row",
+        "extracted_text": extracted_text,
+        "metadata": metadata,
+        "extraction_method": extraction_method,
         "created_at": record.get("created_at") or datetime.now(timezone.utc),
         "ingested_at": datetime.now(timezone.utc),
         "page_urls": [],
@@ -375,6 +436,45 @@ def _crm_record_markdown(source_object: str, title: str, record: dict[str, Any])
         label = key.replace("_", " ").title()
         lines.append(f"- {label}: {value}")
     return "\n".join(lines).strip() + "\n"
+
+
+def _fake_note_artifact_type(note_type: str) -> str:
+    return {
+        "meeting_summary": "meeting_transcript",
+        "email_summary": "email",
+        "task": "docx",
+        "risk": "pdf",
+        "general": "docx",
+    }.get(note_type, note_type if note_type in {"meeting_transcript", "docx", "pdf", "email"} else "docx")
+
+
+def _artifact_mime_type(artifact_type: str) -> str:
+    return {
+        "email": "message/rfc822",
+        "pdf": "application/pdf",
+        "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "meeting_transcript": "text/markdown",
+    }.get(artifact_type, "text/markdown")
+
+
+def _artifact_extraction_method(artifact_type: str) -> str:
+    return "docx_xml" if artifact_type == "docx" else "plain_text"
+
+
+def _fake_note_markdown(note: dict[str, Any]) -> str:
+    note_type = _fake_note_artifact_type(str(note.get("note_type") or ""))
+    label = {
+        "email": "Email",
+        "pdf": "PDF",
+        "docx": "Word document",
+        "meeting_transcript": "Meeting",
+    }.get(note_type, "Document")
+    return (
+        f"# Synthetic {label}: {note.get('title')}\n\n"
+        f"- Date: {note.get('note_date')}\n"
+        f"- Source: Session-scoped synthetic note\n\n"
+        f"{note.get('body')}\n"
+    )
 
 
 def _fake_doc_id(note_id: str) -> str:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from pcad.api.routes import _fake_note_artifact
 from pcad.agent.conversation_service import _citations_from_pack
 from pcad.llm.citations import normalize_citation_format, repair_missing_citations, validate_citations
 from pcad.models import ProactiveAlert
@@ -108,3 +109,25 @@ def test_session_alert_ids_are_scoped_and_deduped() -> None:
     assert session_alerts[0].alert_id.startswith("alert:base:session:")
     assert session_alerts[0].alert_id != alert.alert_id
     assert len(_dedupe_alerts(session_alerts)) == 1
+
+
+def test_fake_note_surfaces_as_source_artifact() -> None:
+    created_at = datetime.now(timezone.utc)
+    artifact = _fake_note_artifact(
+        {
+            "note_id": "note-1",
+            "session_id": "session-1",
+            "account_id": "SYN_ACC_0001",
+            "note_type": "pdf",
+            "title": "Procurement update",
+            "body": "EU hosting is required.",
+            "note_date": created_at.date(),
+            "created_at": created_at,
+        }
+    )
+
+    assert artifact["artifact_id"] == "crm:FakeNote:note-1"
+    assert artifact["artifact_type"] == "pdf"
+    assert artifact["mime_type"] == "application/pdf"
+    assert artifact["metadata"]["source_object"] == "FakeNote"
+    assert "EU hosting is required." in artifact["extracted_text"]

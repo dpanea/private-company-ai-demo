@@ -2303,6 +2303,21 @@ body {
   color: var(--d-bg);
 }
 
+.button-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(247, 244, 238, 0.35);
+  border-top-color: var(--d-bg);
+  border-radius: 999px;
+  animation: button-spin 760ms linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .affordance {
   margin-top: 8px;
   color: var(--d-text-3);

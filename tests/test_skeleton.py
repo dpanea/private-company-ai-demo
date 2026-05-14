@@ -84,6 +84,7 @@ def test_apply_migrations_runs_and_is_idempotent(empty_db: str) -> None:
         "0008_fake_notes",
         "0009_proactive_alerts",
         "0010_daily_budget_usage",
+        "0011_fake_note_artifact_types",
     ]
     assert second == []
 
@@ -175,7 +176,7 @@ def test_pydantic_models_round_trip_json() -> None:
             note_id="note_1",
             session_id="session_1",
             account_id="acct_1",
-            note_type="general",
+            note_type="docx",
             title="Call note",
             body="Customer asked for a pricing summary.",
             note_date=today,

@@ -277,8 +277,9 @@ function createMockThread(accountId, workflowSeed) {
 }
 
 function addMockNote(accountId, payload) {
+  const noteId = `mock-note-${Date.now()}`;
   const note = {
-    note_id: `mock-note-${Date.now()}`,
+    note_id: noteId,
     session_id: mockSession.session_id,
     account_id: accountId,
     note_type: payload.note_type,
@@ -288,6 +289,18 @@ function addMockNote(accountId, payload) {
     created_at: new Date().toISOString(),
   };
   mockFakeNotes[accountId] = [note, ...(mockFakeNotes[accountId] || [])];
+  const newArtifact = artifact(
+    `crm:FakeNote:${noteId}`,
+    accountId,
+    payload.note_type,
+    payload.title,
+    payload.note_type === "docx" ? "docx_xml" : "plain_text",
+    { source_object: "FakeNote", source_record_id: noteId, date: payload.note_date, synthetic: true },
+  );
+  newArtifact.extracted_text = `# Synthetic ${payload.note_type.replaceAll("_", " ")}: ${payload.title}\n\n${payload.body}`;
+  newArtifact.created_at = note.created_at;
+  newArtifact.ingested_at = note.created_at;
+  mockArtifacts[accountId] = [newArtifact, ...(mockArtifacts[accountId] || [])];
   const newAlert = alert(`mock-alert-${Date.now()}`, accountId, "info", `New synthetic note: ${payload.title}`, "The session-scoped note is now part of this browser session's company memory.", []);
   mockAlerts[accountId] = [newAlert, ...(mockAlerts[accountId] || [])];
   return { note, alerts: mockAlerts[accountId] };

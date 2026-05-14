@@ -225,7 +225,7 @@ class FakeNote(BaseModel):
     note_id: str
     session_id: str
     account_id: str
-    note_type: Literal["meeting_summary", "email_summary", "task", "risk", "general"]
+    note_type: Literal["meeting_transcript", "docx", "pdf", "email"]
     title: str
     body: str
     note_date: date

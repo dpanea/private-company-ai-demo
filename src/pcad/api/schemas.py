@@ -16,7 +16,7 @@ class SendMessageIn(BaseModel):
 
 
 class FakeNoteCreateIn(BaseModel):
-    note_type: Literal["meeting_summary", "email_summary", "task", "risk", "general"]
+    note_type: Literal["meeting_transcript", "docx", "pdf", "email"]
     title: str
     body: str
     note_date: date
