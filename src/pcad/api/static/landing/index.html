@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/static/landing/styles.css">
 </head>
 <body>
+  <a id="top"></a>
   <header class="landing-header">
     <a class="brand-lockup" href="/" aria-label="Private Company Memory home">
       <img src="/static/assets/logo.svg" alt="" width="34" height="34">
@@ -30,7 +31,7 @@
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow">Private Company Memory</p>
-        <h1>Never prepare for a client call from scratch again.</h1>
+        <h1>Never prepare for a client call <strong>from scratch</strong> again.</h1>
         <p class="lede">Turn scattered emails, meeting notes, PDFs, support tickets, internal documents, project history, and CRM exports into source-backed briefings, risks, follow-ups, and next actions, without sending sensitive client data to a generic AI tool.</p>
         <div class="cta-row">
           <a class="button button-primary" href="/demo">Try the synthetic demo <span aria-hidden="true">-&gt;</span></a>
@@ -40,11 +41,13 @@
       <div class="hero-board" aria-label="Private memory workflow preview">
         <div class="board-column source-column">
           <span class="column-label">Buried sources</span>
-          <span>Email threads</span>
-          <span>Scanned PDFs</span>
-          <span>Meeting notes</span>
-          <span>Support tickets</span>
-          <span>Project history</span>
+          <div class="source-chips">
+            <span>Email threads</span>
+            <span>Scanned PDFs</span>
+            <span>Meeting notes</span>
+            <span>Support tickets</span>
+            <span>Project history</span>
+          </div>
         </div>
         <div class="board-column memory-column">
           <span class="column-label">Private memory layer</span>
@@ -65,9 +68,10 @@
     </section>
 
     <section class="section split recognition">
+      <div class="section-num">01 / Recognition</div>
       <div>
         <p class="eyebrow">The operational reason</p>
-        <h2>Most teams already have the client context they need.</h2>
+        <h2>Most teams already have <strong>the client context they need.</strong></h2>
       </div>
       <div class="copy-stack">
         <p>It is just scattered across emails, meetings, PDFs, support tickets, follow-up tasks, project notes, internal documents, and people's heads. This demo shows what happens when that material becomes a private company memory layer.</p>
@@ -80,10 +84,11 @@
       </div>
     </section>
 
-    <section class="section demo-moment" id="demo-moment">
+    <section class="section section-cream demo-moment" id="demo-moment">
+      <div class="section-num">02 / Demo moment</div>
       <div class="section-heading">
         <p class="eyebrow">Try the live moment</p>
-        <h2>Add one new note and watch the account picture change.</h2>
+        <h2>Add one new note and watch <strong>the account picture change.</strong></h2>
       </div>
       <div class="demo-moment-grid">
         <div class="demo-video-card" aria-label="Demo walkthrough preview">
@@ -129,24 +134,37 @@
       </div>
     </section>
 
-    <section class="section">
+    <section class="section section-dark">
+      <div class="section-num">03 / Workflows</div>
       <div class="section-heading">
         <p class="eyebrow">Three flagship workflows</p>
-        <h2>Built around client work, not another empty chat box.</h2>
+        <h2>Built around <strong>client work</strong>, not another empty chat box.</h2>
       </div>
       <div class="workflow-grid">
         <article class="workflow-shot">
-          <div class="shot-topline"><span></span><span></span><span></span></div>
+          <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h13l3 3v11H4z"/>
+            <path d="M7 10h10M7 13h7M7 16h5"/>
+          </svg>
           <h3>Call briefing</h3>
           <p>Summarize the current relationship, open risks, recent activity, and next best questions before a client call.</p>
         </article>
         <article class="workflow-shot">
-          <div class="shot-topline"><span></span><span></span><span></span></div>
+          <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 12a8 8 0 0 1 13.5-5.8L20 8"/>
+            <path d="M20 4v4h-4"/>
+            <path d="M20 12a8 8 0 0 1-13.5 5.8L4 16"/>
+            <path d="M4 20v-4h4"/>
+          </svg>
           <h3>What changed?</h3>
           <p>Explain recent movement across notes, meetings, documents, tickets, and visitor-added synthetic notes.</p>
         </article>
         <article class="workflow-shot">
-          <div class="shot-topline"><span></span><span></span><span></span></div>
+          <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 19l5-1.5L19.5 7 17 4.5 6.5 15z"/>
+            <path d="M14.5 7 17 9.5"/>
+            <path d="M4 19l3-1"/>
+          </svg>
           <h3>Follow-up draft</h3>
           <p>Produce a grounded email draft that reflects the current situation and cites the relevant evidence.</p>
         </article>
@@ -154,36 +172,66 @@
     </section>
 
     <section class="section split" id="privacy">
+      <div class="section-num">04 / Privacy</div>
       <div>
         <p class="eyebrow">Why private</p>
-        <h2>If the useful context is sensitive, the data boundary is not a detail.</h2>
+        <h2>If the useful context is sensitive, <strong>the data boundary is not a detail.</strong></h2>
       </div>
-      <ul class="proof-list">
-        <li><strong>Client data needs control:</strong> names, emails, contracts, meeting notes, and customer records should not be pasted into generic tools without clear boundaries.</li>
-        <li><strong>Private deployment is an architecture choice:</strong> run in a private cloud, EU-controlled environment, or on-prem setup when the workflow requires it.</li>
-        <li><strong>Not every step needs a frontier model:</strong> routine extraction, classification, routing, and structured summaries can often use smaller controlled models at lower cost.</li>
-        <li><strong>Audit posture matters:</strong> every generated answer is designed to carry citations back to the notes, emails, documents, or records it used.</li>
-        <li><strong>You own the system:</strong> database, artifacts, prompts, deployment, and model-routing decisions stay under your control.</li>
+      <ul class="proof-list icon-list">
+        <li>
+          <svg class="list-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6z"/><path d="M9 12l2 2 4-5"/></svg>
+          <span><strong>Client data needs control:</strong> names, emails, contracts, meeting notes, and customer records should not be pasted into generic tools without clear boundaries.</span>
+        </li>
+        <li>
+          <svg class="list-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"/><path d="M12 12 4 7.5M12 12l8-4.5M12 12v9"/></svg>
+          <span><strong>Private deployment is an architecture choice:</strong> run in a private cloud, EU-controlled environment, or on-prem setup when the workflow requires it.</span>
+        </li>
+        <li>
+          <svg class="list-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+          <span><strong>Not every step needs a frontier model:</strong> routine extraction, classification, routing, and structured summaries can often use smaller controlled models at lower cost.</span>
+        </li>
+        <li>
+          <svg class="list-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11l3 3 5-6"/></svg>
+          <span><strong>Audit posture matters:</strong> every generated answer is designed to carry citations back to the notes, emails, documents, or records it used.</span>
+        </li>
+        <li>
+          <svg class="list-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4z"/><path d="M8 11h8M8 15h5"/><path d="M9 7V4h6v3"/></svg>
+          <span><strong>You own the system:</strong> database, artifacts, prompts, deployment, and model-routing decisions stay under your control.</span>
+        </li>
       </ul>
     </section>
 
-    <section class="section" id="architecture">
+    <section class="section section-cream" id="architecture">
+      <div class="section-num">05 / Architecture</div>
       <div class="section-heading">
         <p class="eyebrow">How it works</p>
-        <h2>Buried sources become answers your team can verify.</h2>
+        <h2><strong>Buried sources</strong> become answers your team can verify.</h2>
       </div>
       <div class="three-step">
         <article>
+          <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 4h11l3 3v13H5z"/>
+            <path d="M9 12l3 3 3-3M12 9v6"/>
+          </svg>
           <span>01</span>
           <h3>Ingest scattered artifacts</h3>
           <p>Emails, PDFs, Word documents, meeting transcripts, CRM exports, and support records are parsed into normalized records.</p>
         </article>
         <article>
+          <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <ellipse cx="12" cy="6" rx="7" ry="3"/>
+            <path d="M5 6v6c0 1.66 3.13 3 7 3s7-1.34 7-3V6"/>
+            <path d="M5 12v6c0 1.66 3.13 3 7 3s7-1.34 7-3v-6"/>
+          </svg>
           <span>02</span>
           <h3>Build AI-ready memory</h3>
           <p>The system creates account-specific documents, embeddings, source citations, and proactive alerts.</p>
         </article>
         <article>
+          <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h16v11H9l-5 4z"/>
+            <path d="M8 10l3 3 5-6"/>
+          </svg>
           <span>03</span>
           <h3>Answer with evidence</h3>
           <p>Hybrid retrieval builds a context pack, the assistant answers from that pack, and citation checks keep the response grounded.</p>
@@ -191,42 +239,55 @@
       </div>
     </section>
 
-    <section class="section split" id="scope">
+    <section class="section section-dark split" id="scope">
+      <div class="section-num">06 / Open source</div>
       <div>
         <p class="eyebrow">From demo to real deployment</p>
-        <h2>A working blueprint for private AI on real company knowledge.</h2>
+        <h2>A working blueprint for <strong>private AI on real company knowledge.</strong></h2>
       </div>
       <div class="copy-stack">
         <p>The public repository shows the core pattern: ingest scattered sources, turn them into source-backed memory, retrieve the right context, and answer with citations.</p>
         <p>You can take the code and adapt it yourself. That is intentional: the open-source demo is a trust anchor for technical teams, partners, and buyers who want to inspect the moving parts before a conversation.</p>
         <p>The paid work is adapting it properly to real systems: connectors, permissions, privacy rules, evaluation sets, monitoring, review steps, and workflow-specific implementation.</p>
-        <a class="inline-link" href="https://github.com/danielpanea/private-company-ai-demo">View the open-source reference architecture</a>
+        <a class="github-link" href="https://github.com/dpanea/private-company-ai-demo" target="_blank" rel="noopener noreferrer">
+          <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M12 .5C5.65.5.5 5.65.5 12.02c0 5.1 3.29 9.42 7.86 10.95.57.1.78-.25.78-.55 0-.27-.01-1.17-.02-2.13-3.2.69-3.87-1.36-3.87-1.36-.53-1.34-1.29-1.7-1.29-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.78 1.21 1.78 1.21 1.04 1.78 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11.04 11.04 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.77.12 3.06.74.8 1.18 1.83 1.18 3.09 0 4.42-2.69 5.4-5.26 5.68.42.36.79 1.07.79 2.17 0 1.57-.01 2.83-.01 3.22 0 .31.21.66.79.55A11.52 11.52 0 0 0 23.5 12.02C23.5 5.65 18.35.5 12 .5z"/>
+          </svg>
+          <span>View the open-source reference architecture</span>
+          <svg class="arrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 17 17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
       </div>
     </section>
 
     <section class="section audience">
+      <div class="section-num">07 / Fit</div>
       <div class="section-heading">
         <p class="eyebrow">Who it is for</p>
-        <h2>Best fit: relationship-heavy teams with valuable client or project context scattered across tools.</h2>
+        <h2>Best fit: relationship-heavy teams with <strong>valuable client or project context scattered across tools.</strong></h2>
       </div>
       <div class="audience-grid">
-        <ul>
-          <li>Founder-led B2B sales with complex enterprise accounts.</li>
-          <li>Customer success teams managing renewals and escalations.</li>
-          <li>Consultancies, agencies, and IT service providers that need reusable client memory without SaaS lock-in.</li>
-        </ul>
-        <ul>
-          <li>A new call is coming and nobody has the full picture.</li>
-          <li>A champion leaves, procurement stalls, or risk signals are buried in old notes.</li>
-          <li>Leadership wants private AI but needs a concrete architecture before investing.</li>
-        </ul>
+        <div class="audience-group">
+          <p class="audience-label">Teams</p>
+          <p class="audience-item">Founder-led B2B sales with complex enterprise accounts.</p>
+          <p class="audience-item">Customer success teams managing renewals and escalations.</p>
+          <p class="audience-item">Consultancies, agencies, and IT service providers that need reusable client memory without SaaS lock-in.</p>
+        </div>
+        <div class="audience-group">
+          <p class="audience-label">Triggers</p>
+          <p class="audience-item">A new call is coming and nobody has the full picture.</p>
+          <p class="audience-item">A champion leaves, procurement stalls, or risk signals are buried in old notes.</p>
+          <p class="audience-item">Leadership wants private AI but needs a concrete architecture before investing.</p>
+        </div>
       </div>
     </section>
 
-    <section class="section faq" id="faq">
+    <section class="section section-cream faq" id="faq">
+      <div class="section-num">08 / FAQ</div>
       <div class="section-heading">
         <p class="eyebrow">Questions buyers usually ask</p>
-        <h2>Private AI is not just a model choice. It is a workflow and data-boundary decision.</h2>
+        <h2>Private AI is not just a model choice. <strong>It is a workflow and data-boundary decision.</strong></h2>
       </div>
       <div class="faq-list">
         <details class="faq-item">
@@ -248,9 +309,9 @@
       </div>
     </section>
 
-    <section class="final-cta">
+    <section class="final-cta section-dark">
       <p class="eyebrow">Implementation offer</p>
-      <h2>Use the demo to decide whether private company memory is worth building.</h2>
+      <h2>Use the demo to decide whether <strong>private company memory is worth building.</strong></h2>
       <p class="final-copy">If this looks like a problem inside your sales, account, support, project, or client-service workflow, the next step is to map the workflow, inspect the data boundary, and define the first safe pilot around your real systems.</p>
       <div class="cta-row">
         <a class="button button-primary" href="/demo">Try the synthetic demo</a>
@@ -259,5 +320,26 @@
       <p class="contact-alt">Prefer async? <a href="mailto:me@danielpanea.com?subject=Private%20Company%20Memory%20inquiry">Email me</a> or connect on <a href="https://www.linkedin.com/in/daniel-panea-lichtig">LinkedIn</a>.</p>
     </section>
   </main>
+
+  <a class="back-to-top" id="back-to-top" href="#top" aria-label="Back to top">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 5 L5 12 M12 5 L19 12 M12 5 L12 21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+
+  <script>
+    (function () {
+      var backToTop = document.getElementById('back-to-top');
+      if (!backToTop) return;
+      var update = function () {
+        backToTop.classList.toggle('is-visible', window.scrollY > 520);
+      };
+      window.addEventListener('scroll', update, { passive: true });
+      update();
+    })();
+  </script>
+
+  <!-- Cloudflare Web Analytics (same token as danielpanea.com) -->
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "a91debbd288543ad9e4e947f3ba2bcb5"}'></script>
 </body>
 </html>
