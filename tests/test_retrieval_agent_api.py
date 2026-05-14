@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pcad.agent.conversation_service import _citations_from_pack
 from pcad.llm.citations import normalize_citation_format, repair_missing_citations, validate_citations
 from pcad.retrieval.intent import IntentResolver
 from pcad.retrieval.retriever import _rank_hybrid_results, _rrf_merge
@@ -33,6 +34,39 @@ def test_source_citation_validation_and_repair() -> None:
     repaired = repair_missing_citations("The account is engaged. Account SYN_ACC_0001", pack)
     assert "[Source: Account SYN_ACC_0001]" in repaired
     assert validate_citations(repaired, pack)["valid"]
+
+
+def test_crm_citations_are_openable_virtual_artifacts() -> None:
+    pack = {
+        "account_id": "SYN_ACC_0001",
+        "retrieved_documents": [
+            {
+                "citations": [
+                    {
+                        "source_object": "Opportunity",
+                        "source_record_id": "SYN_OPP_0001",
+                        "title": "Production-line workflow automation",
+                    }
+                ]
+            }
+        ],
+    }
+
+    citations = _citations_from_pack(pack, {"cited": {"Opportunity SYN_OPP_0001"}})
+
+    assert citations == [
+        {
+            "label": "Opportunity SYN_OPP_0001",
+            "source_label": "Opportunity SYN_OPP_0001",
+            "source_object": "Opportunity",
+            "source_record_id": "SYN_OPP_0001",
+            "artifact_id": "crm:Opportunity:SYN_OPP_0001",
+            "title": "Production-line workflow automation",
+            "source_url": None,
+            "source_date": None,
+            "excerpt": None,
+        }
+    ]
 
 
 def test_rrf_merge_uses_rank_and_additive_doc_type_boosts() -> None:

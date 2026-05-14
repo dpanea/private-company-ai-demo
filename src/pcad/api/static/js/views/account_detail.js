@@ -3,7 +3,7 @@ import { artifactPath } from "../router.js";
 import { accountName, artifactIconSvg, artifactMeta, formatArtifactType } from "../util/format.js";
 import { emptyState, escapeHtml } from "../util/dom.js";
 import { renderAlertsPanel } from "./alerts_panel.js";
-import { latestAssistantMessage, renderCitationsPanel } from "./citations_panel.js";
+import { cumulativeCitations, renderCitationsPanel } from "./citations_panel.js";
 import { bindConversationPanel, renderConversationPanel } from "./conversation_panel.js";
 import { openFakeNoteModal } from "./fake_note_modal.js";
 import { openArtifactModal } from "./artifact_modal.js";
@@ -17,7 +17,7 @@ export function renderAccountDetail(account) {
   const currentThreadId = state.get("currentThreadId");
   const messages = currentThreadId ? (state.get("messagesByThread")[currentThreadId] || []) : [];
   const streamingCitations = state.get("streamingThreadId") === currentThreadId ? state.get("streamingCitations") : [];
-  const latestAssistant = streamingCitations.length ? { citations: streamingCitations } : latestAssistantMessage(messages);
+  const chatCitations = cumulativeCitations(messages, streamingCitations);
 
   return `
     <section class="page detail-view-page" data-pcad-view="account-detail">
@@ -27,7 +27,7 @@ export function renderAccountDetail(account) {
             <span class="panel-title">Source artifacts</span>
             <span class="badge">${artifacts.length}</span>
           </div>
-          <div class="panel-body">
+          <div class="panel-body" data-pcad-scroll-key="artifacts:${escapeHtml(accountId || "none")}">
             ${renderArtifactGroups(artifacts, accountId)}
           </div>
         </aside>
@@ -41,14 +41,14 @@ export function renderAccountDetail(account) {
                 <span class="panel-title">Alerts</span>
                 <span class="badge">${alerts.length}</span>
               </div>
-              <div class="panel-body">${renderAlertsPanel(alerts, artifacts)}</div>
+              <div class="panel-body" data-pcad-scroll-key="alerts:${escapeHtml(accountId || "none")}">${renderAlertsPanel(alerts, artifacts)}</div>
             </section>
             <section>
               <div class="panel-header">
-                <span class="panel-title">Latest citations</span>
-                <span class="badge">${latestAssistant?.citations?.length || 0}</span>
+                <span class="panel-title">Chat citations</span>
+                <span class="badge">${chatCitations.length}</span>
               </div>
-              <div class="panel-body">${renderCitationsPanel(latestAssistant, accountId)}</div>
+              <div class="panel-body" data-pcad-scroll-key="citations:${escapeHtml(currentThreadId || accountId || "none")}">${renderCitationsPanel({ citations: chatCitations }, accountId)}</div>
             </section>
           </div>
         </aside>
@@ -69,6 +69,12 @@ export function bindAccountDetail(root, account) {
     button.addEventListener("click", (event) => {
       event.preventDefault();
       openArtifactModal(button.dataset.pcadOpenArtifact, account.account_id, { restoreRouteOnClose: false });
+    });
+  });
+  root.querySelectorAll("[data-pcad-citation-ref]:not([data-pcad-open-artifact])").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      root.querySelector(`#citation-${CSS.escape(link.dataset.pcadCitationRef)}`)?.scrollIntoView({ block: "nearest" });
     });
   });
   bindConversationPanel(root, account);

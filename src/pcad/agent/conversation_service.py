@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import textwrap
 from collections.abc import Generator
 from dataclasses import dataclass
@@ -211,13 +210,12 @@ class ConversationService:
             yield _sse("token", {"content": raw_answer})
 
         answer, validation = self._finalize_answer_text(prepared, raw_answer, context_prompt)
-        display_answer = _strip_source_markers(answer)
-        if display_answer != raw_answer:
-            yield _sse("replace", {"content": display_answer})
+        if answer != raw_answer:
+            yield _sse("replace", {"content": answer})
         usage = getattr(self.llm_client, "last_usage", None)
         if usage and (usage.prompt_tokens or usage.completion_tokens):
             record_token_usage(self.settings, tokens_in=usage.prompt_tokens, tokens_out=usage.completion_tokens)
-        yield from self._finalize_answer(thread_id, clean, prepared, display_answer, validation, session_id)
+        yield from self._finalize_answer(thread_id, clean, prepared, answer, validation, session_id)
 
     def _prepare_pipeline(
         self,
@@ -428,6 +426,7 @@ def _collect_citations_from_pack(pack: dict[str, Any], cited: set[str]) -> list[
             citations.append(
                 {
                     "label": _sidebar_citation_label(citation, artifact_id),
+                    "source_label": label,
                     "source_object": citation["source_object"],
                     "source_record_id": citation["source_record_id"],
                     "artifact_id": artifact_id,
@@ -440,13 +439,6 @@ def _collect_citations_from_pack(pack: dict[str, Any], cited: set[str]) -> list[
     return citations
 
 
-SOURCE_MARKER_RE = re.compile(r"\s*\[Source:\s[^\]]+\]")
-
-
-def _strip_source_markers(answer: str) -> str:
-    return re.sub(r"\n{3,}", "\n\n", SOURCE_MARKER_RE.sub("", answer)).strip()
-
-
 def _artifact_id_for_citation(citation: dict[str, Any], account_id: str | None) -> str | None:
     record_id = str(citation.get("source_record_id") or "")
     source_object = str(citation.get("source_object") or "")
@@ -454,6 +446,8 @@ def _artifact_id_for_citation(citation: dict[str, Any], account_id: str | None) 
         return record_id
     if source_object == "Email" and account_id:
         return f"email:{account_id}:{safe_id(record_id)}"
+    if source_object in {"Account", "Contact", "Opportunity", "Contract", "Task", "Event", "FakeNote"}:
+        return f"crm:{source_object}:{record_id}"
     return None
 
 
@@ -475,6 +469,8 @@ def _sidebar_citation_label(citation: dict[str, Any], artifact_id: str) -> str:
             return f"{label} {suffix.rsplit(':', 1)[-1]}"
     if source_object == "Email" and record_id:
         return f"Email {record_id}"
+    if artifact_id.startswith("crm:") and source_object and record_id:
+        return f"{source_object} {record_id}"
     return citation_label(citation)
 
 

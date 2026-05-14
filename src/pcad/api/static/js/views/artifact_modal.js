@@ -81,6 +81,7 @@ function renderArtifactBody(artifact) {
   if (artifact.artifact_type === "email") return renderEmailArtifact(artifact);
   if (artifact.artifact_type === "meeting_transcript") return renderTranscriptArtifact(artifact);
   if (artifact.artifact_type === "docx") return `<article class="document-page docx-page markdown">${renderMarkdown(artifact.extracted_text)}</article>`;
+  if (artifact.artifact_type === "crm_record") return `<article class="document-page crm-page markdown">${renderMarkdown(artifact.extracted_text)}</article>`;
   return `<div class="text-block">${escapeHtml(artifact.extracted_text || "No extracted text available.")}</div>`;
 }
 

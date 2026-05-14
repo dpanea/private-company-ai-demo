@@ -2185,6 +2185,32 @@ body {
   margin-bottom: 10px;
 }
 
+.inline-citation {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin: 0 2px;
+  padding: 1px 6px 2px;
+  border: 1px solid var(--d-line-strong);
+  border-radius: 999px;
+  background: rgba(251, 249, 244, 0.9);
+  color: var(--d-text-2);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  vertical-align: baseline;
+}
+
+.inline-citation:hover {
+  border-color: var(--d-text-3);
+  background: var(--d-bg-sunken);
+  color: var(--d-text);
+}
+
+.inline-citation.muted {
+  color: var(--d-text-3);
+}
+
 .composer {
   padding: 12px 32px 16px;
   border-top: 0;

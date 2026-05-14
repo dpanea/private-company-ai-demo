@@ -76,6 +76,7 @@ async function loadRoute(route) {
 
 function renderApp() {
   const root = qs("#app-root");
+  const scrollSnapshot = captureScrollSnapshot(root);
   const route = state.get("route");
   const accounts = state.get("accounts");
   const currentAccount = accounts.find((account) => account.account_id === state.get("currentAccountId"));
@@ -113,6 +114,7 @@ function renderApp() {
 
   root.innerHTML = renderAccountDetail(currentAccount);
   bindAccountDetail(root, currentAccount);
+  restoreScrollSnapshot(root, scrollSnapshot);
 
   if (route.name === "account_artifact" && route.params.artifactId) {
     maybeOpenArtifact(route.params.artifactId, currentAccount.account_id, { restoreRouteOnClose: true });
@@ -127,8 +129,13 @@ function pickThreadId(threads, accountId) {
 
 function mergeBy(items, incoming, key) {
   if (!incoming) return items;
-  const filtered = items.filter((item) => item[key] !== incoming[key]);
-  return [...filtered, incoming];
+  let matched = false;
+  const merged = items.map((item) => {
+    if (item[key] !== incoming[key]) return item;
+    matched = true;
+    return { ...item, ...incoming };
+  });
+  return matched ? merged : [...items, incoming];
 }
 
 function maybeOpenArtifact(artifactId, accountId, options = { restoreRouteOnClose: true }) {
@@ -136,5 +143,36 @@ function maybeOpenArtifact(artifactId, accountId, options = { restoreRouteOnClos
   pendingArtifactId = artifactId;
   openArtifactModal(artifactId, accountId, options).finally(() => {
     pendingArtifactId = null;
+  });
+}
+
+function captureScrollSnapshot(root) {
+  const snapshot = new Map();
+  root.querySelectorAll("[data-pcad-scroll-key]").forEach((element) => {
+    const key = element.dataset.pcadScrollKey;
+    if (!key) return;
+    snapshot.set(key, {
+      left: element.scrollLeft,
+      top: element.scrollTop,
+      nearBottom: element.scrollHeight - element.scrollTop - element.clientHeight < 48,
+    });
+  });
+  return snapshot;
+}
+
+function restoreScrollSnapshot(root, snapshot) {
+  root.querySelectorAll("[data-pcad-scroll-key]").forEach((element) => {
+    const key = element.dataset.pcadScrollKey;
+    if (!key) return;
+    const previous = snapshot.get(key);
+    if (key.startsWith("messages:") && (!previous || previous.nearBottom)) {
+      element.scrollTop = element.scrollHeight;
+      element.scrollLeft = previous?.left || 0;
+      return;
+    }
+    if (previous) {
+      element.scrollTop = previous.top;
+      element.scrollLeft = previous.left;
+    }
   });
 }

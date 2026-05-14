@@ -62,10 +62,19 @@ export function accountCountry(account) {
   return account?.billing_country || account?.country || "Unknown country";
 }
 
-export function renderMarkdown(value) {
-  const text = stripSourceCitations(String(value ?? ""));
+export function renderMarkdown(value, options = {}) {
+  const { stripSources = true, sourceLinks = false, citations = [] } = options;
+  let text = String(value ?? "");
+  let citationPlaceholders = [];
+  if (sourceLinks) {
+    const linked = placeholderSourceCitations(text, citations);
+    text = linked.text;
+    citationPlaceholders = linked.placeholders;
+  } else if (stripSources) {
+    text = stripSourceCitations(text);
+  }
   const rawHtml = window.marked?.parse ? window.marked.parse(text) : escapeHtml(text).replaceAll("\n", "<br>");
-  return sanitizeHtml(rawHtml);
+  return restoreCitationPlaceholders(sanitizeHtml(rawHtml), citationPlaceholders);
 }
 
 export function stripSourceCitations(value) {
@@ -117,11 +126,74 @@ export function citationLabel(citation) {
     || (citation?.source_object && citation?.source_record_id ? `Source: ${citation.source_object} ${citation.source_record_id}` : "Source");
 }
 
+export function citationSourceLabel(citation) {
+  return citation?.source_label
+    || citation?.raw_label
+    || (citation?.source_object && citation?.source_record_id ? `${citation.source_object} ${citation.source_record_id}` : citationLabel(citation));
+}
+
 export function citationArtifactId(citation) {
   return citation?.artifact_id
     || citation?.metadata?.artifact_id
     || citation?.source_artifact_id
     || null;
+}
+
+function placeholderSourceCitations(value, citations) {
+  const placeholders = [];
+  const text = String(value ?? "").replace(/\[Source:\s*([^\]]+)\]/g, (match, rawLabel) => {
+    const citation = findCitation(rawLabel, citations);
+    const index = citation ? citations.indexOf(citation) : -1;
+    const label = citation ? citationLabel(citation) : `Source: ${rawLabel.trim()}`;
+    const artifactId = citation ? citationArtifactId(citation) : null;
+    const token = `PCAD_CITATION_${placeholders.length}_TOKEN`;
+    placeholders.push({ token, html: citationAnchor(label, index, artifactId) });
+    return token;
+  });
+  return { text, placeholders };
+}
+
+function restoreCitationPlaceholders(html, placeholders) {
+  return placeholders.reduce((current, placeholder) => current.replaceAll(placeholder.token, placeholder.html), html);
+}
+
+function findCitation(rawLabel, citations) {
+  const normalized = normalizeCitationLabel(rawLabel);
+  return citations.find((citation) => citationLabelCandidates(citation).some((candidate) => normalizeCitationLabel(candidate) === normalized)) || null;
+}
+
+function citationLabelCandidates(citation) {
+  return [
+    citationSourceLabel(citation),
+    citationLabel(citation),
+    citation?.citation_label,
+    citation?.source_label,
+    citation?.raw_label,
+    citation?.source_object && citation?.source_record_id ? `${citation.source_object} ${citation.source_record_id}` : "",
+    citation?.source_object && citation?.source_record_id ? `Source: ${citation.source_object} ${citation.source_record_id}` : "",
+  ].filter(Boolean);
+}
+
+function normalizeCitationLabel(value) {
+  return String(value || "")
+    .replace(/^Source:\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function citationAnchor(label, index, artifactId) {
+  if (index < 0) {
+    return `<span class="inline-citation muted">${escapeHtml(label)}</span>`;
+  }
+  const href = index >= 0 ? `#citation-${index}` : "#";
+  const attrs = [
+    'class="inline-citation"',
+    `href="${escapeHtml(href)}"`,
+    index >= 0 ? `data-pcad-citation-ref="${index}"` : "",
+    artifactId ? `data-pcad-open-artifact="${escapeHtml(artifactId)}"` : "",
+  ].filter(Boolean).join(" ");
+  return `<a ${attrs}>${escapeHtml(label)}</a>`;
 }
 
 export function artifactMeta(artifact) {

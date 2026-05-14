@@ -120,6 +120,9 @@ def artifact(artifact_id: str, request: Request) -> dict[str, Any]:
     with connect_dict(get_settings(request)) as conn:
         row = conn.execute("SELECT * FROM raw_artifacts WHERE artifact_id = %s", (artifact_id,)).fetchone()
     if not row:
+        virtual = _virtual_crm_artifact(artifact_id, request)
+        if virtual:
+            return virtual
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Artifact not found")
     data = dict(row)
     data = _serialize_artifact_row(data)
@@ -293,6 +296,85 @@ def _serialize_artifact_row(row: dict[str, Any]) -> dict[str, Any]:
     if row.get("artifact_type") == "email_thread":
         row["artifact_type"] = "email"
     return row
+
+
+def _virtual_crm_artifact(artifact_id: str, request: Request) -> dict[str, Any] | None:
+    parts = artifact_id.split(":", 2)
+    if len(parts) != 3 or parts[0] != "crm":
+        return None
+    source_object, record_id = parts[1], parts[2]
+    session_id = get_session_id(request)
+    with connect_dict(get_settings(request)) as conn:
+        row = _fetch_crm_record(conn, source_object, record_id, session_id)
+    if not row:
+        return None
+    record = dict(row)
+    title = _crm_record_title(source_object, record)
+    account_id = record.get("account_id") or (record.get("account_id_if_available") if source_object == "Contract" else None)
+    return {
+        "artifact_id": artifact_id,
+        "account_id": account_id,
+        "artifact_type": "crm_record",
+        "title": title,
+        "mime_type": "text/markdown",
+        "source_path": f"synthetic/crm/{source_object}/{record_id}",
+        "rendered_path": None,
+        "extracted_text": _crm_record_markdown(source_object, title, record),
+        "metadata": {"source_object": source_object, "source_record_id": record_id},
+        "extraction_method": "csv_row",
+        "created_at": record.get("created_at") or datetime.now(timezone.utc),
+        "ingested_at": datetime.now(timezone.utc),
+        "page_urls": [],
+    }
+
+
+def _fetch_crm_record(conn: Any, source_object: str, record_id: str, session_id: str) -> Any | None:
+    if source_object == "Account":
+        return conn.execute("SELECT * FROM accounts WHERE account_id = %s", (record_id,)).fetchone()
+    if source_object == "Contact":
+        return conn.execute("SELECT * FROM contacts WHERE contact_id = %s", (record_id,)).fetchone()
+    if source_object == "Opportunity":
+        return conn.execute("SELECT * FROM opportunities WHERE opportunity_id = %s", (record_id,)).fetchone()
+    if source_object == "Contract":
+        return conn.execute("SELECT * FROM contracts WHERE contract_id = %s", (record_id,)).fetchone()
+    if source_object in {"Task", "Event"}:
+        return conn.execute(
+            "SELECT * FROM activities WHERE activity_id = %s AND source_object = %s",
+            (record_id, source_object),
+        ).fetchone()
+    if source_object == "FakeNote":
+        return conn.execute(
+            "SELECT * FROM fake_notes WHERE note_id = %s AND session_id = %s",
+            (record_id, session_id),
+        ).fetchone()
+    return None
+
+
+def _crm_record_title(source_object: str, record: dict[str, Any]) -> str:
+    if source_object == "Account":
+        return str(record.get("account_name") or record.get("account_id") or "Account")
+    if source_object == "Contact":
+        return str(record.get("name") or record.get("contact_id") or "Contact")
+    if source_object == "Opportunity":
+        return str(record.get("name") or record.get("opportunity_id") or "Opportunity")
+    if source_object == "Contract":
+        return str(record.get("contract_number") or record.get("contract_id") or "Contract")
+    if source_object in {"Task", "Event"}:
+        return str(record.get("subject") or record.get("activity_id") or source_object)
+    if source_object == "FakeNote":
+        return str(record.get("title") or record.get("note_id") or "Visitor note")
+    return source_object
+
+
+def _crm_record_markdown(source_object: str, title: str, record: dict[str, Any]) -> str:
+    hidden = {"raw_record_hash", "embedding", "session_id"}
+    lines = [f"# {source_object}: {title}", ""]
+    for key, value in record.items():
+        if key in hidden or value in (None, "", []):
+            continue
+        label = key.replace("_", " ").title()
+        lines.append(f"- {label}: {value}")
+    return "\n".join(lines).strip() + "\n"
 
 
 def _fake_doc_id(note_id: str) -> str:

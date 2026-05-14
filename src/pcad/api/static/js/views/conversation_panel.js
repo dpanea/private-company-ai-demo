@@ -3,7 +3,7 @@ import { state } from "../state.js";
 import { navigate, threadPath } from "../router.js";
 import { streamMessage } from "../sse.js";
 import { emptyState, escapeHtml, showToast } from "../util/dom.js";
-import { renderMarkdown, stripSourceCitations, workflowLabel } from "../util/format.js";
+import { renderMarkdown, workflowLabel } from "../util/format.js";
 
 const workflows = ["new_chat", "call_briefing", "what_changed", "open_risks", "follow_up_draft", "next_action"];
 
@@ -11,6 +11,7 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
   const currentThread = threads.find((thread) => thread.thread_id === currentThreadId);
   const isStreaming = state.get("isStreaming");
   const streamingTokens = state.get("streamingTokens");
+  const streamingCitations = state.get("streamingThreadId") === currentThreadId ? state.get("streamingCitations") : [];
   const budgetReached = messages.some((message) => /daily budget|daily budget for this account/i.test(message.content || ""));
   return `
     <section class="conversation" data-pcad-conversation>
@@ -28,9 +29,9 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
         </div>
         ${renderThreadHistory(threads, currentThreadId)}
       </div>
-      <div class="message-list" data-pcad-message-list>
+      <div class="message-list" data-pcad-message-list data-pcad-scroll-key="messages:${escapeHtml(currentThreadId || account?.account_id || "new")}">
         ${messages.length ? messages.map(renderMessage).join("") : emptyState("Start with a workflow button or ask a free-text question.")}
-        ${isStreaming ? renderStreamingBubble(streamingTokens) : ""}
+        ${isStreaming ? renderStreamingBubble(streamingTokens, streamingCitations) : ""}
       </div>
       <form class="composer" data-pcad-composer>
         <div class="composer-row">
@@ -178,7 +179,11 @@ function renderThreadHistory(threads, currentThreadId) {
 }
 
 function renderMessage(message) {
-  const body = message.role === "assistant" ? renderMarkdown(message.content) : escapeHtml(message.content);
+  const body = message.role === "assistant" ? renderMarkdown(message.content, {
+    stripSources: false,
+    sourceLinks: true,
+    citations: message.citations || [],
+  }) : escapeHtml(message.content);
   return `
     <article class="message ${escapeHtml(message.role)}" data-pcad-message="${escapeHtml(message.message_id)}">
       <div class="${message.role === "assistant" ? "markdown" : ""}">${body}</div>
@@ -186,10 +191,14 @@ function renderMessage(message) {
   `;
 }
 
-function renderStreamingBubble(text) {
+function renderStreamingBubble(text, citations = []) {
   return `
     <article class="message assistant" data-pcad-streaming>
-      <div class="markdown stream-cursor">${renderMarkdown(stripSourceCitations(text || "Searching company memory..."))}</div>
+      <div class="markdown stream-cursor">${renderMarkdown(text || "Searching company memory...", {
+        stripSources: !citations.length,
+        sourceLinks: Boolean(citations.length),
+        citations,
+      })}</div>
     </article>
   `;
 }
