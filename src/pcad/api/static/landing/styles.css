@@ -146,6 +146,11 @@ a:hover { color: var(--ink-700); }
   font-weight: 500;
 }
 
+.brand-lockup small {
+  max-width: 300px;
+  white-space: normal;
+}
+
 .brand-lockup small,
 .eyebrow,
 .column-label,
@@ -364,6 +369,122 @@ h3 {
   background: var(--line-strong);
 }
 
+.demo-moment-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.78fr) minmax(0, 1fr);
+  gap: 34px;
+  margin-top: 48px;
+  align-items: stretch;
+}
+
+.demo-video-card {
+  display: grid;
+  grid-template-rows: auto minmax(280px, 1fr) auto;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.video-chrome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.video-chrome span {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+
+.video-chrome strong {
+  margin-left: 8px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.video-placeholder {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  min-height: 280px;
+  padding: 34px;
+  background:
+    linear-gradient(135deg, rgba(42, 107, 224, 0.10), transparent 32%),
+    linear-gradient(315deg, rgba(201, 154, 63, 0.16), transparent 36%),
+    var(--paper-100);
+}
+
+.video-placeholder p {
+  max-width: 340px;
+  color: var(--ink-900);
+  font-size: clamp(24px, 3vw, 38px);
+  font-weight: 300;
+  line-height: 1.08;
+}
+
+.video-placeholder span {
+  color: var(--accent-signal);
+  font-family: var(--mono);
+  font-size: 28px;
+}
+
+.video-note {
+  padding: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+.demo-script {
+  min-width: 0;
+}
+
+.compact-steps {
+  grid-template-columns: 1fr;
+  margin-top: 0;
+}
+
+.compact-steps article {
+  min-height: auto;
+}
+
+.prompt-box {
+  margin-top: 22px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: 22px;
+  background: var(--bg-elev);
+}
+
+.prompt-box ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prompt-box li {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: var(--paper-50);
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
 .three-step article,
 .workflow-shot,
 .audience-grid ul {
@@ -446,6 +567,68 @@ h3 {
   font-weight: 500;
 }
 
+.faq-list {
+  margin-top: 48px;
+  border-bottom: 1px solid var(--line-strong);
+  border-top: 1px solid var(--line-strong);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--line-strong);
+  padding: 24px 0;
+}
+
+.faq-item:last-child {
+  border-bottom: 0;
+}
+
+.faq-item summary {
+  color: var(--ink-900);
+  cursor: pointer;
+  font-size: clamp(20px, 2.4vw, 28px);
+  font-weight: 400;
+  line-height: 1.25;
+  list-style: none;
+  text-wrap: balance;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::after {
+  content: "+";
+  float: right;
+  margin-left: 20px;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.faq-item[open] summary::after {
+  content: "-";
+}
+
+.faq-item p {
+  max-width: 820px;
+  margin-top: 16px;
+  color: var(--ink-muted);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.contact-alt {
+  margin-top: 22px;
+  color: var(--ink-muted);
+  font-size: 15px;
+}
+
+.contact-alt a {
+  border-bottom: 1px solid var(--ink);
+  color: var(--ink);
+}
+
 .audience-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -486,7 +669,9 @@ h3 {
   .strip,
   .three-step,
   .workflow-grid,
-  .audience-grid {
+  .audience-grid,
+  .demo-moment-grid,
+  .prompt-box ul {
     grid-template-columns: 1fr;
   }
 
@@ -563,6 +748,10 @@ h3 {
   .workflow-shot p,
   .copy-stack p,
   .final-copy,
+  .video-note,
+  .prompt-box li,
+  .faq-item p,
+  .contact-alt,
   .proof-list,
   .audience-grid {
     overflow-wrap: anywhere;
