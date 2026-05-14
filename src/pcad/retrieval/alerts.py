@@ -25,6 +25,8 @@ class ProactiveAlertGenerator:
             alerts.extend(_missing_followup(conn, account_id, today))
             alerts.extend(_champion_positive_signal(conn, account_id, session_id, today))
             alerts.extend(_data_inconsistency(conn, account_id))
+            alerts = _scope_session_alert_ids(alerts, session_id)
+            alerts = _dedupe_alerts(alerts)
             conn.execute(
                 "DELETE FROM proactive_alerts WHERE account_id = %s AND session_id IS NOT DISTINCT FROM %s",
                 (account_id, session_id),
@@ -52,6 +54,23 @@ class ProactiveAlertGenerator:
                 )
             conn.commit()
             return alerts
+
+
+def _scope_session_alert_ids(alerts: list[ProactiveAlert], session_id: str | None) -> list[ProactiveAlert]:
+    if session_id is None:
+        return alerts
+    session_hash = hashlib.sha1(session_id.encode("utf-8")).hexdigest()[:10]
+    return [
+        alert.model_copy(update={"alert_id": f"{alert.alert_id}:session:{session_hash}"})
+        for alert in alerts
+    ]
+
+
+def _dedupe_alerts(alerts: list[ProactiveAlert]) -> list[ProactiveAlert]:
+    unique: dict[str, ProactiveAlert] = {}
+    for alert in alerts:
+        unique.setdefault(alert.alert_id, alert)
+    return list(unique.values())
 
 
 def _reference_date(conn: Any) -> date:

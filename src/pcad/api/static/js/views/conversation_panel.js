@@ -18,11 +18,12 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
       <div class="middle-top">
         ${budgetReached ? '<div class="budget-banner">The public demo has reached its daily budget. The architecture is still here to explore — try again tomorrow, or book a private walkthrough for live interaction.</div>' : ""}
         <div class="thread-context">
-          <div>
+          <div class="thread-context-copy">
             <p class="kicker">${escapeHtml(account?.industry || "Account memory")}</p>
             <h2>${escapeHtml(currentThread?.title || `Ask about ${account?.account_name || "this account"}`)}</h2>
             <p class="sub">${escapeHtml(account?.account_name || "Selected account")} · ${escapeHtml(threads.length ? `${threads.length} recent chats` : "No chats yet")}</p>
           </div>
+          <button class="secondary-action memory-note-action" type="button" data-pcad-open-fake-note>Add synthetic note</button>
         </div>
         <div class="workflow-row" data-pcad-workflows>
           ${workflows.map((seed) => `<button class="workflow-btn ${seed === "new_chat" ? "new-chat" : ""}" type="button" data-pcad-workflow="${seed}">${workflowLabel(seed)}</button>`).join("")}

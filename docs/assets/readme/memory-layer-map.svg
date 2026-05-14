@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="620" viewBox="0 0 1440 620" role="img" aria-labelledby="title desc">
+  <title id="title">Private company memory layer architecture</title>
+  <desc id="desc">Messy source artifacts flow through parsing, normalization, storage, retrieval, and source-backed workflows.</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f4ee"/>
+      <stop offset="1" stop-color="#ebe3d6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#0a1a2f" flood-opacity=".14"/>
+    </filter>
+    <style>
+      .bg { fill: url(#paper); }
+      .ink { fill: #0a1a2f; }
+      .muted { fill: #56667a; }
+      .hair { stroke: #c9c0af; stroke-width: 1; }
+      .node { fill: #fffdfa; stroke: #c9c0af; stroke-width: 1.4; filter: url(#shadow); }
+      .accent { fill: #0f766e; }
+      .amber { fill: #b97913; }
+      .blue { fill: #2563a9; }
+      .rule { stroke: #0a1a2f; stroke-width: 3; }
+      .arrow { stroke: #0a1a2f; stroke-width: 2.2; fill: none; marker-end: url(#arrowhead); }
+      .small { font: 500 18px IBM Plex Sans, Inter, system-ui, sans-serif; }
+      .label { font: 600 24px IBM Plex Sans, Inter, system-ui, sans-serif; }
+      .mono { font: 500 13px IBM Plex Mono, ui-monospace, monospace; letter-spacing: 2px; }
+    </style>
+    <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2 2 L10 6 L2 10 Z" fill="#0a1a2f"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1440" height="620" rx="0"/>
+  <rect x="54" y="54" width="1332" height="512" rx="10" fill="#ffffff" opacity=".38" stroke="#c9c0af"/>
+
+  <text x="92" y="112" class="mono muted">PRIVATE COMPANY MEMORY LAYER</text>
+  <text x="92" y="154" class="ink" style="font: 300 46px IBM Plex Sans, Inter, system-ui, sans-serif;">From scattered company context to defensible AI answers</text>
+  <text x="92" y="192" class="small muted">Synthetic artifacts become normalized account memory, retrieved with evidence, and served through guided workflows.</text>
+
+  <g transform="translate(88 258)">
+    <rect class="node" x="0" y="0" width="220" height="178" rx="8"/>
+    <circle cx="38" cy="42" r="14" class="amber"/>
+    <text x="66" y="48" class="mono muted">SOURCES</text>
+    <text x="26" y="92" class="label ink">Messy artifacts</text>
+    <text x="26" y="126" class="small muted">Emails, PDFs, DOCX,</text>
+    <text x="26" y="153" class="small muted">meetings, CRM exports</text>
+  </g>
+
+  <path class="arrow" d="M326 347 C358 347 374 347 404 347"/>
+
+  <g transform="translate(426 258)">
+    <rect class="node" x="0" y="0" width="220" height="178" rx="8"/>
+    <circle cx="38" cy="42" r="14" class="blue"/>
+    <text x="66" y="48" class="mono muted">INGESTION</text>
+    <text x="26" y="92" class="label ink">Normalize</text>
+    <text x="26" y="126" class="small muted">Parse, OCR known scans,</text>
+    <text x="26" y="153" class="small muted">build AI-ready docs</text>
+  </g>
+
+  <path class="arrow" d="M664 347 C696 347 712 347 742 347"/>
+
+  <g transform="translate(764 258)">
+    <rect class="node" x="0" y="0" width="220" height="178" rx="8"/>
+    <circle cx="38" cy="42" r="14" class="accent"/>
+    <text x="66" y="48" class="mono muted">MEMORY</text>
+    <text x="26" y="92" class="label ink">Postgres index</text>
+    <text x="26" y="126" class="small muted">pgvector, pg_trgm,</text>
+    <text x="26" y="153" class="small muted">English full-text search</text>
+  </g>
+
+  <path class="arrow" d="M1002 347 C1034 347 1050 347 1080 347"/>
+
+  <g transform="translate(1102 258)">
+    <rect class="node" x="0" y="0" width="250" height="178" rx="8"/>
+    <circle cx="38" cy="42" r="14" class="ink"/>
+    <text x="66" y="48" class="mono muted">WORKFLOWS</text>
+    <text x="26" y="92" class="label ink">Source-backed AI</text>
+    <text x="26" y="126" class="small muted">Briefings, risks,</text>
+    <text x="26" y="153" class="small muted">follow-ups, citations</text>
+  </g>
+
+  <path class="rule" d="M92 492 H1348"/>
+  <text x="92" y="532" class="mono muted">DESIGN CONSTRAINT</text>
+  <text x="280" y="532" class="small ink">Open-source demo: synthetic data, anonymous sessions, explicit production boundaries.</text>
+</svg>

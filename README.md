@@ -1,87 +1,171 @@
-# Private Company AI Demo
+# Private Company Memory Layer
 
-## What This Is
+<p align="center">
+  <img src="src/pcad/api/static/assets/logo.svg" width="72" alt="Private Company Memory Layer logo">
+</p>
 
-This repository is a public demo and open-source reference architecture for a private company memory layer. It ingests synthetic company artifacts, normalizes them into AI-ready account memory, and answers account questions through guided workflows with source citations.
+<p align="center">
+  <strong>Open-source reference architecture for turning messy company artifacts into source-backed AI account memory.</strong>
+</p>
 
-## Try It
+<p align="center">
+  <a href="https://demo.danielpanea.com"><strong>Live demo</strong></a>
+  |
+  <a href="#quickstart"><strong>Run locally</strong></a>
+  |
+  <a href="docs/00-overview.md"><strong>Architecture docs</strong></a>
+  |
+  <a href="#demo-scope-vs-production-scope"><strong>Scope boundaries</strong></a>
+</p>
 
-The intended public deployment is `https://demo.danielpanea.com`. Locally, the landing page is served at `/` and the working synthetic demo is served at `/demo`.
+<p align="center">
+  <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-0b1b2f">
+  <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-2563a9">
+  <img alt="FastAPI" src="https://img.shields.io/badge/API-FastAPI-0f766e">
+  <img alt="Postgres plus pgvector" src="https://img.shields.io/badge/search-Postgres%20%2B%20pgvector-b97913">
+  <img alt="Vanilla frontend" src="https://img.shields.io/badge/frontend-vanilla%20HTML%2FCSS%2FJS-172126">
+</p>
+
+![Private Company Memory Copilot landing page](docs/assets/readme/landing-hero.png)
+
+This repo is a public, synthetic demo of a private company memory layer. It ingests messy account artifacts, normalizes them into AI-ready documents, indexes them in Postgres with hybrid retrieval, and answers account questions through guided workflows with citations.
+
+It is designed to show the shape of a serious private AI deployment without publishing client data, auth systems, or production SaaS machinery.
+
+## Demo
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/assets/readme/demo-app.png" alt="Synthetic account selector">
+    </td>
+    <td width="50%">
+      <img src="docs/assets/readme/account-detail.png" alt="Account memory workspace with artifacts, workflows, alerts, and citations">
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Pick a synthetic account.</strong><br>Three fictional accounts expose different deal states, source counts, and alert profiles.</td>
+    <td><strong>Ask from the memory layer.</strong><br>Artifacts, guided workflows, alerts, chat, and citations live in one focused account workspace.</td>
+  </tr>
+</table>
+
+The intended public deployment is [demo.danielpanea.com](https://demo.danielpanea.com). Locally, `/` serves the landing page and `/demo` serves the working synthetic demo.
+
+Video slot for a future walkthrough:
+
+![Video walkthrough placeholder](docs/assets/readme/video-placeholder.svg)
+
+## What It Proves
+
+- Multi-format ingestion: synthetic emails, PDFs, Word docs, meeting transcripts, and CRM-style CSV exports.
+- AI-ready account memory: parsed artifacts become normalized documents with metadata, source references, and embeddings.
+- Hybrid retrieval: Postgres full-text search, vector search through pgvector, and reranking-ready retrieval plumbing.
+- Source-backed answers: the conversation service validates citations and keeps evidence visible.
+- Guided workflows: call briefing, what changed, open risks, follow-up draft, and next action are seeded as account-aware chat turns.
+- Visitor-safe demo behavior: anonymous session cookies, visitor-scoped synthetic notes, and no user accounts.
+- Public reference boundary: enough architecture to learn from, without pretending to be a turnkey production product.
 
 ## Architecture
+
+![Memory layer architecture map](docs/assets/readme/memory-layer-map.svg)
 
 ```mermaid
 flowchart LR
     A["Synthetic company artifacts"] --> B["Parsers and normalization"]
-    B --> C["Postgres + pgvector"]
-    C --> D["Hybrid retrieval"]
-    D --> E["Conversation service"]
-    E --> F["Source-backed workflows"]
+    B --> C["AI-ready documents"]
+    C --> D["Postgres + pgvector + pg_trgm"]
+    D --> E["Hybrid retrieval"]
+    E --> F["Conversation service"]
+    F --> G["Source-backed workflows"]
+    H["Visitor synthetic notes"] --> C
 ```
 
-The demo covers messy sources, AI-ready document generation, embeddings, hybrid retrieval, citation validation, anonymous sessions, visitor-scoped synthetic notes, and a vanilla HTML/CSS/JS frontend. The detailed implementation plan lives in [`docs/`](docs/), especially [`docs/00-overview.md`](docs/00-overview.md).
+The detailed package plan lives in [`docs/`](docs/), starting with [`docs/00-overview.md`](docs/00-overview.md).
 
-## Why This Exists
+## Repository Map
 
-Most useful company context is trapped across inboxes, decks, meeting notes, PDFs, and CRM records. The company-memory-layer idea is to make that context queryable by an AI assistant while preserving ownership, deployment control, and evidence trails. Commercial positioning and client-specific implementation material live outside this public repo.
+| Path | Purpose |
+| --- | --- |
+| [`src/pcad/api/`](src/pcad/api/) | FastAPI app, routes, sessions, rate limiting, static frontend serving. |
+| [`src/pcad/ingestion/`](src/pcad/ingestion/) | Parsers, normalization, OCR path, AI-ready document construction, embedding indexing. |
+| [`src/pcad/retrieval/`](src/pcad/retrieval/) | Hybrid retrieval, intent handling, proactive alerts. |
+| [`src/pcad/agent/`](src/pcad/agent/) | Conversation orchestration and workflow-backed chat behavior. |
+| [`src/pcad/api/static/`](src/pcad/api/static/) | Vanilla HTML/CSS/JS demo UI and landing page. |
+| [`sql/migrations/`](sql/migrations/) | Versioned Postgres migrations. |
+| [`deploy/`](deploy/) | Caddy, Docker, and sovereign vLLM deployment notes. |
 
-## Demo Scope vs. Production Scope
+## Quickstart
 
-This repository is a reference architecture, not a turnkey product. It intentionally does not include:
-
-- Incremental and event-driven ingestion sync.
-- Format detection and content-type sniffing.
-- OCR for arbitrary scanned documents; the demo OCRs one known PDF, while production-grade OCR requires layout-aware models.
-- Deduplication.
-- Attachment recovery from email threads.
-- Mail thread reconstruction beyond `In-Reply-To` and `References` headers.
-- Schema evolution and migrations against live data.
-- Per-user permissions and row-level security.
-- Multi-tenant isolation.
-- Audit logging and retention controls.
-- Failure handling, dead-letter queues, and observability beyond basic logs.
-- Evaluation methodology, gold-question test sets, and hallucination measurement.
-- Production deployment runbooks for backup, monitoring, model rotation, and incident response.
-
-## Local Development
-
-Install dependencies:
+Prerequisites: Python 3.11+, `uv`, Docker, and local Postgres through the included compose file.
 
 ```bash
 uv sync
-```
-
-Generate or refresh the synthetic corpus:
-
-```bash
-uv run python scripts/generate_synthetic.py --output data/synthetic --reference-date 2026-05-13 --clean
-```
-
-Start Postgres, run migrations, ingest the corpus, and serve the app:
-
-```bash
 docker compose up -d postgres
 uv run pcad migrate
 uv run pcad ingest-demo --clean
 uv run pcad serve
 ```
 
-Open `http://127.0.0.1:8000/` for the landing page or `http://127.0.0.1:8000/demo` for the demo.
+Open:
+
+- Landing page: `http://127.0.0.1:8000/`
+- Synthetic demo: `http://127.0.0.1:8000/demo`
+
+To regenerate the synthetic corpus:
+
+```bash
+uv run python scripts/generate_synthetic.py --output data/synthetic --reference-date 2026-05-13 --clean
+```
+
+## Configuration
+
+Create a real `.env` from `.env.example`. Keep secrets out of git.
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Postgres connection string. |
+| `OPENROUTER_API_KEY` or `LLM_API_KEY` | Hosted LLM and embedding provider key. |
+| `LLM_BASE_URL` | OpenAI-compatible endpoint, usually OpenRouter or local vLLM. |
+| `LLM_MODEL` | Chat model. |
+| `EMBEDDING_MODEL` | Embedding model. |
+| `DAILY_TOKEN_BUDGET` | Public-demo spend guardrail. |
+| `SESSION_SECRET` | Cookie signing secret. |
 
 ## Deployment
 
-For the public CPU demo, create a real `.env` from `.env.example` and run:
+For the public CPU demo:
 
 ```bash
 docker compose up -d --build
 ```
 
-The app container runs migrations and ingests the demo corpus on first boot if `rag_documents` is empty. It binds to `127.0.0.1:8000`; use the example config in [`deploy/caddy/`](deploy/caddy/) to terminate HTTPS and reverse-proxy traffic.
+The app container runs migrations and bootstraps the demo corpus on first boot when `rag_documents` is empty. It binds to `127.0.0.1:8000`; use the Caddy config under [`deploy/caddy/`](deploy/caddy/) to terminate HTTPS and reverse-proxy traffic.
 
-## Sovereign Deployment With vLLM
+[`deploy/vllm/`](deploy/vllm/) contains the sovereign deployment path: a parallel compose file that swaps hosted chat completions for a local vLLM OpenAI-compatible server. The public demo does not use that stack.
 
-[`deploy/vllm/`](deploy/vllm/) contains a parallel compose file that swaps chat completions from OpenRouter to a local vLLM OpenAI-compatible server. The public demo does not use this stack. Daniel should test it once on real GPU hardware and add a screenshot or short recording before publishing the repo.
+## Demo Scope vs Production Scope
 
-## License and Credits
+This repository is a reference architecture, not a turnkey product. It intentionally does not include:
+
+- Incremental, event-driven ingestion sync.
+- Format detection and content-type sniffing.
+- Production OCR for arbitrary scanned documents.
+- Deduplication and attachment recovery from email threads.
+- Mail thread reconstruction beyond `In-Reply-To` and `References` headers.
+- Schema evolution and migrations against live production data.
+- Per-user permissions, auth, row-level security, or multi-tenant isolation.
+- Audit logging, retention controls, dead-letter queues, and production observability.
+- Evaluation methodology, gold-question test sets, and hallucination measurement.
+- Backup, monitoring, model-rotation, and incident-response runbooks.
+
+Those are paid implementation concerns, not public-demo features.
+
+## Media To Add Later
+
+- Replace `docs/assets/readme/video-placeholder.svg` with a short walkthrough GIF or MP4 once the hosted demo is recorded.
+- Add a screenshot of a streamed answer with visible citations after the public model route is finalized.
+- Add one scanned-PDF artifact preview once the synthetic document rendering path is stable enough to show.
+
+## License And Credits
 
 Apache-2.0. Built by [Daniel Panea Lichtig](https://danielpanea.com).

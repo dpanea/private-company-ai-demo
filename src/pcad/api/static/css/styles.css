@@ -1230,10 +1230,21 @@ body {
 }
 
 .thread-context {
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
   padding: 18px 28px 12px;
   border: 0;
   background: transparent;
+}
+
+.thread-context-copy {
+  min-width: 0;
+}
+
+.memory-note-action {
+  flex: 0 0 auto;
 }
 
 .thread-context h2 {
@@ -2073,6 +2084,56 @@ body {
   padding: 24px 32px 10px;
 }
 
+.memory-note-action {
+  margin-top: 4px;
+  border-color: rgba(180, 123, 30, 0.38);
+  background: rgba(251, 249, 244, 0.86);
+  color: var(--d-text);
+  font-size: 12.5px;
+  box-shadow: 0 0 0 0 rgba(180, 123, 30, 0);
+  animation: note-action-flash 6.5s ease-in-out infinite;
+}
+
+.memory-note-action:hover {
+  border-color: rgba(180, 123, 30, 0.62);
+  background: rgba(250, 241, 222, 0.88);
+  color: var(--d-text);
+}
+
+@keyframes note-action-flash {
+  0%,
+  70%,
+  100% {
+    border-color: rgba(180, 123, 30, 0.38);
+    background: rgba(251, 249, 244, 0.86);
+    box-shadow: 0 0 0 0 rgba(180, 123, 30, 0);
+  }
+
+  76% {
+    border-color: rgba(180, 123, 30, 0.78);
+    background: rgba(250, 224, 171, 0.96);
+    box-shadow: 0 0 0 3px rgba(180, 123, 30, 0.10);
+  }
+
+  82% {
+    border-color: rgba(180, 123, 30, 0.42);
+    background: rgba(251, 249, 244, 0.9);
+    box-shadow: 0 0 0 0 rgba(180, 123, 30, 0);
+  }
+
+  88% {
+    border-color: rgba(180, 123, 30, 0.66);
+    background: rgba(250, 236, 207, 0.96);
+    box-shadow: 0 0 0 2px rgba(180, 123, 30, 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-note-action {
+    animation: none;
+  }
+}
+
 .thread-context h2 {
   max-width: 20ch;
   margin-top: 8px;
@@ -2339,8 +2400,26 @@ dialog {
   background: var(--d-surface-strong);
 }
 
+.modal-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.modal-head .icon-button {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: var(--d-radius);
+  font-size: 20px;
+  line-height: 1;
+}
+
 .modal-body {
   background: var(--d-bg);
+}
+
+.modal-body .callout.warning {
+  margin-bottom: 18px;
 }
 
 .document-page,
@@ -2372,6 +2451,14 @@ dialog {
     min-height: 0;
     gap: 8px;
     padding: 10px 14px;
+  }
+
+  .thread-context {
+    display: block;
+  }
+
+  .memory-note-action {
+    margin-top: 14px;
   }
 
   .top-nav {
