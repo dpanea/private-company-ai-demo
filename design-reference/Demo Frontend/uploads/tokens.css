@@ -1,0 +1,87 @@
+/* ============================================================
+   PANEA — BRAND TOKENS
+   Editorial, European, understated.
+   ============================================================ */
+
+:root {
+  /* —— Type ——————————————————————————————————— */
+  --font-serif: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* —— Core palette: Ink ——————————————————————— */
+  --ink-900: #0A1A2F;        /* deepest navy — current logo */
+  --ink-800: #112540;        /* navy surface */
+  --ink-700: #1B3252;        /* navy elevated */
+  --ink-500: #4A5C75;        /* slate */
+  --ink-400: #768294;        /* muted slate */
+  --ink-300: #B6BFCC;        /* hairlines on dark */
+
+  /* —— Paper / off-whites ————————————————————— */
+  --paper-50: #F7F4EE;       /* warm ivory — primary light bg */
+  --paper-100: #EFEAE0;      /* warm cream */
+  --paper-200: #E2DBCE;      /* tan hairline */
+  --paper-300: #C9C0AF;      /* warm border */
+
+  /* —— Neutral cool whites (alt) —————————————— */
+  --bone-50: #F4F5F7;
+  --bone-100: #E9EBEF;
+  --bone-200: #D7DAE0;
+
+  /* —— Accent pool (selectable) ——————————————— */
+  --accent-paper: #F7F4EE;        /* the "monochrome" choice — paper on ink */
+  --accent-signal: #2A6BE0;       /* electric signal blue */
+  --accent-amber: #C99A3F;        /* warm gold */
+  --accent-clay: #C25A3C;         /* signal red-orange */
+  --accent-moss: #5B7A4F;         /* european moss */
+
+  /* —— Semantic ————————————————————————————— */
+  --bg: var(--paper-50);
+  --bg-elev: #FFFFFF;
+  --fg: var(--ink-900);
+  --fg-muted: var(--ink-500);
+  --hairline: var(--paper-300);
+  --accent: var(--ink-900);
+
+  /* —— Geometry ————————————————————————————— */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  --pad-1: 8px;
+  --pad-2: 16px;
+  --pad-3: 24px;
+  --pad-4: 40px;
+  --pad-5: 64px;
+  --pad-6: 96px;
+
+  --maxw: 1240px;
+
+  /* —— Shadows (subtle, european) ————————————— */
+  --shadow-sm: 0 1px 2px rgba(10,26,47,0.04), 0 0 0 1px rgba(10,26,47,0.04);
+  --shadow-md: 0 8px 30px -12px rgba(10,26,47,0.18);
+}
+
+/* —— Reset / base ———————————————————————————— */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.01em; margin: 0; }
+p { margin: 0; }
+a { color: inherit; text-decoration: none; }
+
+.mono { font-family: var(--font-mono); font-size: 0.78em; letter-spacing: 0.02em; text-transform: uppercase; }
+.eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--fg-muted); }
+
+.hairline { height: 1px; background: var(--hairline); border: 0; margin: 0; }
+
+.italic-serif { font-family: var(--font-serif); font-style: italic; font-weight: 400; }
