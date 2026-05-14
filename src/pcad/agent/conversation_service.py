@@ -34,6 +34,14 @@ WORKFLOW_SEEDS = {
     "next_action": "What is the most important next action I should take on {account_name} this week?",
 }
 
+WORKFLOW_DISPLAY_TEXT = {
+    "call_briefing": "Brief me before a call",
+    "what_changed": "What changed?",
+    "open_risks": "Open risks",
+    "follow_up_draft": "Draft follow-up",
+    "next_action": "Next action",
+}
+
 
 @dataclass
 class PreparedPipeline:
@@ -135,6 +143,7 @@ class ConversationService:
         thread = self.get_thread(session_id, thread_id)
         prev_account_id = thread.account_id
         prev_account_name = thread.account_name
+        pipeline_clean = _workflow_pipeline_request(thread.workflow_seed, clean, prev_account_name or "this account")
         user_message = self._insert_message(thread_id, "user", clean, account_id=prev_account_id, account_name=prev_account_name)
         yield _sse("user_message", _model_dump(user_message))
         yield _sse("status", {"status": "thinking"})
@@ -149,7 +158,7 @@ class ConversationService:
             pipeline_prev_account_id = None
             pipeline_prev_account_name = None
         else:
-            pipeline_request = clean
+            pipeline_request = pipeline_clean
             pipeline_explicit_id = None
             pipeline_prev_account_id = prev_account_id
             pipeline_prev_account_name = prev_account_name
@@ -181,6 +190,9 @@ class ConversationService:
             return
 
         yield _sse("status", {"status": "generating"})
+        early_citations = _citations_from_pack(prepared.pack, {})
+        if early_citations:
+            yield _sse("citations", {"citations": early_citations})
         budget = self.settings.context_token_budget or DEFAULT_CONTEXT_TOKEN_BUDGET
         context_prompt = render_context_prompt(prepared.pack, token_budget=budget)
         messages = build_answer_messages(context_prompt, attempt=1, previous_answer="", previous_validation={})
@@ -378,6 +390,15 @@ def _workflow_seed_to_prompt(seed: str, account_name: str) -> str:
     return WORKFLOW_SEEDS[seed].format(account_name=account_name)
 
 
+def _workflow_pipeline_request(seed: str | None, visible_message: str, account_name: str) -> str:
+    if not seed:
+        return visible_message
+    label = WORKFLOW_DISPLAY_TEXT.get(seed)
+    if label and visible_message.strip().casefold().rstrip(".") == label.casefold().rstrip("."):
+        return _workflow_seed_to_prompt(seed, account_name)
+    return visible_message
+
+
 def _account_resolution_error_answer(error: AccountResolutionError) -> str:
     if error.code == "account_ambiguous":
         candidates = "; ".join(f"{c.account_name} ({c.account_id})" for c in error.candidates[:5])
@@ -387,6 +408,13 @@ def _account_resolution_error_answer(error: AccountResolutionError) -> str:
 
 def _citations_from_pack(pack: dict[str, Any], validation: dict[str, Any]) -> list[dict[str, Any]]:
     cited = set(validation.get("cited") or [])
+    citations = _collect_citations_from_pack(pack, cited)
+    if not citations and cited:
+        citations = _collect_citations_from_pack(pack, set())
+    return citations[:8]
+
+
+def _collect_citations_from_pack(pack: dict[str, Any], cited: set[str]) -> list[dict[str, Any]]:
     seen: set[str] = set()
     citations: list[dict[str, Any]] = []
     for item in pack.get("retrieved_documents", []):
@@ -402,7 +430,7 @@ def _citations_from_pack(pack: dict[str, Any], validation: dict[str, Any]) -> li
             seen.add(label)
             citations.append(
                 {
-                    "label": label,
+                    "label": _sidebar_citation_label(citation, artifact_id),
                     "source_object": citation["source_object"],
                     "source_record_id": citation["source_record_id"],
                     "artifact_id": artifact_id,
@@ -412,7 +440,7 @@ def _citations_from_pack(pack: dict[str, Any], validation: dict[str, Any]) -> li
                     "excerpt": citation.get("excerpt"),
                 }
             )
-    return citations[:8]
+    return citations
 
 
 SOURCE_MARKER_RE = re.compile(r"\s*\[Source:\s[^\]]+\]")
@@ -430,6 +458,23 @@ def _artifact_id_for_citation(citation: dict[str, Any], account_id: str | None) 
     if source_object == "Email" and account_id:
         return f"email:{account_id}:{_safe_artifact_part(record_id)}"
     return None
+
+
+def _sidebar_citation_label(citation: dict[str, Any], artifact_id: str) -> str:
+    source_object = str(citation.get("source_object") or "")
+    record_id = str(citation.get("source_record_id") or "")
+    if source_object == "RiskEvidence":
+        if artifact_id.startswith(("email:", "email_thread:")):
+            return f"Email {artifact_id.rsplit(':', 1)[-1]}"
+        if artifact_id.startswith("pdf:"):
+            return f"PDF {artifact_id.rsplit(':', 1)[-1]}"
+        if artifact_id.startswith("docx:"):
+            return f"Word document {artifact_id.rsplit(':', 1)[-1]}"
+        if artifact_id.startswith("meeting:"):
+            return f"Meeting {artifact_id.rsplit(':', 1)[-1]}"
+    if source_object == "Email" and record_id:
+        return f"Email {record_id}"
+    return citation_label(citation)
 
 
 def _safe_artifact_part(value: str) -> str:

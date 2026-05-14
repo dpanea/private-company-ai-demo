@@ -68,6 +68,7 @@ function dispatchSseEvent(rawEvent, handlers) {
   if (eventName === "user_message") handlers.onUserMessage?.(data);
   if (eventName === "status") handlers.onStatus?.(data);
   if (eventName === "token") handlers.onToken?.(data);
+  if (eventName === "citations") handlers.onCitations?.(data);
   if (eventName === "replace") handlers.onReplace?.(data);
   if (eventName === "done") handlers.onDone?.(data);
   if (eventName === "error") handlers.onError?.(data);
@@ -126,6 +127,7 @@ function streamMockMessage(threadId, message, handlers) {
     appendMockMessage(threadId, userMessage);
     handlers.onUserMessage?.(userMessage);
     handlers.onStatus?.({ status: "thinking" });
+    handlers.onCitations?.({ citations: assistantMessage.citations });
   }, 120);
 
   window.setTimeout(() => {

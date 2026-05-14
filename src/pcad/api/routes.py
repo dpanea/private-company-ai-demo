@@ -96,7 +96,7 @@ def account_artifacts(account_id: str, request: Request) -> list[dict[str, Any]]
             "SELECT artifact_id, account_id, artifact_type, title, mime_type, source_path, rendered_path, metadata, extraction_method, created_at, ingested_at FROM raw_artifacts WHERE account_id = %s ORDER BY created_at DESC",
             (account_id,),
         ).fetchall()
-    return [dict(row) for row in rows]
+    return [_serialize_artifact_row(dict(row)) for row in rows]
 
 
 @router.get("/accounts/{account_id}/alerts")
@@ -122,6 +122,7 @@ def artifact(artifact_id: str, request: Request) -> dict[str, Any]:
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Artifact not found")
     data = dict(row)
+    data = _serialize_artifact_row(data)
     rendered_paths = data.get("metadata", {}).get("rendered_image_paths") or []
     data["page_urls"] = [f"/api/artifacts/{artifact_id}/page/{index}" for index, _ in enumerate(rendered_paths)]
     return data
@@ -285,6 +286,12 @@ def _insert_fake_note_doc(conn: Any, note: FakeNote, account_name: str) -> None:
         """,
         (f"{doc_id}:FakeNote:{note.note_id}", doc_id, source_object, note.note_id, note.title, note.note_date, note.body[:300]),
     )
+
+
+def _serialize_artifact_row(row: dict[str, Any]) -> dict[str, Any]:
+    if row.get("artifact_type") == "email_thread":
+        row = {**row, "artifact_type": "email"}
+    return row
 
 
 def _fake_doc_id(note_id: str) -> str:

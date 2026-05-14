@@ -144,19 +144,19 @@ const mockAccounts = [
 
 const mockArtifacts = {
   SYN_ACC_BRANNFELD: [
-    artifact("art-brann-email-1", "SYN_ACC_BRANNFELD", "email_thread", "Procurement thread: deployment boundary", "plain_text", { sender: "Marta Keller", date: "2026-05-04", subject: "Deployment boundary" }),
+    artifact("art-brann-email-1", "SYN_ACC_BRANNFELD", "email", "Procurement email: deployment boundary", "plain_text", { sender: "Marta Keller", date: "2026-05-04", subject: "Deployment boundary" }),
     artifact("art-brann-proposal", "SYN_ACC_BRANNFELD", "pdf", "Q2 proposal for private memory layer", "plain_text", { page_count: 4 }),
     artifact("art-brann-nda-scan", "SYN_ACC_BRANNFELD", "pdf", "Signed NDA scan", "ocr", { page_count: 2 }),
     artifact("art-brann-meeting", "SYN_ACC_BRANNFELD", "meeting_transcript", "Technical review transcript", "plain_text", { attendees_count: 5, date: "2026-04-28" }),
     artifact("art-brann-plan", "SYN_ACC_BRANNFELD", "docx", "Account plan", "docx_xml", {}),
   ],
   SYN_ACC_CALDRISA: [
-    artifact("art-cald-email", "SYN_ACC_CALDRISA", "email_thread", "Compliance questions thread", "plain_text", { sender: "Ines Rubio", date: "2026-05-07", subject: "DPA review" }),
+    artifact("art-cald-email", "SYN_ACC_CALDRISA", "email", "Compliance questions email", "plain_text", { sender: "Ines Rubio", date: "2026-05-07", subject: "DPA review" }),
     artifact("art-cald-dpa", "SYN_ACC_CALDRISA", "pdf", "Data processing addendum", "plain_text", { page_count: 6 }),
     artifact("art-cald-meeting", "SYN_ACC_CALDRISA", "meeting_transcript", "Pilot scope meeting", "plain_text", { attendees_count: 4, date: "2026-05-07" }),
   ],
   SYN_ACC_RYNVOSS: [
-    artifact("art-ryn-email", "SYN_ACC_RYNVOSS", "email_thread", "Finance follow-up thread", "plain_text", { sender: "Niels Voss", date: "2026-04-21", subject: "Integration estimate" }),
+    artifact("art-ryn-email", "SYN_ACC_RYNVOSS", "email", "Finance follow-up email", "plain_text", { sender: "Niels Voss", date: "2026-04-21", subject: "Integration estimate" }),
     artifact("art-ryn-proposal", "SYN_ACC_RYNVOSS", "pdf", "Logistics proposal", "plain_text", { page_count: 5 }),
     artifact("art-ryn-meeting", "SYN_ACC_RYNVOSS", "meeting_transcript", "Procurement review transcript", "plain_text", { attendees_count: 6, date: "2026-04-17" }),
   ],

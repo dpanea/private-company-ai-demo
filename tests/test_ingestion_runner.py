@@ -23,7 +23,7 @@ def test_run_demo_ingestion_populates_expected_tables(empty_db: str, tmp_path: P
     report = run_demo_ingestion(settings, synthetic_dir=synthetic_dir, clean=True, skip_embeddings=True)
 
     assert report.accounts == 1
-    assert report.raw_artifacts == 4
+    assert report.raw_artifacts == 3
     assert report.rag_documents >= 7
     with psycopg.connect(empty_db) as conn:
         doc_types = {
@@ -205,4 +205,3 @@ def _message(
 def _document_hashes(db_url: str) -> list[tuple[str, str]]:
     with psycopg.connect(db_url) as conn:
         return conn.execute("SELECT doc_id, source_hash FROM rag_documents ORDER BY doc_id").fetchall()
-

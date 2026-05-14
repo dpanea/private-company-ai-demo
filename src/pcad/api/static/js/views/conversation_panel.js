@@ -83,6 +83,7 @@ async function startThread(accountId, workflowSeed, options = { streamSeed: true
     state.set("threads", [thread, ...state.get("threads").filter((item) => item.thread_id !== thread.thread_id)]);
     state.set("currentThreadId", thread.thread_id);
     state.update("messagesByThread", (messagesByThread) => ({ ...messagesByThread, [thread.thread_id]: [] }));
+    state.set("streamingCitations", []);
     navigate(threadPath(accountId, thread.thread_id));
     if (workflowSeed && options.streamSeed) {
       await sendCurrentMessage({ account_id: accountId }, workflowPrompt(workflowSeed, options.account || { account_id: accountId }));
@@ -105,6 +106,7 @@ async function sendCurrentMessage(account, text) {
   state.set("isStreaming", true);
   state.set("streamingThreadId", threadId);
   state.set("streamingTokens", "");
+  state.set("streamingCitations", []);
 
   streamMessage(threadId, text, {
     onUserMessage(message) {
@@ -117,6 +119,9 @@ async function sendCurrentMessage(account, text) {
     onToken(token) {
       state.set("streamingTokens", `${state.get("streamingTokens")}${token.content || ""}`);
     },
+    onCitations(payload) {
+      state.set("streamingCitations", payload.citations || []);
+    },
     onReplace(payload) {
       state.set("streamingTokens", payload.content || "");
     },
@@ -128,6 +133,7 @@ async function sendCurrentMessage(account, text) {
       state.set("isStreaming", false);
       state.set("streamingThreadId", null);
       state.set("streamingTokens", "");
+      state.set("streamingCitations", []);
     },
     onError(error) {
       handleStreamError(error);
@@ -147,6 +153,7 @@ function handleStreamError(error) {
   state.set("isStreaming", false);
   state.set("streamingThreadId", null);
   state.set("streamingTokens", "");
+  state.set("streamingCitations", []);
   if (error.status === 429) {
     state.set("rateLimitedUntil", Date.now() + 60000);
     showToast("Slow down — too many requests. Try again in a minute.", "warning");

@@ -175,8 +175,7 @@ def _parse_mbox_artifact(path: Path, source_path: str, account_id: str) -> Parse
     email_artifacts = [_email_raw_artifact(email, source_path, account_id) for email in emails]
     prefix = f"email:{account_id}"
     threads = normalize_email_threads(emails, artifact_prefix=prefix, account_id=account_id)
-    thread_artifacts = [_thread_raw_artifact(thread, source_path, account_id) for thread in threads]
-    return ParsedArtifactBundle(email_artifacts + thread_artifacts, threads, [])
+    return ParsedArtifactBundle(email_artifacts, threads, [])
 
 
 def _parse_pdf_artifact(
@@ -283,27 +282,6 @@ def _email_raw_artifact(email: ParsedEmail, source_path: str, account_id: str) -
         },
         extraction_method="mbox_parse",
         created_at=email.date or _now(),
-        ingested_at=_now(),
-    )
-
-
-def _thread_raw_artifact(thread: EmailThread, source_path: str, account_id: str) -> RawArtifact:
-    return RawArtifact(
-        artifact_id=f"email_thread:{account_id}:{thread.thread_id}",
-        account_id=account_id,
-        artifact_type="email_thread",
-        title=thread.subject,
-        mime_type="text/plain",
-        source_path=source_path,
-        extracted_text=thread.extracted_text,
-        metadata={
-            "thread_id": thread.thread_id,
-            "participants": thread.participants,
-            "email_artifact_ids": thread.artifact_ids,
-            "message_ids": [email.message_id for email in thread.emails],
-        },
-        extraction_method="mbox_parse",
-        created_at=thread.emails[0].date if thread.emails and thread.emails[0].date else _now(),
         ingested_at=_now(),
     )
 

@@ -16,7 +16,8 @@ export function renderAccountDetail(account) {
   const threads = allThreads.filter((thread) => thread.account_id === accountId || !thread.account_id);
   const currentThreadId = state.get("currentThreadId");
   const messages = currentThreadId ? (state.get("messagesByThread")[currentThreadId] || []) : [];
-  const latestAssistant = latestAssistantMessage(messages);
+  const streamingCitations = state.get("streamingThreadId") === currentThreadId ? state.get("streamingCitations") : [];
+  const latestAssistant = streamingCitations.length ? { citations: streamingCitations } : latestAssistantMessage(messages);
 
   return `
     <section class="page detail-view-page" data-pcad-view="account-detail">

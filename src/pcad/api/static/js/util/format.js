@@ -13,7 +13,7 @@ export function formatDate(value) {
 export function formatArtifactType(type) {
   const labels = {
     email: "Email",
-    email_thread: "Email thread",
+    email_thread: "Email",
     pdf: "PDF",
     docx: "Word document",
     meeting_transcript: "Meeting",
@@ -25,7 +25,7 @@ export function formatArtifactType(type) {
 export function artifactIcon(type) {
   return {
     email: "EM",
-    email_thread: "TH",
+    email_thread: "EM",
     pdf: "PDF",
     docx: "DOC",
     meeting_transcript: "MTG",
@@ -37,7 +37,7 @@ export function artifactIconSvg(type) {
   const common = 'width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
   const icons = {
     email: `<svg ${common}><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>`,
-    email_thread: `<svg ${common}><path d="M4 7h16v10H4z"/><path d="m4 8 8 5 8-5"/><path d="M7 20h10"/></svg>`,
+    email_thread: `<svg ${common}><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>`,
     pdf: `<svg ${common}><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M9 14h6"/><path d="M9 17h4"/></svg>`,
     docx: `<svg ${common}><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 16h6"/><path d="M9 19h3"/></svg>`,
     meeting_transcript: `<svg ${common}><path d="M7 4v3"/><path d="M17 4v3"/><path d="M5 8h14"/><path d="M6 5h12v15H6z"/><path d="M8.5 12h7"/><path d="M8.5 15h5"/></svg>`,
@@ -58,13 +58,12 @@ export function workflowLabel(seed) {
 }
 
 export function workflowPrompt(seed, account) {
-  const name = accountName(account);
   return {
-    call_briefing: `Brief me before a call with ${name}. Cover recent activity, open opportunities, stakeholders, and any open risks.`,
-    what_changed: `What changed for ${name} in the last 14 days that I should know about before reaching out?`,
-    open_risks: `What are the open risks, objections, or unresolved questions for ${name}?`,
-    follow_up_draft: `Draft a short follow-up email to the primary contact at ${name}. Reference the most recent meaningful interaction.`,
-    next_action: `What is the most important next action I should take on ${name} this week?`,
+    call_briefing: "Brief me before a call",
+    what_changed: "What changed?",
+    open_risks: "Open risks",
+    follow_up_draft: "Draft follow-up",
+    next_action: "Next action",
   }[seed] || workflowLabel(seed);
 }
 
