@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import textwrap
 from collections.abc import Generator
 from dataclasses import dataclass
@@ -86,15 +87,7 @@ class ConversationService:
                 (thread_id, session_id, account_id, account_name, title, workflow_seed),
             ).fetchone()
             if workflow_seed:
-                seed_prompt = _workflow_seed_to_prompt(workflow_seed, account_name or "this account")
-                title = _title_from_message(seed_prompt)
-                conn.execute(
-                    """
-                    INSERT INTO conversation_messages (message_id, thread_id, role, content, account_id, account_name, metadata_json)
-                    VALUES (%s, %s, 'user', %s, %s, %s, %s)
-                    """,
-                    (str(uuid4()), thread_id, seed_prompt, account_id, account_name, Jsonb({"workflow_seed": workflow_seed})),
-                )
+                title = _title_from_message(_workflow_seed_to_prompt(workflow_seed, account_name or "this account"))
                 row = conn.execute(
                     "UPDATE conversation_threads SET title = %s, updated_at = now() WHERE thread_id = %s RETURNING *",
                     (title, thread_id),
@@ -208,12 +201,13 @@ class ConversationService:
             yield _sse("token", {"content": raw_answer})
 
         answer, validation = self._finalize_answer_text(prepared, raw_answer, context_prompt)
-        if answer != raw_answer:
-            yield _sse("replace", {"content": answer})
+        display_answer = _strip_source_markers(answer)
+        if display_answer != raw_answer:
+            yield _sse("replace", {"content": display_answer})
         usage = getattr(self.llm_client, "last_usage", None)
         if usage and (usage.prompt_tokens or usage.completion_tokens):
             record_token_usage(self.settings, tokens_in=usage.prompt_tokens, tokens_out=usage.completion_tokens)
-        yield from self._finalize_answer(thread_id, clean, prepared, answer, validation, session_id)
+        yield from self._finalize_answer(thread_id, clean, prepared, display_answer, validation, session_id)
 
     def _prepare_pipeline(
         self,
@@ -402,12 +396,16 @@ def _citations_from_pack(pack: dict[str, Any], validation: dict[str, Any]) -> li
                 continue
             if label in seen:
                 continue
+            artifact_id = _artifact_id_for_citation(citation, pack.get("account_id"))
+            if artifact_id is None:
+                continue
             seen.add(label)
             citations.append(
                 {
                     "label": label,
                     "source_object": citation["source_object"],
                     "source_record_id": citation["source_record_id"],
+                    "artifact_id": artifact_id,
                     "title": citation.get("title"),
                     "source_url": citation.get("source_url"),
                     "source_date": str(citation.get("source_date")) if citation.get("source_date") else None,
@@ -415,6 +413,27 @@ def _citations_from_pack(pack: dict[str, Any], validation: dict[str, Any]) -> li
                 }
             )
     return citations[:8]
+
+
+SOURCE_MARKER_RE = re.compile(r"\s*\[Source:\s[^\]]+\]")
+
+
+def _strip_source_markers(answer: str) -> str:
+    return re.sub(r"\n{3,}", "\n\n", SOURCE_MARKER_RE.sub("", answer)).strip()
+
+
+def _artifact_id_for_citation(citation: dict[str, Any], account_id: str | None) -> str | None:
+    record_id = str(citation.get("source_record_id") or "")
+    source_object = str(citation.get("source_object") or "")
+    if ":" in record_id:
+        return record_id
+    if source_object == "Email" and account_id:
+        return f"email:{account_id}:{_safe_artifact_part(record_id)}"
+    return None
+
+
+def _safe_artifact_part(value: str) -> str:
+    return "".join(ch.lower() if ch.isalnum() else "_" for ch in value).strip("_") or "unknown"
 
 
 def _candidate_id_from_text(text: str, candidates: list[dict[str, Any]]) -> str | None:

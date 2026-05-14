@@ -72,13 +72,21 @@ def repair_missing_citations(answer: str, pack: dict[str, Any]) -> str:
     if not fallback:
         return answer
     logger.warning("citations.repair_missing_citation fallback_citation=%s", fallback)
-    return answer.rstrip() + f"\n\nSources consulted: [Source: {fallback}]"
+    return answer.rstrip() + f"\n\nSources consulted: see panel on the right. [Source: {fallback}]"
 
 
 def _fallback_citation_label(pack: dict[str, Any]) -> str | None:
     for item in pack.get("retrieved_documents", []):
-        citations = item.get("citations", [])
-        if citations:
-            return citation_label(citations[0])
+        for citation in item.get("citations", []):
+            if _citation_points_to_artifact(citation, pack.get("account_id")):
+                return citation_label(citation)
+    if pack.get("account_id"):
+        return None
     allowed = sorted(allowed_citation_labels(pack))
     return allowed[0] if allowed else None
+
+
+def _citation_points_to_artifact(citation: dict[str, Any], account_id: str | None) -> bool:
+    record_id = str(citation.get("source_record_id") or "")
+    source_object = str(citation.get("source_object") or "")
+    return ":" in record_id or (source_object == "Email" and bool(account_id))

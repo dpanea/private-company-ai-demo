@@ -2,13 +2,13 @@ import { getArtifact } from "../api.js";
 import { state } from "../state.js";
 import { navigate, accountPath } from "../router.js";
 import { emptyState, escapeHtml, qs, showToast, trapDialogFocus } from "../util/dom.js";
-import { artifactIcon, artifactMeta, formatArtifactType, renderMarkdown } from "../util/format.js";
+import { artifactIcon, artifactIconSvg, artifactMeta, formatArtifactType, renderMarkdown } from "../util/format.js";
 
-export async function openArtifactModal(artifactId, accountId) {
+export async function openArtifactModal(artifactId, accountId, options = { restoreRouteOnClose: true }) {
   const root = qs("#modal-root");
   root.innerHTML = renderLoadingDialog();
   const dialog = root.querySelector("dialog");
-  wireDialog(dialog, accountId);
+  wireDialog(dialog, accountId, options);
   dialog.showModal();
 
   try {
@@ -16,7 +16,7 @@ export async function openArtifactModal(artifactId, accountId) {
     state.set("currentArtifactId", artifactId);
     root.innerHTML = renderArtifactDialog(artifact, accountId);
     const fullDialog = root.querySelector("dialog");
-    wireDialog(fullDialog, accountId);
+    wireDialog(fullDialog, accountId, options);
     fullDialog.showModal();
   } catch (error) {
     closeModal(accountId);
@@ -24,17 +24,17 @@ export async function openArtifactModal(artifactId, accountId) {
   }
 }
 
-export function closeModal(accountId) {
+export function closeModal(accountId, options = { restoreRouteOnClose: true }) {
   qs("#modal-root").innerHTML = "";
   state.set("currentArtifactId", null);
-  if (accountId) navigate(accountPath(accountId));
+  if (accountId && options.restoreRouteOnClose) navigate(accountPath(accountId));
 }
 
-function wireDialog(dialog, accountId) {
+function wireDialog(dialog, accountId, options) {
   const releaseTrap = trapDialogFocus(dialog);
   dialog.addEventListener("close", () => {
     releaseTrap();
-    closeModal(accountId);
+    closeModal(accountId, options);
   }, { once: true });
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) dialog.close();
@@ -56,8 +56,9 @@ function renderLoadingDialog() {
 
 function renderArtifactDialog(artifact, accountId) {
   return `
-    <dialog aria-labelledby="artifact-title" data-pcad-artifact-modal="${escapeHtml(artifact.artifact_id)}">
+    <dialog class="artifact-dialog" aria-labelledby="artifact-title" data-pcad-artifact-modal="${escapeHtml(artifact.artifact_id)}">
       <div class="modal-head">
+        <span class="icon-tile modal-type-icon">${artifactIconSvg(artifact.artifact_type)}</span>
         <div>
           <p class="kicker">${escapeHtml(formatArtifactType(artifact.artifact_type))} · ${escapeHtml(artifactIcon(artifact.artifact_type))}</p>
           <h2 id="artifact-title">${escapeHtml(artifact.title)}</h2>
@@ -79,7 +80,7 @@ function renderArtifactBody(artifact) {
   if (artifact.artifact_type === "pdf") return renderPdfArtifact(artifact);
   if (artifact.artifact_type === "email" || artifact.artifact_type === "email_thread") return renderEmailArtifact(artifact);
   if (artifact.artifact_type === "meeting_transcript") return renderTranscriptArtifact(artifact);
-  if (artifact.artifact_type === "docx") return `<div class="markdown">${renderMarkdown(artifact.extracted_text)}</div>`;
+  if (artifact.artifact_type === "docx") return `<article class="document-page docx-page markdown">${renderMarkdown(artifact.extracted_text)}</article>`;
   return `<div class="text-block">${escapeHtml(artifact.extracted_text || "No extracted text available.")}</div>`;
 }
 
@@ -107,13 +108,15 @@ function renderEmailArtifact(artifact) {
       <p><strong>Date:</strong> ${escapeHtml(metadata.date || artifact.created_at || "Unknown")}</p>
       <p><strong>Subject:</strong> ${escapeHtml(metadata.subject || artifact.title)}</p>
     </div>
-    <div class="text-block">${escapeHtml(artifact.extracted_text || "")}</div>
+      <div class="email-body">${renderParagraphs(artifact.extracted_text)}</div>
   `;
 }
 
 function renderTranscriptArtifact(artifact) {
   const turns = String(artifact.extracted_text || "").split(/\n(?=[A-Z][^:\n]{1,40}:)/).filter(Boolean);
-  if (!turns.length) return `<div class="text-block">${escapeHtml(artifact.extracted_text || "")}</div>`;
+  if (!turns.length || turns.length === 1) {
+    return `<article class="document-page meeting-page markdown">${renderMarkdown(withMarkdownLineBreaks(artifact.extracted_text || ""))}</article>`;
+  }
   return turns.map((turn) => {
     const [speaker, ...rest] = turn.split(":");
     return `
@@ -123,4 +126,21 @@ function renderTranscriptArtifact(artifact) {
       </div>
     `;
   }).join("");
+}
+
+function renderParagraphs(text) {
+  const paragraphs = String(text || "")
+    .replace(/^#\s+.+(?:\n+|$)/, "")
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!paragraphs.length) return '<p>No extracted text available.</p>';
+  return paragraphs.map((part) => `<p>${escapeHtml(part).replaceAll("\n", "<br>")}</p>`).join("");
+}
+
+function withMarkdownLineBreaks(text) {
+  return String(text || "")
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .join("  \n");
 }

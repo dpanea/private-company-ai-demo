@@ -6,7 +6,7 @@ export function renderAlertsPanel(alerts = [], artifacts = []) {
   return alerts.map((alert) => {
     const evidence = (alert.evidence_artifact_ids || []).map((id) => {
       const artifact = artifacts.find((item) => item.artifact_id === id);
-      return `<span class="evidence-chip">${escapeHtml(artifact?.title || id)}</span>`;
+      return `<button class="evidence-chip" type="button" data-pcad-open-artifact="${escapeHtml(id)}">${escapeHtml(artifact?.title || id)}</button>`;
     }).join("");
     return `
       <article class="alert-card ${escapeHtml(alert.severity)}" id="alert-${escapeHtml(alert.alert_id)}">

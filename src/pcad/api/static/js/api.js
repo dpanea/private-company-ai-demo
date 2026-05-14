@@ -114,6 +114,9 @@ const mockAccounts = [
     billing_country: "Germany",
     status: "Late stage positive",
     context: "Procurement is aligned, but the technical sponsor needs confidence around sovereign deployment.",
+    artifact_count: 5,
+    alert_count: 2,
+    days_since_activity: 4,
   },
   {
     account_id: "SYN_ACC_CALDRISA",
@@ -122,6 +125,9 @@ const mockAccounts = [
     billing_country: "Spain",
     status: "Compliance review",
     context: "Pilot scope is narrow and privacy review is the gating item before a clinical rollout.",
+    artifact_count: 3,
+    alert_count: 1,
+    days_since_activity: 7,
   },
   {
     account_id: "SYN_ACC_RYNVOSS",
@@ -130,6 +136,9 @@ const mockAccounts = [
     billing_country: "Netherlands",
     status: "Stalled",
     context: "Operations sees value, while finance is waiting on a clearer integration estimate.",
+    artifact_count: 3,
+    alert_count: 1,
+    days_since_activity: 22,
   },
 ];
 

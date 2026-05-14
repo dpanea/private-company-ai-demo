@@ -66,7 +66,7 @@ async function loadRoute(route) {
     }
 
     if (route.name === "account_artifact" && route.params.artifactId) {
-      maybeOpenArtifact(route.params.artifactId, accountId);
+      maybeOpenArtifact(route.params.artifactId, accountId, { restoreRouteOnClose: true });
     }
   } catch (error) {
     state.set("lastError", error);
@@ -94,6 +94,7 @@ function renderApp() {
 
   if (route.name === "accounts") {
     root.innerHTML = renderAccountList(accounts);
+    document.title = "Private Company Memory Demo";
     return;
   }
 
@@ -114,7 +115,7 @@ function renderApp() {
   bindAccountDetail(root, currentAccount);
 
   if (route.name === "account_artifact" && route.params.artifactId) {
-    maybeOpenArtifact(route.params.artifactId, currentAccount.account_id);
+    maybeOpenArtifact(route.params.artifactId, currentAccount.account_id, { restoreRouteOnClose: true });
   }
 
   document.title = `${accountName(currentAccount)} · Private Company Memory Demo`;
@@ -130,10 +131,10 @@ function mergeBy(items, incoming, key) {
   return [...filtered, incoming];
 }
 
-function maybeOpenArtifact(artifactId, accountId) {
+function maybeOpenArtifact(artifactId, accountId, options = { restoreRouteOnClose: true }) {
   if (state.get("currentArtifactId") === artifactId || pendingArtifactId === artifactId) return;
   pendingArtifactId = artifactId;
-  openArtifactModal(artifactId, accountId).finally(() => {
+  openArtifactModal(artifactId, accountId, options).finally(() => {
     pendingArtifactId = null;
   });
 }

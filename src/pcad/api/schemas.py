@@ -34,6 +34,11 @@ class AccountOut(BaseModel):
     industry: str | None = None
     website: str | None = None
     owner_id: str | None = None
+    billing_country: str | None = None
+    billing_city: str | None = None
+    artifact_count: int | None = None
+    alert_count: int | None = None
+    days_since_activity: int | None = None
 
 
 class ArtifactOut(BaseModel):

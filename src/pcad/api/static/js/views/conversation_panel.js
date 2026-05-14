@@ -3,9 +3,9 @@ import { state } from "../state.js";
 import { navigate, threadPath } from "../router.js";
 import { streamMessage } from "../sse.js";
 import { emptyState, escapeHtml, showToast } from "../util/dom.js";
-import { citationArtifactId, citationLabel, renderMarkdown, workflowLabel } from "../util/format.js";
+import { renderMarkdown, stripSourceCitations, workflowLabel, workflowPrompt } from "../util/format.js";
 
-const workflows = ["call_briefing", "what_changed", "open_risks", "follow_up_draft", "next_action"];
+const workflows = ["new_chat", "call_briefing", "what_changed", "open_risks", "follow_up_draft", "next_action"];
 
 export function renderConversationPanel(account, threads, currentThreadId, messages) {
   const currentThread = threads.find((thread) => thread.thread_id === currentThreadId);
@@ -14,18 +14,19 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
   const budgetReached = messages.some((message) => /daily budget|daily budget for this account/i.test(message.content || ""));
   return `
     <section class="conversation" data-pcad-conversation>
-      <div class="workflow-row" data-pcad-workflows>
-        ${workflows.map((seed) => `<button type="button" data-pcad-workflow="${seed}">${workflowLabel(seed)}</button>`).join("")}
-      </div>
-      <div class="thread-context">
+      <div class="middle-top">
         ${budgetReached ? '<div class="budget-banner">The public demo has reached its daily budget. The architecture is still here to explore — try again tomorrow, or book a private walkthrough for live interaction.</div>' : ""}
-        <div class="thread-tools">
+        <div class="thread-context">
           <div>
             <p class="kicker">${escapeHtml(account?.industry || "Account memory")}</p>
             <h2>${escapeHtml(currentThread?.title || `Ask about ${account?.account_name || "this account"}`)}</h2>
+            <p class="sub">${escapeHtml(account?.account_name || "Selected account")} · ${escapeHtml(threads.length ? `${threads.length} recent chats` : "No chats yet")}</p>
           </div>
-          ${renderThreadSelect(threads, currentThreadId)}
         </div>
+        <div class="workflow-row" data-pcad-workflows>
+          ${workflows.map((seed) => `<button class="workflow-btn ${seed === "new_chat" ? "new-chat" : ""}" type="button" data-pcad-workflow="${seed}">${workflowLabel(seed)}</button>`).join("")}
+        </div>
+        ${renderThreadHistory(threads, currentThreadId)}
       </div>
       <div class="message-list" data-pcad-message-list>
         ${messages.length ? messages.map(renderMessage).join("") : emptyState("Start with a workflow button or ask a free-text question.")}
@@ -45,13 +46,18 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
 export function bindConversationPanel(root, account) {
   root.querySelectorAll("[data-pcad-workflow]").forEach((button) => {
     button.addEventListener("click", async () => {
-      await startThread(account.account_id, button.dataset.pcadWorkflow);
+      if (button.dataset.pcadWorkflow === "new_chat") {
+        await startThread(account.account_id, null, { streamSeed: false });
+      } else {
+        await startThread(account.account_id, button.dataset.pcadWorkflow, { streamSeed: true, account });
+      }
     });
   });
 
-  const select = root.querySelector("[data-pcad-thread-select]");
-  select?.addEventListener("change", () => {
-    if (select.value) navigate(threadPath(account.account_id, select.value));
+  root.querySelectorAll("[data-pcad-thread-chip]").forEach((button) => {
+    button.addEventListener("click", () => {
+      navigate(threadPath(account.account_id, button.dataset.pcadThreadChip));
+    });
   });
 
   const textarea = root.querySelector("[data-pcad-composer] textarea");
@@ -71,14 +77,16 @@ export function bindConversationPanel(root, account) {
   });
 }
 
-async function startThread(accountId, workflowSeed) {
+async function startThread(accountId, workflowSeed, options = { streamSeed: true, account: null }) {
   try {
     const thread = await createThread({ account_id: accountId, workflow_seed: workflowSeed });
     state.set("threads", [thread, ...state.get("threads").filter((item) => item.thread_id !== thread.thread_id)]);
     state.set("currentThreadId", thread.thread_id);
     state.update("messagesByThread", (messagesByThread) => ({ ...messagesByThread, [thread.thread_id]: [] }));
     navigate(threadPath(accountId, thread.thread_id));
-    if (workflowSeed) await sendCurrentMessage({ account_id: accountId }, workflowLabel(workflowSeed));
+    if (workflowSeed && options.streamSeed) {
+      await sendCurrentMessage({ account_id: accountId }, workflowPrompt(workflowSeed, options.account || { account_id: accountId }));
+    }
   } catch (error) {
     handleStreamError(error);
   }
@@ -156,13 +164,26 @@ function renderThreadSelect(threads, currentThreadId) {
   `;
 }
 
+function renderThreadHistory(threads, currentThreadId) {
+  if (!threads.length) {
+    return '<div class="thread-history"><span class="thread-history-empty">Recent chats will appear here.</span></div>';
+  }
+  return `
+    <div class="thread-history" aria-label="Recent chat history">
+      ${threads.slice(0, 5).map((thread) => `
+        <button type="button" class="thread-chip ${thread.thread_id === currentThreadId ? "active" : ""}" data-pcad-thread-chip="${escapeHtml(thread.thread_id)}">
+          <span>${escapeHtml(thread.title || "Untitled chat")}</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderMessage(message) {
-  const citations = message.role === "assistant" ? renderMessageCitations(message.citations) : "";
   const body = message.role === "assistant" ? renderMarkdown(message.content) : escapeHtml(message.content);
   return `
     <article class="message ${escapeHtml(message.role)}" data-pcad-message="${escapeHtml(message.message_id)}">
       <div class="${message.role === "assistant" ? "markdown" : ""}">${body}</div>
-      ${citations}
     </article>
   `;
 }
@@ -170,19 +191,7 @@ function renderMessage(message) {
 function renderStreamingBubble(text) {
   return `
     <article class="message assistant" data-pcad-streaming>
-      <div class="markdown stream-cursor">${renderMarkdown(text || "Searching company memory...")}</div>
+      <div class="markdown stream-cursor">${renderMarkdown(stripSourceCitations(text || "Searching company memory..."))}</div>
     </article>
-  `;
-}
-
-function renderMessageCitations(citations = []) {
-  if (!citations.length) return "";
-  return `
-    <div class="citation-row">
-      ${citations.map((citation) => {
-        const artifactId = citationArtifactId(citation);
-        return `<span class="citation-chip" data-pcad-citation-artifact="${escapeHtml(artifactId || "")}">${escapeHtml(citationLabel(citation))}</span>`;
-      }).join("")}
-    </div>
   `;
 }

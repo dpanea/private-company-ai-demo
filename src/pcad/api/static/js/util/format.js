@@ -33,14 +33,39 @@ export function artifactIcon(type) {
   }[type] || "SRC";
 }
 
+export function artifactIconSvg(type) {
+  const common = 'width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+  const icons = {
+    email: `<svg ${common}><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>`,
+    email_thread: `<svg ${common}><path d="M4 7h16v10H4z"/><path d="m4 8 8 5 8-5"/><path d="M7 20h10"/></svg>`,
+    pdf: `<svg ${common}><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M9 14h6"/><path d="M9 17h4"/></svg>`,
+    docx: `<svg ${common}><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 16h6"/><path d="M9 19h3"/></svg>`,
+    meeting_transcript: `<svg ${common}><path d="M7 4v3"/><path d="M17 4v3"/><path d="M5 8h14"/><path d="M6 5h12v15H6z"/><path d="M8.5 12h7"/><path d="M8.5 15h5"/></svg>`,
+    crm_record: `<svg ${common}><path d="M4 5h16v14H4z"/><path d="M8 9h8"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>`,
+  };
+  return icons[type] || `<svg ${common}><path d="M6 4h12v16H6z"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>`;
+}
+
 export function workflowLabel(seed) {
   return {
+    new_chat: "New chat",
     call_briefing: "Brief me before a call",
     what_changed: "What changed?",
     open_risks: "Open risks",
     follow_up_draft: "Draft follow-up",
     next_action: "Next action",
   }[seed] || seed;
+}
+
+export function workflowPrompt(seed, account) {
+  const name = accountName(account);
+  return {
+    call_briefing: `Brief me before a call with ${name}. Cover recent activity, open opportunities, stakeholders, and any open risks.`,
+    what_changed: `What changed for ${name} in the last 14 days that I should know about before reaching out?`,
+    open_risks: `What are the open risks, objections, or unresolved questions for ${name}?`,
+    follow_up_draft: `Draft a short follow-up email to the primary contact at ${name}. Reference the most recent meaningful interaction.`,
+    next_action: `What is the most important next action I should take on ${name} this week?`,
+  }[seed] || workflowLabel(seed);
 }
 
 export function accountName(account) {
@@ -52,9 +77,20 @@ export function accountCountry(account) {
 }
 
 export function renderMarkdown(value) {
-  const text = String(value ?? "");
+  const text = stripSourceCitations(String(value ?? ""));
   const rawHtml = window.marked?.parse ? window.marked.parse(text) : escapeHtml(text).replaceAll("\n", "<br>");
   return sanitizeHtml(rawHtml);
+}
+
+export function stripSourceCitations(value) {
+  return String(value ?? "")
+    .replace(/\s*\[Source:\s[^\]]+\]/g, "")
+    .replace(/\s*\[Source:[^\]]*$/g, "")
+    .replace(/\s*Source:\s[A-Za-z][A-Za-z0-9_ -]*\s+[^\s.,;)\]]+/g, "")
+    .replace(/\s*Source:\s[^\n]*$/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export function sanitizeHtml(rawHtml) {

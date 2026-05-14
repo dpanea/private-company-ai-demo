@@ -31,7 +31,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def rate_limit_api(request: Request, call_next: Any) -> Response:
-        if request.url.path.startswith("/api/"):
+        if request.url.path.startswith("/api/") and request.method not in {"GET", "HEAD", "OPTIONS"}:
             forwarded_for = request.headers.get("x-forwarded-for", "")
             client_ip = forwarded_for.split(",")[0].strip() or (request.client.host if request.client else "unknown")
             if not ip_rate_limiter.allow(

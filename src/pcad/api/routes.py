@@ -44,9 +44,35 @@ def session(request: Request) -> dict[str, Any]:
 
 @router.get("/accounts")
 def accounts(request: Request) -> list[dict[str, Any]]:
+    session_id = get_session_id(request)
     with connect_dict(get_settings(request)) as conn:
         rows = conn.execute(
-            "SELECT account_id, account_name, account_type, industry, website, owner_id FROM accounts ORDER BY account_name"
+            """
+            SELECT
+                a.account_id,
+                a.account_name,
+                a.account_type,
+                a.industry,
+                a.website,
+                a.owner_id,
+                a.billing_country,
+                a.billing_city,
+                count(DISTINCT r.artifact_id)::int AS artifact_count,
+                count(DISTINCT p.alert_id)::int AS alert_count,
+                GREATEST(
+                    0,
+                    (CURRENT_DATE - COALESCE(max(act.activity_date), max(a.updated_at)::date, CURRENT_DATE))::int
+                ) AS days_since_activity
+            FROM accounts a
+            LEFT JOIN raw_artifacts r ON r.account_id = a.account_id
+            LEFT JOIN proactive_alerts p
+                ON p.account_id = a.account_id
+               AND (p.session_id IS NULL OR p.session_id = %s)
+            LEFT JOIN activities act ON act.account_id = a.account_id
+            GROUP BY a.account_id, a.account_name, a.account_type, a.industry, a.website, a.owner_id, a.billing_country, a.billing_city
+            ORDER BY a.account_name
+            """,
+            (session_id,),
         ).fetchall()
     return [dict(row) for row in rows]
 

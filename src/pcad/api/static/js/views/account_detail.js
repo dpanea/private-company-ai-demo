@@ -1,11 +1,12 @@
 import { state } from "../state.js";
 import { artifactPath } from "../router.js";
-import { accountName, artifactIcon, artifactMeta, formatArtifactType } from "../util/format.js";
+import { accountName, artifactIconSvg, artifactMeta, formatArtifactType } from "../util/format.js";
 import { emptyState, escapeHtml } from "../util/dom.js";
 import { renderAlertsPanel } from "./alerts_panel.js";
 import { latestAssistantMessage, renderCitationsPanel } from "./citations_panel.js";
 import { bindConversationPanel, renderConversationPanel } from "./conversation_panel.js";
 import { openFakeNoteModal } from "./fake_note_modal.js";
+import { openArtifactModal } from "./artifact_modal.js";
 
 export function renderAccountDetail(account) {
   const accountId = account?.account_id;
@@ -18,19 +19,7 @@ export function renderAccountDetail(account) {
   const latestAssistant = latestAssistantMessage(messages);
 
   return `
-    <section class="page" data-pcad-view="account-detail">
-      <div class="top-strip">
-        <a class="breadcrumb" href="#/">← Accounts</a>
-        <span class="warning-chip">Synthetic data only</span>
-      </div>
-      <div class="page-head">
-        <div>
-          <p class="eyebrow">${escapeHtml(account?.industry || "Account")}</p>
-          <h1>${escapeHtml(accountName(account))}</h1>
-          <p class="lede">${escapeHtml(account?.context || "Source-backed account memory for the public demo.")}</p>
-        </div>
-        <button class="secondary-action" type="button" data-pcad-open-fake-note>Add a synthetic note</button>
-      </div>
+    <section class="page detail-view-page" data-pcad-view="account-detail">
       <div class="detail-shell">
         <aside class="detail-panel" aria-label="Source artifacts">
           <div class="panel-header">
@@ -69,6 +58,18 @@ export function renderAccountDetail(account) {
 
 export function bindAccountDetail(root, account) {
   root.querySelector("[data-pcad-open-fake-note]")?.addEventListener("click", () => openFakeNoteModal(account.account_id));
+  root.querySelectorAll("[data-pcad-artifact]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      openArtifactModal(link.dataset.pcadArtifact, account.account_id, { restoreRouteOnClose: false });
+    });
+  });
+  root.querySelectorAll("[data-pcad-open-artifact]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      openArtifactModal(button.dataset.pcadOpenArtifact, account.account_id, { restoreRouteOnClose: false });
+    });
+  });
   bindConversationPanel(root, account);
 }
 
@@ -92,11 +93,10 @@ function renderArtifactRow(artifact, accountId) {
   const href = artifactPath(accountId, artifact.artifact_id);
   return `
     <a class="artifact-row" href="${href}" data-pcad-artifact="${escapeHtml(artifact.artifact_id)}">
-      <span class="type-icon">${escapeHtml(artifactIcon(artifact.artifact_type))}</span>
+      <span class="icon-tile">${artifactIconSvg(artifact.artifact_type)}</span>
       <span>
-        <span class="artifact-title">${escapeHtml(artifact.title)}</span>
-        <span class="artifact-meta">${escapeHtml(artifactMeta(artifact))}</span>
-        ${artifact.extraction_method === "ocr" ? '<span class="warning-chip">Scanned · OCR</span>' : ""}
+        <span class="title">${escapeHtml(artifact.title)}</span>
+        <span class="meta">${escapeHtml(artifactMeta(artifact))}${artifact.extraction_method === "ocr" ? '<span class="ocr">Scanned · OCR</span>' : ""}</span>
       </span>
     </a>
   `;
