@@ -3,23 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Panea Memory - Never walk into a client call cold again</title>
-  <meta name="description" content="A synthetic public demo of a private company memory layer for source-backed account briefings, risk alerts, and follow-up drafts.">
+  <title>Private Company Memory Copilot - Make company data useful before the next call</title>
+  <meta name="description" content="A synthetic public demo of a private company memory copilot that turns scattered notes, emails, meetings, PDFs, and tasks into source-backed briefings, risks, and follow-ups.">
   <link rel="icon" href="/static/assets/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/landing/styles.css">
 </head>
 <body>
   <header class="landing-header">
-    <a class="brand-lockup" href="/" aria-label="Panea Memory home">
+    <a class="brand-lockup" href="/" aria-label="Private Company Memory Copilot home">
       <img src="/static/assets/logo.svg" alt="" width="34" height="34">
       <span>
-        <strong>Panea Memory</strong>
-        <small>Reference architecture</small>
+        <strong>Company Memory Copilot</strong>
+        <small>Private AI demo</small>
       </span>
     </a>
     <nav aria-label="Landing navigation">
+      <a href="#demo-moment">Demo moment</a>
+      <a href="#privacy">Why private</a>
       <a href="#architecture">Architecture</a>
-      <a href="#scope">Scope</a>
       <a class="nav-cta" href="/demo">Try the synthetic demo</a>
     </nav>
   </header>
@@ -27,50 +28,129 @@
   <main>
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Private company memory layer</p>
-        <h1>Never walk into a client call cold again.</h1>
-        <p class="lede">This open reference demo turns messy account artifacts into a private AI memory that can brief you, explain what changed, draft follow-ups, and cite the source material behind every answer.</p>
+        <p class="eyebrow">Private company memory copilot</p>
+        <h1>Your company data remembers things your team forgets.</h1>
+        <p class="lede">This demo turns buried data from different formats and systems into call briefings, risk alerts, follow-up drafts, and next actions, without sending real client data to a generic AI tool outside your control.</p>
         <div class="cta-row">
           <a class="button button-primary" href="/demo">Try the synthetic demo <span aria-hidden="true">-></span></a>
-          <a class="button button-secondary" href="https://danielpanea.com/">Book a private walkthrough</a>
+          <a class="button button-secondary" href="https://calendly.com/daniel-panea/discovery-call">Book a free private walkthrough</a>
         </div>
       </div>
       <div class="hero-board" aria-label="Private memory workflow preview">
         <div class="board-column source-column">
-          <span class="column-label">Messy sources</span>
+          <span class="column-label">Buried sources</span>
           <span>Email threads</span>
           <span>Scanned PDFs</span>
           <span>Meeting notes</span>
-          <span>CRM exports</span>
+          <span>CRM records</span>
+          <span>Support tickets</span>
         </div>
         <div class="board-column memory-column">
-          <span class="column-label">AI-ready memory</span>
-          <strong>Account-scoped documents</strong>
-          <p>Normalized, embedded, and traced back to source artifacts.</p>
+          <span class="column-label">Private memory layer</span>
+          <strong>Company data made active</strong>
+          <p>Organized, searchable, and traced back to the original source material.</p>
         </div>
         <div class="board-column answer-column">
-          <span class="column-label">Source-backed answer</span>
-          <p>"Security review is blocking procurement. Cite: renewal email, pilot review notes."</p>
+          <span class="column-label">Useful answer</span>
+          <p>"Procurement is waiting on EU hosting and audit-log details. Cite: renewal email, pilot review notes."</p>
         </div>
       </div>
     </section>
 
     <section class="strip" aria-label="Demo boundaries">
       <span>This public demo uses synthetic data only.</span>
-      <span>Open-source reference architecture.</span>
-      <span>Production hardening lives in client engagements.</span>
+      <span>Real deployments are scoped privately.</span>
+      <span>No confidential data belongs in this public demo.</span>
+    </section>
+
+    <section class="section split recognition">
+      <div>
+        <p class="eyebrow">The operational reason</p>
+        <h2>Most teams already have the client context they need.</h2>
+      </div>
+      <div class="copy-stack">
+        <p>It is just scattered across CRM notes, emails, meetings, PDFs, support tickets, follow-up tasks, and people's heads. This demo shows what happens when that becomes a private account memory layer.</p>
+        <ul class="proof-list">
+          <li>A call is coming up and nobody has the full account picture.</li>
+          <li>The useful detail exists, but it is buried across tools and file formats.</li>
+          <li>Follow-ups depend on whoever remembers the last conversation.</li>
+          <li>Leadership asks what changed this week, and someone has to reconstruct it manually.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="demo-moment">
+      <div class="section-heading">
+        <p class="eyebrow">Try the live moment</p>
+        <h2>Make passive company data react to a new piece of context.</h2>
+      </div>
+      <div class="three-step">
+        <article>
+          <span>01</span>
+          <h3>Open a synthetic account</h3>
+          <p>Inspect the fake company history: notes, meetings, emails, documents, risks, stakeholders, and activity.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>Ask for a briefing</h3>
+          <p>Get the current account picture, open risks, important context, and next questions before a client call.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>Add a fake note</h3>
+          <p>Say procurement now needs EU hosting and audit logs. Then ask what changed and watch the system surface the new risk.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section split" id="privacy">
+      <div>
+        <p class="eyebrow">Why private</p>
+        <h2>If the useful context is sensitive, the data boundary is not a detail.</h2>
+      </div>
+      <ul class="proof-list">
+        <li><strong>PII and client data need control:</strong> names, emails, contracts, meeting notes, and customer records should not be pasted into generic tools without clear boundaries.</li>
+        <li><strong>Private deployment is an architecture choice:</strong> run in a private cloud, EU-controlled environment, or on-prem setup when the workflow requires it.</li>
+        <li><strong>Not every step needs a frontier model:</strong> routine extraction, classification, routing, and structured summaries can often use smaller controlled models at lower cost.</li>
+        <li><strong>Audit posture matters:</strong> every generated answer is designed to carry citations back to the notes, emails, documents, or records it used.</li>
+        <li><strong>You own the system:</strong> database, artifacts, prompts, deployment, and model-routing decisions stay under your control.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section-heading">
+        <p class="eyebrow">Three flagship workflows</p>
+        <h2>The demo is built around real account work, not another empty chat box.</h2>
+      </div>
+      <div class="workflow-grid">
+        <article class="workflow-shot">
+          <div class="shot-topline"><span></span><span></span><span></span></div>
+          <h3>Call briefing</h3>
+          <p>Summarize the current relationship, open risks, recent activity, and next best questions before a client call.</p>
+        </article>
+        <article class="workflow-shot">
+          <div class="shot-topline"><span></span><span></span><span></span></div>
+          <h3>What changed?</h3>
+          <p>Explain recent movement across notes, meetings, documents, tickets, and visitor-added synthetic notes.</p>
+        </article>
+        <article class="workflow-shot">
+          <div class="shot-topline"><span></span><span></span><span></span></div>
+          <h3>Follow-up draft</h3>
+          <p>Produce a grounded email draft that reflects the current situation and cites the relevant evidence.</p>
+        </article>
+      </div>
     </section>
 
     <section class="section" id="architecture">
       <div class="section-heading">
-        <p class="eyebrow">What the demo does in 90 seconds</p>
-        <h2>Messy sources become a memory layer the assistant can actually defend.</h2>
+        <p class="eyebrow">How it works</p>
+        <h2>Buried sources become a memory layer the assistant can actually defend.</h2>
       </div>
       <div class="three-step">
         <article>
           <span>01</span>
           <h3>Ingest scattered artifacts</h3>
-          <p>Emails, PDFs, Word documents, meeting transcripts, and CRM CSV exports are parsed into normalized records.</p>
+          <p>Emails, PDFs, Word documents, meeting transcripts, CRM records, and support exports are parsed into normalized records.</p>
         </article>
         <article>
           <span>02</span>
@@ -80,44 +160,7 @@
         <article>
           <span>03</span>
           <h3>Answer with evidence</h3>
-          <p>Hybrid retrieval feeds a LangGraph-style agent pattern that validates citations before returning responses.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="section split">
-      <div>
-        <p class="eyebrow">Why private</p>
-        <h2>Built for teams that cannot pour client context into generic SaaS tools.</h2>
-      </div>
-      <ul class="proof-list">
-        <li><strong>On-prem or EU deployment:</strong> run close to the systems and jurisdiction that matter.</li>
-        <li><strong>Open weights path:</strong> swap OpenRouter for vLLM when sovereign inference is required.</li>
-        <li><strong>Audit posture:</strong> every generated answer is designed to carry citations back to source records.</li>
-        <li><strong>You own everything:</strong> database, artifacts, prompts, deployment, and model-routing decisions.</li>
-      </ul>
-    </section>
-
-    <section class="section">
-      <div class="section-heading">
-        <p class="eyebrow">Three flagship workflows</p>
-        <h2>The demo is built around account work, not a blank chatbot.</h2>
-      </div>
-      <div class="workflow-grid">
-        <article class="workflow-shot">
-          <div class="shot-topline"><span></span><span></span><span></span></div>
-          <h3>Call briefing</h3>
-          <p>Summarize the account, open risks, renewal context, and next best questions before a client call.</p>
-        </article>
-        <article class="workflow-shot">
-          <div class="shot-topline"><span></span><span></span><span></span></div>
-          <h3>What changed?</h3>
-          <p>Explain recent movement across notes, meetings, and CRM activity, including visitor-added synthetic notes.</p>
-        </article>
-        <article class="workflow-shot">
-          <div class="shot-topline"><span></span><span></span><span></span></div>
-          <h3>Follow-up draft</h3>
-          <p>Produce a grounded email draft that reflects the current account state and cites the relevant evidence.</p>
+          <p>Hybrid retrieval builds a context pack, the assistant answers from that pack, and citation checks keep the response grounded.</p>
         </article>
       </div>
     </section>
@@ -129,6 +172,7 @@
       </div>
       <div class="copy-stack">
         <p>The repository shows the shape of a private company memory layer: ingestion, normalization, retrieval, citation validation, guided workflows, anonymous demo sessions, and a deployment path.</p>
+        <p>It is useful as a blueprint, but it is not a finished product for real client data. Real deployments need system access, permissions, data-quality review, privacy boundaries, monitoring, and a workflow-specific implementation plan.</p>
         <a class="inline-link" href="https://github.com/danielpanea/private-company-ai-demo">View the GitHub repository</a>
       </div>
     </section>
@@ -136,17 +180,17 @@
     <section class="section audience">
       <div class="section-heading">
         <p class="eyebrow">Who it is for</p>
-        <h2>Best fit: relationship-heavy teams with high-value account context scattered across tools.</h2>
+        <h2>Best fit: relationship-heavy teams with valuable client context scattered across tools.</h2>
       </div>
       <div class="audience-grid">
         <ul>
           <li>Founder-led B2B sales with complex enterprise accounts.</li>
           <li>Customer success teams managing renewals and escalations.</li>
-          <li>Consultancies that need reusable client memory without SaaS lock-in.</li>
+          <li>Consultancies, agencies, and IT service providers that need reusable client memory without SaaS lock-in.</li>
         </ul>
         <ul>
           <li>A new call is coming and nobody has the full account picture.</li>
-          <li>A champion leaves, procurement stalls, or risk signals are buried in notes.</li>
+          <li>A champion leaves, procurement stalls, or risk signals are buried in old notes.</li>
           <li>Leadership wants private AI but needs a concrete architecture before investing.</li>
         </ul>
       </div>
@@ -154,10 +198,11 @@
 
     <section class="final-cta">
       <p class="eyebrow">Implementation offer</p>
-      <h2>Use the demo to decide whether your company memory layer is worth building.</h2>
+      <h2>Use the demo to decide whether a private company memory layer is worth building.</h2>
+      <p class="final-copy">If this looks like a problem inside your sales, account, support, or client-service workflow, the next step is a private walkthrough: map the workflow, inspect the data boundary, and define the first safe pilot around your real systems.</p>
       <div class="cta-row">
-        <a class="button button-primary" href="https://danielpanea.com/">Start with the assessment</a>
-        <a class="button button-secondary" href="https://danielpanea.com/">Book a private walkthrough</a>
+        <a class="button button-primary" href="/demo">Try the synthetic demo</a>
+        <a class="button button-secondary" href="https://calendly.com/daniel-panea/discovery-call">Book a free private walkthrough</a>
       </div>
     </section>
   </main>

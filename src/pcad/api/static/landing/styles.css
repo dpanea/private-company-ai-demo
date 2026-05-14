@@ -285,6 +285,7 @@ h3 {
 .three-step p,
 .workflow-shot p,
 .copy-stack p,
+.final-copy,
 .proof-list,
 .audience-grid {
   color: var(--ink-muted);
@@ -363,6 +364,12 @@ h3 {
 
 .final-cta h2 {
   margin-top: 16px;
+}
+
+.final-copy {
+  max-width: 720px;
+  margin-top: 22px;
+  font-size: 18px;
 }
 
 @media (max-width: 900px) {

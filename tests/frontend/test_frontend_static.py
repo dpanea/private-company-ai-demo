@@ -33,7 +33,7 @@ def test_required_microcopy_is_present() -> None:
             STATIC_ROOT / "js" / "views" / "conversation_panel.js",
         ]
     )
-    assert "Never walk into a client call cold again." in text
+    assert "Your company data remembers things your team forgets." in text
     assert "Try the synthetic demo" in text
     assert "This public demo uses synthetic data only." in text
     assert "The public demo has reached its daily budget." in text
