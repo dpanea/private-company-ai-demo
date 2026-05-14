@@ -23,6 +23,7 @@ from pcad.ingestion.parsers.meeting_md import parse_meeting_md
 from pcad.ingestion.parsers.pdf import parse_pdf
 from pcad.models import RagDocument, RawArtifact, SourceCitation, SyntheticDataset
 from pcad.retrieval.alerts import ProactiveAlertGenerator
+from pcad.util import safe_id
 
 
 logger = logging.getLogger(__name__)
@@ -185,7 +186,7 @@ def _parse_pdf_artifact(
     account_id: str,
     artifact: ManifestArtifact,
 ) -> ParsedArtifactBundle:
-    artifact_id = f"pdf:{account_id}:{_safe_id(path.stem)}"
+    artifact_id = f"pdf:{account_id}:{safe_id(path.stem)}"
     parsed = parse_pdf(path, ocr_fallback=artifact.requires_ocr or artifact.has_text_layer is not True, rendered_root=rendered_root, artifact_id=artifact_id)
     raw = RawArtifact(
         artifact_id=artifact_id,
@@ -211,7 +212,7 @@ def _parse_pdf_artifact(
 def _parse_docx_artifact(path: Path, source_path: str, account_id: str) -> ParsedArtifactBundle:
     parsed = parse_docx(path)
     raw = RawArtifact(
-        artifact_id=f"docx:{account_id}:{_safe_id(path.stem)}",
+        artifact_id=f"docx:{account_id}:{safe_id(path.stem)}",
         account_id=account_id,
         artifact_type="docx",
         title=path.stem.replace("_", " ").title(),
@@ -228,7 +229,7 @@ def _parse_docx_artifact(path: Path, source_path: str, account_id: str) -> Parse
 
 def _parse_meeting_artifact(path: Path, source_path: str, account_id: str) -> ParsedArtifactBundle:
     parsed = parse_meeting_md(path)
-    artifact_id = f"meeting:{account_id}:{_safe_id(path.stem)}"
+    artifact_id = f"meeting:{account_id}:{safe_id(path.stem)}"
     raw = RawArtifact(
         artifact_id=artifact_id,
         account_id=account_id,
@@ -246,7 +247,7 @@ def _parse_meeting_artifact(path: Path, source_path: str, account_id: str) -> Pa
         created_at=_file_created_at(path),
         ingested_at=_now(),
     )
-    summary = normalize_meeting_for_summary(parsed, meeting_id=_safe_id(path.stem), account_id=account_id)
+    summary = normalize_meeting_for_summary(parsed, meeting_id=safe_id(path.stem), account_id=account_id)
     summary = MeetingSummaryInput(
         account_id=summary.account_id,
         meeting_id=summary.meeting_id,
@@ -263,7 +264,7 @@ def _parse_meeting_artifact(path: Path, source_path: str, account_id: str) -> Pa
 
 def _email_raw_artifact(email: ParsedEmail, source_path: str, account_id: str) -> RawArtifact:
     return RawArtifact(
-        artifact_id=f"email:{account_id}:{_safe_id(email.message_id)}",
+        artifact_id=f"email:{account_id}:{safe_id(email.message_id)}",
         account_id=account_id,
         artifact_type="email",
         title=email.subject or f"Email {email.message_id}",
@@ -425,7 +426,3 @@ def _file_created_at(path: Path) -> datetime:
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def _safe_id(value: str) -> str:
-    return "".join(ch.lower() if ch.isalnum() else "_" for ch in value).strip("_") or "unknown"

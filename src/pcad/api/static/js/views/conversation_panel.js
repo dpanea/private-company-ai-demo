@@ -3,7 +3,7 @@ import { state } from "../state.js";
 import { navigate, threadPath } from "../router.js";
 import { streamMessage } from "../sse.js";
 import { emptyState, escapeHtml, showToast } from "../util/dom.js";
-import { renderMarkdown, stripSourceCitations, workflowLabel, workflowPrompt } from "../util/format.js";
+import { renderMarkdown, stripSourceCitations, workflowLabel } from "../util/format.js";
 
 const workflows = ["new_chat", "call_briefing", "what_changed", "open_risks", "follow_up_draft", "next_action"];
 
@@ -86,7 +86,7 @@ async function startThread(accountId, workflowSeed, options = { streamSeed: true
     state.set("streamingCitations", []);
     navigate(threadPath(accountId, thread.thread_id));
     if (workflowSeed && options.streamSeed) {
-      await sendCurrentMessage({ account_id: accountId }, workflowPrompt(workflowSeed, options.account || { account_id: accountId }));
+      await sendCurrentMessage({ account_id: accountId }, workflowLabel(workflowSeed));
     }
   } catch (error) {
     handleStreamError(error);
@@ -160,15 +160,6 @@ function handleStreamError(error) {
     return;
   }
   showToast(error.detail || error.message || "The message could not be sent.", "error");
-}
-
-function renderThreadSelect(threads, currentThreadId) {
-  if (!threads.length) return "";
-  return `
-    <select class="thread-select" data-pcad-thread-select aria-label="Conversation thread">
-      ${threads.map((thread) => `<option value="${escapeHtml(thread.thread_id)}" ${thread.thread_id === currentThreadId ? "selected" : ""}>${escapeHtml(thread.title || "Untitled thread")}</option>`).join("")}
-    </select>
-  `;
 }
 
 function renderThreadHistory(threads, currentThreadId) {

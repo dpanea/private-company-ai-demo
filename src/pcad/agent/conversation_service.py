@@ -22,6 +22,7 @@ from pcad.models import ConversationMessage, ConversationThread
 from pcad.retrieval.alerts import ProactiveAlertGenerator
 from pcad.retrieval.intent import IntentResolver, IntentResult
 from pcad.retrieval.retriever import AccountResolutionError, PostgresHybridRetriever
+from pcad.util import safe_id
 
 
 logger = logging.getLogger(__name__)
@@ -32,14 +33,6 @@ WORKFLOW_SEEDS = {
     "open_risks": "What are the open risks, objections, or unresolved questions for {account_name}?",
     "follow_up_draft": "Draft a short follow-up email to the primary contact at {account_name}. Reference the most recent meaningful interaction.",
     "next_action": "What is the most important next action I should take on {account_name} this week?",
-}
-
-WORKFLOW_DISPLAY_TEXT = {
-    "call_briefing": "Brief me before a call",
-    "what_changed": "What changed?",
-    "open_risks": "Open risks",
-    "follow_up_draft": "Draft follow-up",
-    "next_action": "Next action",
 }
 
 
@@ -143,7 +136,12 @@ class ConversationService:
         thread = self.get_thread(session_id, thread_id)
         prev_account_id = thread.account_id
         prev_account_name = thread.account_name
-        pipeline_clean = _workflow_pipeline_request(thread.workflow_seed, clean, prev_account_name or "this account")
+        # When the first message on a workflow-seeded thread arrives, expand the visible
+        # label (e.g. "Brief me before a call") into the full retrieval prompt. We detect
+        # "first message" by counting existing user messages before inserting this one.
+        pipeline_clean = clean
+        if thread.workflow_seed in WORKFLOW_SEEDS and self._user_message_count(thread_id) == 0:
+            pipeline_clean = _workflow_seed_to_prompt(thread.workflow_seed, prev_account_name or "this account")
         user_message = self._insert_message(thread_id, "user", clean, account_id=prev_account_id, account_name=prev_account_name)
         yield _sse("user_message", _model_dump(user_message))
         yield _sse("status", {"status": "thinking"})
@@ -356,6 +354,14 @@ class ConversationService:
             conn.commit()
         return dict(row)
 
+    def _user_message_count(self, thread_id: str) -> int:
+        with connect_dict(self.settings) as conn:
+            row = conn.execute(
+                "SELECT count(*)::int AS n FROM conversation_messages WHERE thread_id = %s AND role = 'user'",
+                (thread_id,),
+            ).fetchone()
+        return int(row["n"]) if row else 0
+
     def _last_assistant_message(self, thread_id: str) -> ConversationMessage | None:
         with connect_dict(self.settings) as conn:
             row = conn.execute(
@@ -388,15 +394,6 @@ def _workflow_seed_to_prompt(seed: str, account_name: str) -> str:
     if seed not in WORKFLOW_SEEDS:
         raise ValueError(f"Unknown workflow_seed {seed!r}")
     return WORKFLOW_SEEDS[seed].format(account_name=account_name)
-
-
-def _workflow_pipeline_request(seed: str | None, visible_message: str, account_name: str) -> str:
-    if not seed:
-        return visible_message
-    label = WORKFLOW_DISPLAY_TEXT.get(seed)
-    if label and visible_message.strip().casefold().rstrip(".") == label.casefold().rstrip("."):
-        return _workflow_seed_to_prompt(seed, account_name)
-    return visible_message
 
 
 def _account_resolution_error_answer(error: AccountResolutionError) -> str:
@@ -456,29 +453,29 @@ def _artifact_id_for_citation(citation: dict[str, Any], account_id: str | None) 
     if ":" in record_id:
         return record_id
     if source_object == "Email" and account_id:
-        return f"email:{account_id}:{_safe_artifact_part(record_id)}"
+        return f"email:{account_id}:{safe_id(record_id)}"
     return None
+
+
+_ARTIFACT_PREFIX_LABELS = {
+    "email": "Email",
+    "pdf": "PDF",
+    "docx": "Word document",
+    "meeting": "Meeting",
+}
 
 
 def _sidebar_citation_label(citation: dict[str, Any], artifact_id: str) -> str:
     source_object = str(citation.get("source_object") or "")
     record_id = str(citation.get("source_record_id") or "")
     if source_object == "RiskEvidence":
-        if artifact_id.startswith(("email:", "email_thread:")):
-            return f"Email {artifact_id.rsplit(':', 1)[-1]}"
-        if artifact_id.startswith("pdf:"):
-            return f"PDF {artifact_id.rsplit(':', 1)[-1]}"
-        if artifact_id.startswith("docx:"):
-            return f"Word document {artifact_id.rsplit(':', 1)[-1]}"
-        if artifact_id.startswith("meeting:"):
-            return f"Meeting {artifact_id.rsplit(':', 1)[-1]}"
+        prefix, _, suffix = artifact_id.partition(":")
+        label = _ARTIFACT_PREFIX_LABELS.get(prefix)
+        if label:
+            return f"{label} {suffix.rsplit(':', 1)[-1]}"
     if source_object == "Email" and record_id:
         return f"Email {record_id}"
     return citation_label(citation)
-
-
-def _safe_artifact_part(value: str) -> str:
-    return "".join(ch.lower() if ch.isalnum() else "_" for ch in value).strip("_") or "unknown"
 
 
 def _candidate_id_from_text(text: str, candidates: list[dict[str, Any]]) -> str | None:

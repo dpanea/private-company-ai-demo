@@ -17,7 +17,7 @@ from pcad.ingestion.embeddings import index_pending_embeddings
 from pcad.models import FakeNote
 from pcad.retrieval.alerts import ProactiveAlertGenerator
 
-from .schemas import FakeNoteCreateIn, ThreadCreateIn, SendMessageIn
+from .schemas import AccountOut, FakeNoteCreateIn, SendMessageIn, ThreadCreateIn
 
 
 router = APIRouter()
@@ -42,7 +42,7 @@ def session(request: Request) -> dict[str, Any]:
     return {"session_id": current.session_id, "created_at": current.created_at}
 
 
-@router.get("/accounts")
+@router.get("/accounts", response_model=list[AccountOut])
 def accounts(request: Request) -> list[dict[str, Any]]:
     session_id = get_session_id(request)
     with connect_dict(get_settings(request)) as conn:
@@ -289,8 +289,9 @@ def _insert_fake_note_doc(conn: Any, note: FakeNote, account_name: str) -> None:
 
 
 def _serialize_artifact_row(row: dict[str, Any]) -> dict[str, Any]:
+    # Legacy `email_thread` rows from older ingestions are surfaced as `email` for the UI.
     if row.get("artifact_type") == "email_thread":
-        row = {**row, "artifact_type": "email"}
+        row["artifact_type"] = "email"
     return row
 
 
