@@ -74,6 +74,7 @@ class Settings:
     log_color: bool
     session_cookie_name: str
     session_ttl_days: int
+    session_ttl_hours: int
     session_secret: str
     rate_limit_per_ip_per_minute: int
     rate_limit_per_session_per_hour: int
@@ -103,6 +104,7 @@ class Settings:
             log_color=_env_bool("LOG_COLOR", False),
             session_cookie_name=os.environ.get("SESSION_COOKIE_NAME", "pcad_session"),
             session_ttl_days=_env_int("SESSION_TTL_DAYS", 7),
+            session_ttl_hours=_env_int("SESSION_TTL_HOURS", 4),
             session_secret=os.environ.get("SESSION_SECRET", "change-me-to-a-long-random-string"),
             rate_limit_per_ip_per_minute=_env_int("RATE_LIMIT_PER_IP_PER_MINUTE", 20),
             rate_limit_per_session_per_hour=_env_int("RATE_LIMIT_PER_SESSION_PER_HOUR", 50),

@@ -60,6 +60,7 @@ def _settings(db_url: str) -> Settings:
         log_color=False,
         session_cookie_name="pcad_session",
         session_ttl_days=7,
+        session_ttl_hours=4,
         session_secret="test-secret",
         rate_limit_per_ip_per_minute=20,
         rate_limit_per_session_per_hour=50,
@@ -85,6 +86,7 @@ def test_apply_migrations_runs_and_is_idempotent(empty_db: str) -> None:
         "0009_proactive_alerts",
         "0010_daily_budget_usage",
         "0011_fake_note_artifact_types",
+        "0012_session_scoped_cascade",
     ]
     assert second == []
 

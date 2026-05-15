@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 
 from pcad.agent.conversation_service import ConversationService
 from pcad.api.app import create_app
+from pcad.db import connect_dict
 from pcad.llm.deterministic import DeterministicLlm
 
 from tests._seed import (
@@ -87,6 +88,52 @@ def test_session_cookie_is_issued_and_reused(migrated_db: str) -> None:
     assert first.json()["session_id"]
     # Same cookie → same session id on the next request.
     assert first.json()["session_id"] == second.json()["session_id"]
+
+
+def test_reset_session_deletes_session_scoped_rows(migrated_db: str) -> None:
+    settings = make_settings(migrated_db)
+    _seed_minimal_account(settings)
+    app, _ = _app_with_deterministic_llm(settings)
+
+    with TestClient(app) as client:
+        first = client.get("/api/session")
+        old_session_id = first.json()["session_id"]
+        note_response = client.post(
+            "/api/accounts/ACC_R1/fake-notes",
+            json={
+                "note_type": "docx",
+                "title": "Visitor note",
+                "body": "There is a new procurement question to track.",
+                "note_date": date(2026, 5, 14).isoformat(),
+            },
+        )
+        assert note_response.status_code == 200
+        note_id = note_response.json()["note"]["note_id"]
+
+        reset = client.delete("/api/session")
+        assert reset.status_code == 200
+        assert reset.json() == {"ok": True}
+
+        next_session = client.get("/api/session").json()["session_id"]
+
+    assert next_session != old_session_id
+    with connect_dict(settings) as conn:
+        counts = conn.execute(
+            """
+            SELECT
+                (SELECT count(*) FROM sessions WHERE session_id = %s)::int AS sessions,
+                (SELECT count(*) FROM fake_notes WHERE note_id = %s)::int AS fake_notes,
+                (SELECT count(*) FROM rag_documents WHERE doc_id = %s)::int AS rag_documents,
+                (SELECT count(*) FROM source_citations WHERE doc_id = %s)::int AS source_citations
+            """,
+            (old_session_id, note_id, f"fake_note:{note_id}", f"fake_note:{note_id}"),
+        ).fetchone()
+    assert dict(counts) == {
+        "sessions": 0,
+        "fake_notes": 0,
+        "rag_documents": 0,
+        "source_citations": 0,
+    }
 
 
 def test_accounts_endpoint_returns_seeded_accounts(migrated_db: str) -> None:

@@ -37,6 +37,7 @@ def make_settings(database_url: str, **overrides: Any) -> Settings:
         log_color=False,
         session_cookie_name="pcad_session",
         session_ttl_days=7,
+        session_ttl_hours=4,
         session_secret="test-secret",
         rate_limit_per_ip_per_minute=1000,
         rate_limit_per_session_per_hour=1000,

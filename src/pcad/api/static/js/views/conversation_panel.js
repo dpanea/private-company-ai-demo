@@ -1,4 +1,4 @@
-import { createThread, listMessages } from "../api.js";
+import { createThread, listMessages, resetSession } from "../api.js";
 import { state } from "../state.js";
 import { navigate, threadPath } from "../router.js";
 import { streamMessage } from "../sse.js";
@@ -23,7 +23,10 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
             <h2>${escapeHtml(currentThread?.title || `Ask about ${account?.account_name || "this account"}`)}</h2>
             <p class="sub">${escapeHtml(account?.account_name || "Selected account")} · ${escapeHtml(threads.length ? `${threads.length} recent chats` : "No chats yet")}</p>
           </div>
-          <button class="secondary-action memory-note-action" type="button" data-pcad-open-fake-note>Add synthetic note</button>
+          <div class="thread-actions">
+            <button class="secondary-action memory-note-action" type="button" data-pcad-open-fake-note>Add test note</button>
+            <button class="secondary-action session-reset-action" type="button" data-pcad-reset-demo-session>Reset demo</button>
+          </div>
         </div>
         <div class="workflow-row" data-pcad-workflows>
           ${workflows.map((seed) => `<button class="workflow-btn ${seed === "new_chat" ? "new-chat" : ""}" type="button" data-pcad-workflow="${seed}">${workflowLabel(seed)}</button>`).join("")}
@@ -60,6 +63,15 @@ export function bindConversationPanel(root, account) {
     button.addEventListener("click", () => {
       navigate(threadPath(account.account_id, button.dataset.pcadThreadChip));
     });
+  });
+
+  root.querySelector("[data-pcad-reset-demo-session]")?.addEventListener("click", async () => {
+    try {
+      await resetSession();
+      window.location.assign("/demo");
+    } catch (error) {
+      showToast(error.detail || "The demo session could not be reset.", "error");
+    }
   });
 
   const textarea = root.querySelector("[data-pcad-composer] textarea");

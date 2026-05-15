@@ -49,6 +49,10 @@ export function getSession() {
   return request("/session");
 }
 
+export function resetSession() {
+  return request("/session", { method: "DELETE" });
+}
+
 export function listAccounts() {
   return request("/accounts");
 }
@@ -216,6 +220,15 @@ async function mockRequest(path, options) {
   const method = options.method || "GET";
   const body = options.body ? JSON.parse(options.body) : {};
 
+  if (path === "/session" && method === "DELETE") {
+    mockThreads = [];
+    mockMessages = {};
+    mockFakeNotes = {};
+    for (const accountId of Object.keys(mockArtifacts)) {
+      mockArtifacts[accountId] = mockArtifacts[accountId].filter((item) => !String(item.artifact_id).startsWith("crm:FakeNote:"));
+    }
+    return { ok: true };
+  }
   if (path === "/session") return mockSession;
   if (path === "/accounts") return mockAccounts;
   if (path === "/threads") {
@@ -301,7 +314,7 @@ function addMockNote(accountId, payload) {
   newArtifact.created_at = note.created_at;
   newArtifact.ingested_at = note.created_at;
   mockArtifacts[accountId] = [newArtifact, ...(mockArtifacts[accountId] || [])];
-  const newAlert = alert(`mock-alert-${Date.now()}`, accountId, "info", `New synthetic note: ${payload.title}`, "The session-scoped note is now part of this browser session's company memory.", []);
+  const newAlert = alert(`mock-alert-${Date.now()}`, accountId, "info", `New test note: ${payload.title}`, "The session-scoped note is now part of this temporary demo session's company memory.", []);
   mockAlerts[accountId] = [newAlert, ...(mockAlerts[accountId] || [])];
   return { note, alerts: mockAlerts[accountId] };
 }

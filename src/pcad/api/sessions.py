@@ -33,20 +33,23 @@ class SessionMiddleware(BaseHTTPMiddleware):
         session = await run_in_threadpool(self._load_or_create, request)
         request.state.session = session
         response = await call_next(request)
-        token = self.serializer.dumps({"sid": session.session_id})
-        response.set_cookie(
-            self.settings.session_cookie_name,
-            token,
-            max_age=self.settings.session_ttl_days * 86400,
-            httponly=True,
-            samesite="lax",
-            secure=getattr(self.settings, "session_cookie_secure", False),
-        )
+        if getattr(request.state, "session_reset", False):
+            response.delete_cookie(self.settings.session_cookie_name, samesite="lax")
+        else:
+            token = self.serializer.dumps({"sid": session.session_id})
+            response.set_cookie(
+                self.settings.session_cookie_name,
+                token,
+                max_age=_session_ttl_seconds(self.settings),
+                httponly=True,
+                samesite="lax",
+                secure=getattr(self.settings, "session_cookie_secure", False),
+            )
         return response
 
     def _load_or_create(self, request: Request) -> Session:
         token = request.cookies.get(self.settings.session_cookie_name)
-        session_id = _load_signed_session_id(self.serializer, token, self.settings.session_ttl_days) if token else None
+        session_id = _load_signed_session_id(self.serializer, token, _session_ttl_seconds(self.settings)) if token else None
         if session_id:
             refreshed = _touch_and_load_session(self.settings, session_id)
             if refreshed:
@@ -70,7 +73,7 @@ async def periodic_session_cleanup(settings: Settings, *, interval_seconds: floa
 
 def create_session(settings: Settings) -> Session:
     now = datetime.now(timezone.utc)
-    session = Session(session_id=str(uuid4()), created_at=now, last_seen_at=now, expires_at=now + timedelta(days=settings.session_ttl_days))
+    session = Session(session_id=str(uuid4()), created_at=now, last_seen_at=now, expires_at=now + timedelta(seconds=_session_ttl_seconds(settings)))
     with connect_dict(settings) as conn:
         conn.execute(
             "INSERT INTO sessions (session_id, created_at, last_seen_at, expires_at) VALUES (%s, %s, %s, %s)",
@@ -87,11 +90,11 @@ def cleanup_expired_sessions(settings: Settings) -> int:
     return int(deleted or 0)
 
 
-def _load_signed_session_id(serializer: URLSafeTimedSerializer, token: str | None, ttl_days: int) -> str | None:
+def _load_signed_session_id(serializer: URLSafeTimedSerializer, token: str | None, ttl_seconds: int) -> str | None:
     if not token:
         return None
     try:
-        payload = serializer.loads(token, max_age=ttl_days * 86400)
+        payload = serializer.loads(token, max_age=ttl_seconds)
     except (BadSignature, SignatureExpired):
         return None
     if not isinstance(payload, dict) or not isinstance(payload.get("sid"), str):
@@ -106,11 +109,18 @@ def _touch_and_load_session(settings: Settings, session_id: str) -> Session | No
             """
             UPDATE sessions
             SET last_seen_at = now(),
-                expires_at = now() + (%s || ' days')::interval
+                expires_at = now() + (%s || ' seconds')::interval
             WHERE session_id = %s AND expires_at > now()
             RETURNING session_id, created_at, last_seen_at, expires_at
             """,
-            (settings.session_ttl_days, session_id),
+            (_session_ttl_seconds(settings), session_id),
         ).fetchone()
         conn.commit()
     return Session.model_validate(dict(row)) if row else None
+
+
+def _session_ttl_seconds(settings: Settings) -> int:
+    ttl_hours = int(getattr(settings, "session_ttl_hours", 0) or 0)
+    if ttl_hours > 0:
+        return ttl_hours * 3600
+    return int(settings.session_ttl_days) * 86400

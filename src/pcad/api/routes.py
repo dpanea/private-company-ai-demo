@@ -44,6 +44,16 @@ def session(request: Request) -> dict[str, Any]:
     return {"session_id": current.session_id, "created_at": current.created_at}
 
 
+@router.delete("/session")
+def reset_session(request: Request) -> dict[str, bool]:
+    session_id = get_session_id(request)
+    with connect_dict(get_settings(request)) as conn:
+        conn.execute("DELETE FROM sessions WHERE session_id = %s", (session_id,))
+        conn.commit()
+    request.state.session_reset = True
+    return {"ok": True}
+
+
 @router.get("/accounts", response_model=list[AccountOut])
 def accounts(request: Request) -> list[dict[str, Any]]:
     session_id = get_session_id(request)

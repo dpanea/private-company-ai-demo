@@ -47,10 +47,10 @@ async function submitFakeNote(dialog, accountId) {
     state.update("fakeNotesByAccount", (notesByAccount) => ({ ...notesByAccount, [accountId]: notes }));
     state.update("artifactsByAccount", (artifactsByAccount) => ({ ...artifactsByAccount, [accountId]: artifacts }));
     dialog.close();
-    showToast("Synthetic note added. The system has updated its company memory.", "success");
+    showToast("Test note added. The system has updated this demo session's company memory.", "success");
   } catch (error) {
     setFakeNoteSubmitting(dialog, false);
-    showToast(error.detail || "The synthetic note could not be added.", "error");
+    showToast(error.detail || "The test note could not be added.", "error");
   }
 }
 
@@ -63,7 +63,7 @@ function setFakeNoteSubmitting(dialog, isSubmitting) {
   if (submit) {
     submit.innerHTML = isSubmitting
       ? '<span class="button-spinner" aria-hidden="true"></span><span>Adding...</span>'
-      : "Add note";
+      : "Add test note";
   }
   dialog.querySelector("[data-pcad-close-modal]")?.toggleAttribute("disabled", isSubmitting);
 }
@@ -81,12 +81,12 @@ function renderFakeNoteDialog() {
       <div class="modal-head">
         <div>
           <p class="kicker">Session-scoped demo input</p>
-          <h2 id="fake-note-title">Add a synthetic note</h2>
+          <h2 id="fake-note-title">Add a test note</h2>
         </div>
         <button class="icon-button" type="button" data-pcad-close-modal aria-label="Close note form">×</button>
       </div>
       <div class="modal-body">
-        <div class="callout warning">This public demo uses synthetic data only. Do not enter real or confidential client information. Notes are stored only for your browser session.</div>
+        <div class="callout warning">This public demo uses synthetic data only. Do not enter real or confidential client information. Test notes are kept only for this temporary demo session.</div>
         <form class="field-grid">
           <div class="form-field">
             <label for="note-type">Type</label>
@@ -108,7 +108,7 @@ function renderFakeNoteDialog() {
           </div>
           <div class="modal-actions">
             <button class="secondary-action" type="button" data-pcad-close-modal>Cancel</button>
-            <button class="primary-action" type="submit">Add note</button>
+            <button class="primary-action" type="submit">Add test note</button>
           </div>
         </form>
       </div>
