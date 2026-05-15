@@ -7,13 +7,22 @@ from pathlib import Path
 import uvicorn
 
 from pcad.config import Settings
-from pcad.db import connect
+from pcad.db import close_pools, connect
 from pcad.ingestion.runner import run_demo_ingestion
 from pcad.logging_utils import configure_logging
 from pcad.migrations import apply_migrations
 
 
 def main() -> None:
+    try:
+        _main()
+    finally:
+        # Release pooled connections so the CLI exits cleanly instead of
+        # waiting for psycopg-pool's reaper to time out.
+        close_pools()
+
+
+def _main() -> None:
     parser = argparse.ArgumentParser(prog="pcad")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -35,7 +44,7 @@ def main() -> None:
 
     args = parser.parse_args()
     settings = Settings.from_env()
-    configure_logging(settings.log_level, color=str(settings.log_color).lower())
+    configure_logging(settings.log_level, color=settings.log_color)
 
     if args.command == "migrate":
         applied = apply_migrations(settings)

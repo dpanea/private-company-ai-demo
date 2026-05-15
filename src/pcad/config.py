@@ -5,19 +5,20 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from dotenv import load_dotenv as _dotenv_load
+
 
 logger = logging.getLogger(__name__)
 
 
 def load_dotenv(path: Path = Path(".env")) -> None:
-    if not path.exists():
-        return
-    for line in path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        key, value = stripped.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+    """Populate environment variables from a .env file if present.
+
+    Thin wrapper around python-dotenv. Existing environment variables take
+    precedence (matches the previous behavior).
+    """
+    if path.exists():
+        _dotenv_load(dotenv_path=path, override=False)
 
 
 def _env_optional(name: str) -> str | None:
@@ -36,6 +37,26 @@ def _env_bool(name: str, default: bool) -> bool:
     if value is None:
         return default
     return value.lower() in {"1", "true", "yes", "on"}
+
+
+def _resolve_database_url() -> str:
+    """Return DATABASE_URL, stitching one from POSTGRES_* if it is not set.
+
+    The demo's .env.example only ships POSTGRES_USER / PASSWORD / DB so users do
+    not have to keep the credentials in sync across two variables. POSTGRES_HOST
+    defaults to ``localhost``; inside Docker Compose it should be ``postgres``.
+    """
+    url = _env_optional("DATABASE_URL")
+    if url:
+        return url
+    user = _env_optional("POSTGRES_USER") or "pcad"
+    password = _env_optional("POSTGRES_PASSWORD") or "pcad"
+    database = _env_optional("POSTGRES_DB") or "pcad"
+    host = _env_optional("POSTGRES_HOST") or "localhost"
+    port = _env_optional("POSTGRES_PORT") or "5432"
+    from urllib.parse import quote
+
+    return f"postgresql://{quote(user, safe='')}:{quote(password, safe='')}@{host}:{port}/{quote(database, safe='')}"
 
 
 @dataclass(frozen=True)
@@ -59,12 +80,17 @@ class Settings:
     daily_token_budget: int
     context_token_budget: int = 6000
     agent_generation_max_attempts: int = 3
+    db_pool_min_size: int = 1
+    db_pool_max_size: int = 10
+    llm_timeout_seconds: float = 120.0
+    llm_max_retries: int = 3
+    conversation_history_turns: int = 6
 
     @classmethod
     def from_env(cls) -> "Settings":
         load_dotenv()
         settings = cls(
-            database_url=os.environ.get("DATABASE_URL", "postgresql://pcad:pcad@localhost:5432/pcad"),
+            database_url=_resolve_database_url(),
             openrouter_api_key=_env_optional("LLM_API_KEY") or _env_optional("OPENROUTER_API_KEY"),
             openrouter_base_url=os.environ.get("LLM_BASE_URL", os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")),
             llm_model=os.environ.get("LLM_MODEL", "qwen/qwen-2.5-7b-instruct"),
@@ -83,6 +109,11 @@ class Settings:
             daily_token_budget=_env_int("DAILY_TOKEN_BUDGET", 1_500_000),
             context_token_budget=_env_int("CONTEXT_TOKEN_BUDGET", 6000),
             agent_generation_max_attempts=_env_int("AGENT_GENERATION_MAX_ATTEMPTS", 3),
+            db_pool_min_size=_env_int("DB_POOL_MIN_SIZE", 1),
+            db_pool_max_size=_env_int("DB_POOL_MAX_SIZE", 10),
+            llm_timeout_seconds=float(os.environ.get("LLM_TIMEOUT_SECONDS", "120")),
+            llm_max_retries=_env_int("LLM_MAX_RETRIES", 3),
+            conversation_history_turns=_env_int("CONVERSATION_HISTORY_TURNS", 6),
         )
         if settings.llm_reasoning_effort not in {"low", "medium", "high"}:
             raise ValueError("LLM_REASONING_EFFORT must be one of: low, medium, high")

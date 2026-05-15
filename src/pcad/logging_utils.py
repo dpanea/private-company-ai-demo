@@ -62,10 +62,9 @@ class ComponentFormatter(logging.Formatter):
         return f"\n{COLORS.get(component, '')}{BOLD}{label.center(88, '-')}{RESET}\n"
 
 
-def configure_logging(level: str = "INFO", color: str | None = None) -> None:
+def configure_logging(level: str = "INFO", color: bool | str | None = None) -> None:
     numeric_level = getattr(logging, level.upper(), logging.INFO)
-    color_mode = (color or os.environ.get("LOG_COLOR", "auto")).lower()
-    use_color = _should_use_color(color_mode)
+    use_color = _resolve_color(color)
     root = logging.getLogger()
     if not root.handlers:
         handler = logging.StreamHandler(sys.stderr)
@@ -80,10 +79,14 @@ def configure_logging(level: str = "INFO", color: str | None = None) -> None:
                 handler.setFormatter(ComponentFormatter(use_color=use_color))
 
 
-def _should_use_color(color_mode: str) -> bool:
-    if color_mode in {"1", "true", "yes", "always"}:
+def _resolve_color(color: bool | str | None) -> bool:
+    if isinstance(color, bool):
+        return color
+    raw = color if color is not None else os.environ.get("LOG_COLOR", "auto")
+    mode = str(raw).lower()
+    if mode in {"1", "true", "yes", "always"}:
         return True
-    if color_mode in {"0", "false", "no", "never"}:
+    if mode in {"0", "false", "no", "never"}:
         return False
     if os.environ.get("NO_COLOR"):
         return False

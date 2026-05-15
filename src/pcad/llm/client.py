@@ -2,16 +2,20 @@ from __future__ import annotations
 
 import json
 import logging
-import urllib.error
-import urllib.request
+import random
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any, Protocol
+
+import httpx
 
 from pcad.config import Settings
 
 
 logger = logging.getLogger(__name__)
+
+_RETRYABLE_STATUS = {408, 425, 429, 500, 502, 503, 504}
 
 
 @dataclass
@@ -51,12 +55,14 @@ class LlmClient(Protocol):
 class OpenAICompatibleClient:
     """OpenAI-compatible chat completions and embeddings client.
 
-    Records the last LLM call's `usage` block on `self.last_usage` so callers
-    (rate limiting, budget tracking) can use real token counts.
+    Uses httpx so we get connection pooling, predictable error handling, and
+    retries with exponential backoff on transient failures. Records the last
+    call's `usage` block on `self.last_usage` for rate limiting / budget code.
     """
 
     settings: Settings
     last_usage: TokenUsage = field(default_factory=TokenUsage)
+    _client: httpx.Client | None = field(default=None, init=False, repr=False)
 
     def _base_url(self) -> str:
         return getattr(self.settings, "llm_base_url", self.settings.openrouter_base_url).rstrip("/")
@@ -79,23 +85,46 @@ class OpenAICompatibleClient:
             headers["X-Title"] = self.settings.app_title
         return headers
 
-    def _post(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
-        request = urllib.request.Request(
-            self._base_url() + endpoint,
-            data=json.dumps(payload).encode("utf-8"),
-            headers=self._headers(),
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=120) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
-            logger.error("llm.request.failed endpoint=%s status=%s", endpoint, exc.code)
-            raise RuntimeError(f"OpenAI-compatible HTTP {exc.code}: {detail}") from exc
-        except urllib.error.URLError as exc:
-            logger.error("llm.request.failed endpoint=%s error=%s", endpoint, exc)
-            raise RuntimeError(f"OpenAI-compatible request failed: {exc}") from exc
+    def _http_client(self) -> httpx.Client:
+        if self._client is None:
+            self._client = httpx.Client(
+                base_url=self._base_url(),
+                timeout=httpx.Timeout(self.settings.llm_timeout_seconds, connect=10.0),
+            )
+        return self._client
+
+    def close(self) -> None:
+        if self._client is not None:
+            self._client.close()
+            self._client = None
+
+    def _max_retries(self) -> int:
+        return max(1, int(self.settings.llm_max_retries))
+
+    def _post_json(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """POST a JSON body, retrying on retryable HTTP errors."""
+        attempts = self._max_retries()
+        last_exc: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                response = self._http_client().post(endpoint, json=payload, headers=self._headers())
+            except httpx.RequestError as exc:
+                last_exc = exc
+                logger.warning("llm.request.transport_error endpoint=%s attempt=%s error=%s", endpoint, attempt, exc)
+                if attempt >= attempts:
+                    raise RuntimeError(f"OpenAI-compatible request failed: {exc}") from exc
+                _sleep_with_backoff(attempt)
+                continue
+            if response.status_code in _RETRYABLE_STATUS and attempt < attempts:
+                logger.warning("llm.request.retryable_status endpoint=%s attempt=%s status=%s", endpoint, attempt, response.status_code)
+                _sleep_with_backoff(attempt, response.headers.get("retry-after"))
+                continue
+            if response.status_code >= 400:
+                logger.error("llm.request.failed endpoint=%s status=%s", endpoint, response.status_code)
+                raise RuntimeError(f"OpenAI-compatible HTTP {response.status_code}: {response.text}")
+            return response.json()
+        # Defensive — loop should always return or raise.
+        raise RuntimeError("LLM request retries exhausted") from last_exc
 
     def embed(self, text: str) -> list[float]:
         return self.embed_batch([text])[0]
@@ -106,7 +135,7 @@ class OpenAICompatibleClient:
         payload: dict[str, Any] = {"model": self.settings.embedding_model, "input": texts}
         if self.settings.embedding_dimensions:
             payload["dimensions"] = self.settings.embedding_dimensions
-        response = self._post("/embeddings", payload)
+        response = self._post_json("/embeddings", payload)
         try:
             data = response["data"]
             return [[float(v) for v in item["embedding"]] for item in data]
@@ -130,7 +159,7 @@ class OpenAICompatibleClient:
         }
         if response_format is not None:
             payload["response_format"] = response_format
-        response = self._post("/chat/completions", payload)
+        response = self._post_json("/chat/completions", payload)
         self._record_usage(response.get("usage"))
         content = _extract_chat_content(response)
         if not content:
@@ -156,16 +185,17 @@ class OpenAICompatibleClient:
             "stream": True,
             "reasoning": {"effort": self.settings.llm_reasoning_effort, "exclude": True},
         }
-        request = urllib.request.Request(
-            self._base_url() + "/chat/completions",
-            data=json.dumps(payload).encode("utf-8"),
-            headers=self._headers(),
-            method="POST",
-        )
+        client = self._http_client()
         try:
-            with urllib.request.urlopen(request, timeout=120) as response:
-                for raw_line in response:
-                    line = raw_line.decode("utf-8").rstrip("\n").rstrip("\r")
+            with client.stream("POST", "/chat/completions", json=payload, headers=self._headers()) as response:
+                if response.status_code >= 400:
+                    body = response.read().decode("utf-8", errors="replace")
+                    logger.error("llm.stream.failed status=%s", response.status_code)
+                    raise RuntimeError(f"OpenAI-compatible HTTP {response.status_code}: {body}")
+                for raw_line in response.iter_lines():
+                    if not raw_line:
+                        continue
+                    line = raw_line if isinstance(raw_line, str) else raw_line.decode("utf-8")
                     if not line.startswith("data: "):
                         continue
                     chunk = line[6:]
@@ -175,16 +205,15 @@ class OpenAICompatibleClient:
                         data = json.loads(chunk)
                     except json.JSONDecodeError:
                         continue
-                    if "usage" in data and data["usage"]:
+                    if data.get("usage"):
                         self._record_usage(data["usage"])
                     delta = (data.get("choices") or [{}])[0].get("delta") or {}
                     text = delta.get("content")
                     if text:
                         yield text
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
-            logger.error("llm.stream.failed status=%s", exc.code)
-            raise RuntimeError(f"OpenAI-compatible HTTP {exc.code}: {detail}") from exc
+        except httpx.RequestError as exc:
+            logger.error("llm.stream.transport_error error=%s", exc)
+            raise RuntimeError(f"OpenAI-compatible streaming request failed: {exc}") from exc
 
     def _record_usage(self, usage: dict[str, Any] | None) -> None:
         if not usage:
@@ -193,6 +222,17 @@ class OpenAICompatibleClient:
             prompt_tokens=int(usage.get("prompt_tokens") or 0),
             completion_tokens=int(usage.get("completion_tokens") or 0),
         )
+
+
+def _sleep_with_backoff(attempt: int, retry_after: str | None = None) -> None:
+    """Exponential backoff with jitter, honoring Retry-After when sane."""
+    delay = min(8.0, 0.5 * (2 ** (attempt - 1))) + random.uniform(0.0, 0.25)
+    if retry_after:
+        try:
+            delay = max(delay, float(retry_after))
+        except ValueError:
+            pass
+    time.sleep(delay)
 
 
 def _extract_chat_content(response: dict[str, Any]) -> str:
