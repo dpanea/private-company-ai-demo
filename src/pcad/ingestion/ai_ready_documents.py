@@ -345,7 +345,7 @@ class DocumentBuilder:
             content_markdown=content,
             metadata_json=metadata,
             source_record_ids=source_ids,
-            source_record_hashes=[stable_hash(source_ids)],
+            source_record_hashes=[stable_hash([record_id]) for record_id in source_ids],
             account_id=account.account_id,
             opportunity_id=opportunity_id,
             contract_id=contract_id,

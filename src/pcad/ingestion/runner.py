@@ -247,16 +247,10 @@ def _parse_meeting_artifact(path: Path, source_path: str, account_id: str) -> Pa
         created_at=_file_created_at(path),
         ingested_at=_now(),
     )
-    summary = normalize_meeting_for_summary(parsed, meeting_id=safe_id(path.stem), account_id=account_id)
-    summary = MeetingSummaryInput(
-        account_id=summary.account_id,
-        meeting_id=summary.meeting_id,
-        meeting_title=summary.meeting_title,
-        meeting_date=summary.meeting_date,
-        attendees=summary.attendees,
-        key_topics=summary.key_topics,
-        action_items=summary.action_items,
-        risks=summary.risks,
+    summary = normalize_meeting_for_summary(
+        parsed,
+        meeting_id=safe_id(path.stem),
+        account_id=account_id,
         source_artifact_id=artifact_id,
     )
     return ParsedArtifactBundle([raw], [], [summary])

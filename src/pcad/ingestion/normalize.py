@@ -61,7 +61,11 @@ def normalize_email_threads(
 
 
 def normalize_meeting_for_summary(
-    parsed: ParsedMeeting, *, meeting_id: str | None = None, account_id: str | None = None
+    parsed: ParsedMeeting,
+    *,
+    meeting_id: str | None = None,
+    account_id: str | None = None,
+    source_artifact_id: str | None = None,
 ) -> MeetingSummaryInput:
     """Extract deterministic meeting-summary bullets from a transcript."""
     key_topics: list[str] = []
@@ -89,6 +93,7 @@ def normalize_meeting_for_summary(
         key_topics=_dedupe(key_topics)[:12],
         action_items=_dedupe(action_items)[:8],
         risks=_dedupe(risks)[:8],
+        source_artifact_id=source_artifact_id,
     )
 
 
