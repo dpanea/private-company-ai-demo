@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import os
+from typing import Iterator
 
 import psycopg
 import pytest
+
+from pcad.db import close_pools
 
 
 APPLICATION_TABLES = [
@@ -48,6 +51,7 @@ def empty_db(postgres_available: str) -> str:
         for table in APPLICATION_TABLES:
             conn.execute(f"DROP TABLE IF EXISTS {table} CASCADE")
         conn.execute("DROP TABLE IF EXISTS schema_migrations CASCADE")
+        conn.execute("DROP TABLE IF EXISTS daily_budget_usage CASCADE")
     return postgres_available
 
 
@@ -68,3 +72,36 @@ def clean_db(postgres_available: str) -> str:
         if tables:
             conn.execute(f"TRUNCATE {', '.join(tables)} RESTART IDENTITY CASCADE")
     return postgres_available
+
+
+@pytest.fixture()
+def migrated_db(empty_db: str) -> Iterator[str]:
+    """An empty database with all migrations applied. Closes pools on teardown."""
+    from pcad.migrations import apply_migrations
+    from tests._seed import make_settings
+
+    apply_migrations(make_settings(empty_db))
+    try:
+        yield empty_db
+    finally:
+        close_pools()
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiters() -> Iterator[None]:
+    """Wipe in-memory rate limiters between tests so they don't leak state."""
+    from pcad.api.rate_limit import ip_rate_limiter, session_message_limiter
+
+    ip_rate_limiter._buckets.clear()
+    session_message_limiter._buckets.clear()
+    try:
+        yield
+    finally:
+        ip_rate_limiter._buckets.clear()
+        session_message_limiter._buckets.clear()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _final_pool_close() -> Iterator[None]:
+    yield
+    close_pools()

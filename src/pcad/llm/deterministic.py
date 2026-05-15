@@ -8,16 +8,31 @@ from pcad.llm.client import TokenUsage
 
 
 class DeterministicLlm:
-    """Small deterministic LLM test double used by package-4 tests."""
+    """In-process LLM test double.
 
-    def __init__(self, response: str | None = None) -> None:
+    - `embed` / `embed_batch` produce vectors of `embedding_dim` floats, seeded
+      from the text content so they are deterministic across runs. The default
+      dim (1536) matches the demo's `rag_documents.embedding` column so the
+      stub can drive `vector_search` without dimension mismatches.
+    - `complete` returns whatever was passed via `response`. If `response` is
+      `None` it parses the prompt's `Allowed citations:` block and constructs an
+      answer that cites the first allowed label, which is enough to satisfy the
+      agent's citation validator in tests.
+    - `complete_stream` tokenizes that answer on whitespace and yields each
+      piece, so callers exercising streaming see realistic SSE-shaped events.
+    """
+
+    def __init__(self, response: str | None = None, *, embedding_dim: int = 1536) -> None:
+        if embedding_dim <= 0:
+            raise ValueError("embedding_dim must be positive")
         self.response = response
+        self.embedding_dim = embedding_dim
         self.calls: list[list[dict[str, str]]] = []
         self.last_usage = TokenUsage()
 
     def embed(self, text: str) -> list[float]:
         seed = sum(ord(ch) for ch in text) or 1
-        return [float((seed + index) % 997) / 997.0 for index in range(8)]
+        return [float((seed + index) % 997) / 997.0 for index in range(self.embedding_dim)]
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
         return [self.embed(text) for text in texts]
@@ -68,3 +83,6 @@ class DeterministicLlm:
         answer = self.complete(messages, temperature=temperature, max_tokens=max_tokens)
         for token in answer.split(" "):
             yield token + " "
+
+    def close(self) -> None:  # parity with OpenAICompatibleClient.close
+        return None
