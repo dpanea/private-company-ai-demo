@@ -85,50 +85,41 @@ class PostgresHybridRetriever:
         search_text = account_hint or query
         normalized_query = _normalize_for_match(query)
         normalized_hint = _normalize_for_match(account_hint or "")
-        # Keep exact-name containment and fuzzy ranking in Postgres. This avoids fetching every
-        # account into Python and lets pg_trgm indexes carry both matching paths.
+        # One CTE that computes score+method per row, then a single WHERE-by-method filter.
+        # Trigram index on accounts.account_name covers the fuzzy path; the exact/substring
+        # paths are linear but bounded by row count (3 demo accounts).
         with connect_dict(self.settings) as conn:
             rows = conn.execute(
                 """
-                SELECT
-                    account_id,
-                    account_name,
-                    CASE
-                        WHEN %s <> '' AND lower(account_name) = lower(%s) THEN 1.0
-                        WHEN %s <> '' AND %s LIKE '%%' || lower(account_name) || '%%' THEN 1.0
-                        ELSE GREATEST(similarity(account_name, %s), strict_word_similarity(account_name, %s))
-                    END::float AS score,
-                    CASE
-                        WHEN %s <> '' AND lower(account_name) = lower(%s) THEN 'intent_account_hint'
-                        WHEN %s <> '' AND %s LIKE '%%' || lower(account_name) || '%%' THEN 'name_in_query'
-                        ELSE 'fuzzy_trigram'
-                    END AS method
-                FROM accounts
-                WHERE (%s <> '' AND lower(account_name) = lower(%s))
-                   OR (%s <> '' AND %s LIKE '%%' || lower(account_name) || '%%')
-                   OR GREATEST(similarity(account_name, %s), strict_word_similarity(account_name, %s)) >= %s
+                WITH scored AS (
+                    SELECT
+                        account_id,
+                        account_name,
+                        CASE
+                            WHEN %(hint)s <> '' AND lower(account_name) = lower(%(hint_raw)s) THEN 'intent_account_hint'
+                            WHEN %(query_norm)s <> '' AND %(query_norm)s LIKE '%%' || lower(account_name) || '%%' THEN 'name_in_query'
+                            ELSE 'fuzzy_trigram'
+                        END AS method,
+                        CASE
+                            WHEN %(hint)s <> '' AND lower(account_name) = lower(%(hint_raw)s) THEN 1.0
+                            WHEN %(query_norm)s <> '' AND %(query_norm)s LIKE '%%' || lower(account_name) || '%%' THEN 1.0
+                            ELSE GREATEST(similarity(account_name, %(search)s), strict_word_similarity(account_name, %(search)s))
+                        END::float AS score
+                    FROM accounts
+                )
+                SELECT account_id, account_name, score, method
+                FROM scored
+                WHERE method <> 'fuzzy_trigram' OR score >= %(threshold)s
                 ORDER BY score DESC, account_name
                 LIMIT 5
                 """,
-                (
-                    normalized_hint,
-                    account_hint or "",
-                    normalized_query,
-                    normalized_query,
-                    search_text,
-                    search_text,
-                    normalized_hint,
-                    account_hint or "",
-                    normalized_query,
-                    normalized_query,
-                    normalized_hint,
-                    account_hint or "",
-                    normalized_query,
-                    normalized_query,
-                    search_text,
-                    search_text,
-                    ACCOUNT_FUZZY_MIN_SCORE,
-                ),
+                {
+                    "hint": normalized_hint,
+                    "hint_raw": account_hint or "",
+                    "query_norm": normalized_query,
+                    "search": search_text,
+                    "threshold": ACCOUNT_FUZZY_MIN_SCORE,
+                },
             ).fetchall()
         candidates = [
             AccountCandidate(row["account_id"], row["account_name"], float(row["score"]), row["method"])
@@ -136,21 +127,6 @@ class PostgresHybridRetriever:
         ]
         selected = _select_account_candidate(candidates)
         return selected.account_id, selected.account_name
-
-    def account_candidates(self, query: str, *, account_hint: str | None = None, limit: int = 5) -> list[AccountCandidate]:
-        search_text = account_hint or query
-        with connect_dict(self.settings) as conn:
-            rows = conn.execute(
-                """
-                SELECT account_id, account_name,
-                       GREATEST(similarity(account_name, %s), strict_word_similarity(account_name, %s))::float AS score
-                FROM accounts
-                ORDER BY score DESC, account_name
-                LIMIT %s
-                """,
-                (search_text, search_text, limit),
-            ).fetchall()
-        return [AccountCandidate(r["account_id"], r["account_name"], float(r["score"]), "fuzzy_trigram") for r in rows]
 
     def build_retrieval_plan(
         self,
@@ -243,23 +219,6 @@ class PostgresHybridRetriever:
         results = _rank_hybrid_results(merged.values(), limit=plan.limit)
         logger.info("retrieval.hybrid raw=%s deduped=%s returned=%s", len(base) + len(fts) + len(vec), len(merged), len(results))
         return results
-
-    def fetch_documents_by_ids(self, doc_ids: list[str], *, session_id: str | None = None) -> list[dict[str, Any]]:
-        if not doc_ids:
-            return []
-        with connect_dict(self.settings) as conn:
-            rows = conn.execute(
-                """
-                SELECT doc_id, doc_type, title, content_markdown, metadata_json,
-                       account_id, opportunity_id, contract_id, owner_id, generated_at,
-                       0.9::float AS score, ARRAY['conversation_memory']::text[] AS reasons
-                FROM rag_documents
-                WHERE doc_id = ANY(%s) AND (session_id IS NULL OR session_id = %s)
-                """,
-                (doc_ids, session_id),
-            ).fetchall()
-        by_id = {row["doc_id"]: dict(row) for row in rows}
-        return [by_id[doc_id] for doc_id in doc_ids if doc_id in by_id]
 
     def citations_for(self, doc_ids: list[str]) -> dict[str, list[dict[str, Any]]]:
         if not doc_ids:
