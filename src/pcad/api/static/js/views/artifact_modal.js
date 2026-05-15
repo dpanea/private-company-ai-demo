@@ -46,7 +46,9 @@ function renderLoadingDialog() {
   return `
     <dialog aria-label="Loading artifact">
       <div class="modal-head">
-        <h2>Loading source artifact</h2>
+        <div class="modal-head-text">
+          <h2>Loading source artifact</h2>
+        </div>
         <button class="icon-button" type="button" data-pcad-close-modal aria-label="Close">×</button>
       </div>
       <div class="modal-body">${emptyState("Loading source content...")}</div>
@@ -58,11 +60,13 @@ function renderArtifactDialog(artifact, accountId) {
   return `
     <dialog class="artifact-dialog" aria-labelledby="artifact-title" data-pcad-artifact-modal="${escapeHtml(artifact.artifact_id)}">
       <div class="modal-head">
-        <span class="icon-tile modal-type-icon">${artifactIconSvg(artifact.artifact_type)}</span>
-        <div>
-          <p class="kicker">${escapeHtml(formatArtifactType(artifact.artifact_type))} · ${escapeHtml(artifactIcon(artifact.artifact_type))}</p>
-          <h2 id="artifact-title">${escapeHtml(artifact.title)}</h2>
-          <p class="meta">${escapeHtml(artifactMeta(artifact))}</p>
+        <div class="modal-head-text">
+          <span class="icon-tile modal-type-icon">${artifactIconSvg(artifact.artifact_type)}</span>
+          <div>
+            <p class="kicker">${escapeHtml(formatArtifactType(artifact.artifact_type))} · ${escapeHtml(artifactIcon(artifact.artifact_type))}</p>
+            <h2 id="artifact-title">${escapeHtml(artifact.title)}</h2>
+            <p class="meta">${escapeHtml(artifactMeta(artifact))}</p>
+          </div>
         </div>
         <button class="icon-button" type="button" data-pcad-close-modal aria-label="Close artifact">×</button>
       </div>

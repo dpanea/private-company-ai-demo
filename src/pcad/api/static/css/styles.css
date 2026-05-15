@@ -1517,10 +1517,22 @@ dialog {
 
 .modal-head {
   border-bottom-color: var(--d-line);
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.modal-head-text {
+  display: flex;
+  align-items: flex-start;
   gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.modal-head-text > div {
+  min-width: 0;
 }
 
 .modal-body {
@@ -1530,6 +1542,7 @@ dialog {
 .modal-type-icon {
   width: 30px;
   height: 30px;
+  flex-shrink: 0;
 }
 
 .document-page {
@@ -2415,10 +2428,6 @@ dialog {
   background: var(--d-surface-strong);
 }
 
-.modal-head {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
 .modal-head .icon-button {
   width: 36px;
   min-width: 36px;
@@ -2427,6 +2436,7 @@ dialog {
   border-radius: var(--d-radius);
   font-size: 20px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .modal-body {
