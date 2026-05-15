@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pytest
+
 from pcad.api.routes import _fake_note_artifact
 from pcad.agent.conversation_service import _citations_from_pack
-from pcad.llm.citations import normalize_citation_format, repair_missing_citations, validate_citations
-from pcad.models import ProactiveAlert
-from pcad.retrieval.alerts import _dedupe_alerts, _scope_session_alert_ids
+from pcad.llm.citations import allowed_citation_labels, render_structured_answer
 from pcad.retrieval.intent import IntentResolver
 from pcad.retrieval.retriever import _rank_hybrid_results, _rrf_merge
 
@@ -20,53 +20,119 @@ def test_intent_resolver_new_workflow_intents() -> None:
     assert resolver.resolve("What is the next action this week?").intent == "next_action"
 
 
-def test_source_citation_validation_and_repair() -> None:
+def test_allowed_citation_labels_only_user_visible_objects() -> None:
     pack = {
         "retrieved_documents": [
             {
                 "citations": [
                     {"source_object": "Account", "source_record_id": "SYN_ACC_0001"},
+                    {"source_object": "PDF", "source_record_id": "mutual_nda"},
                     {"source_object": "Email", "source_record_id": "msg-1"},
                 ]
             }
         ]
     }
 
-    normalized = normalize_citation_format("Context says Source: Account SYN_ACC_0001", pack)
-    assert normalized == "Context says [Source: Account SYN_ACC_0001]"
-    assert validate_citations(normalized, pack)["valid"]
-
-    repaired = repair_missing_citations("The account is engaged. Account SYN_ACC_0001", pack)
-    assert "[Source: Account SYN_ACC_0001]" in repaired
-    assert validate_citations(repaired, pack)["valid"]
+    assert allowed_citation_labels(pack) == {"PDF mutual_nda", "Email msg-1"}
 
 
-def test_crm_citations_are_openable_virtual_artifacts() -> None:
+@pytest.mark.parametrize("fence", ["```json\n", "```JSON\n", "```\n", "  ```json  \n"])
+def test_render_structured_answer_handles_markdown_fenced_json(fence: str) -> None:
+    pack = {
+        "retrieved_documents": [
+            {"citations": [{"source_object": "PDF", "source_record_id": "mutual_nda"}]}
+        ]
+    }
+    payload = (
+        '{"status": "answered", "account": {"account_id": null, "account_name": null}, '
+        '"clarification": {"message": "", "candidates": []}, '
+        '"blocks": [{"type": "paragraph", "text": "Body.", "citations": ["PDF mutual_nda"]}]}'
+    )
+    raw = f"{fence}{payload}\n```"
+
+    rendered, validation, _ = render_structured_answer(raw, pack)
+
+    assert "Body." in rendered
+    assert validation["valid"]
+
+
+def test_render_structured_answer_appends_inline_citation_labels() -> None:
+    pack = {
+        "retrieved_documents": [
+            {
+                "citations": [
+                    {"source_object": "PDF", "source_record_id": "mutual_nda"},
+                ]
+            }
+        ]
+    }
+    raw = (
+        '{"status": "answered", "account": {"account_id": null, "account_name": null}, '
+        '"clarification": {"message": "", "candidates": []}, '
+        '"blocks": [{"type": "paragraph", "text": "The NDA is mutual.", "citations": ["PDF mutual_nda"]}]}'
+    )
+
+    rendered, validation, _ = render_structured_answer(raw, pack)
+
+    assert rendered == "The NDA is mutual. [Source: PDF mutual_nda]"
+    assert validation["valid"]
+    assert validation["cited"] == ["PDF mutual_nda"]
+
+
+def test_insufficient_evidence_does_not_invent_citations() -> None:
+    pack = {"retrieved_documents": []}
+    raw = (
+        '{"status": "insufficient_evidence", "account": {"account_id": null, "account_name": null}, '
+        '"clarification": {"message": "", "candidates": []}, "blocks": []}'
+    )
+
+    rendered, validation, _ = render_structured_answer(raw, pack)
+
+    assert rendered.startswith("I do not have enough evidence")
+    assert validation["cited"] == []
+    assert validation["status"] == "insufficient_evidence"
+
+
+def test_account_clarification_state_uses_clarification_message() -> None:
+    pack = {"retrieved_documents": []}
+    raw = (
+        '{"status": "needs_account_clarification", "account": {"account_id": null, "account_name": null}, '
+        '"clarification": {"message": "Which client do you mean?", "candidates": []}, "blocks": []}'
+    )
+
+    rendered, validation, payload = render_structured_answer(raw, pack)
+
+    assert rendered == "Which client do you mean?"
+    assert validation["status"] == "needs_account_clarification"
+    assert payload["status"] == "needs_account_clarification"
+
+
+def test_source_artifact_citations_are_openable_artifacts() -> None:
     pack = {
         "account_id": "SYN_ACC_0001",
         "retrieved_documents": [
             {
                 "citations": [
                     {
-                        "source_object": "Opportunity",
-                        "source_record_id": "SYN_OPP_0001",
-                        "title": "Production-line workflow automation",
+                        "source_object": "PDF",
+                        "source_record_id": "mutual_nda",
+                        "title": "Mutual NDA",
                     }
                 ]
             }
         ],
     }
 
-    citations = _citations_from_pack(pack, {"cited": {"Opportunity SYN_OPP_0001"}})
+    citations = _citations_from_pack(pack, {"cited": {"PDF mutual_nda"}})
 
     assert citations == [
         {
-            "label": "Opportunity SYN_OPP_0001",
-            "source_label": "Opportunity SYN_OPP_0001",
-            "source_object": "Opportunity",
-            "source_record_id": "SYN_OPP_0001",
-            "artifact_id": "crm:Opportunity:SYN_OPP_0001",
-            "title": "Production-line workflow automation",
+            "label": "PDF Mutual NDA",
+            "source_label": "PDF mutual_nda",
+            "source_object": "PDF",
+            "source_record_id": "mutual_nda",
+            "artifact_id": "pdf:SYN_ACC_0001:mutual_nda",
+            "title": "Mutual NDA",
             "source_url": None,
             "source_date": None,
             "excerpt": None,
@@ -74,41 +140,27 @@ def test_crm_citations_are_openable_virtual_artifacts() -> None:
     ]
 
 
-def test_rrf_merge_uses_rank_and_additive_doc_type_boosts() -> None:
-    base = [{"doc_id": "a", "doc_type": "account_memory", "reasons": ["base_context"]}]
+def test_rrf_merge_aggregates_reasons_and_picks_top_rank_doc() -> None:
+    """All chunks share the same doc_type boost now, so the merged order is
+    decided by RRF alone. Doc `a` wins because it appears at rank 1 in two
+    rankers (base_context and full_text), whereas `b` only ever shows at rank 2."""
+    base = [{"doc_id": "a", "doc_type": "source_artifact_chunk", "reasons": ["base_context"]}]
     full_text = [
-        {"doc_id": "b", "doc_type": "risk_summary", "reasons": ["full_text"]},
-        {"doc_id": "a", "doc_type": "account_memory", "reasons": ["full_text"]},
+        {"doc_id": "a", "doc_type": "source_artifact_chunk", "reasons": ["full_text"]},
+        {"doc_id": "b", "doc_type": "source_artifact_chunk", "reasons": ["full_text"]},
     ]
-    vector = [{"doc_id": "b", "doc_type": "risk_summary", "reasons": ["vector"]}]
+    vector = [
+        {"doc_id": "a", "doc_type": "source_artifact_chunk", "reasons": ["vector"]},
+        {"doc_id": "b", "doc_type": "source_artifact_chunk", "reasons": ["vector"]},
+    ]
 
     merged = _rrf_merge(base, full_text, vector)
     ranked = _rank_hybrid_results(merged.values(), limit=2)
 
     assert ranked[0]["doc_id"] == "a"
-    assert "base_context" in ranked[0]["reasons"]
+    assert {"base_context", "full_text", "vector"} <= set(ranked[0]["reasons"])
     assert ranked[1]["doc_id"] == "b"
-    assert set(ranked[1]["reasons"]) == {"full_text", "vector"}
-
-
-def test_session_alert_ids_are_scoped_and_deduped() -> None:
-    alert = ProactiveAlert(
-        alert_id="alert:base",
-        account_id="SYN_ACC_0001",
-        alert_type="unresolved_objection",
-        severity="warning",
-        title="Unresolved objection detected",
-        body_markdown="A blocker exists.",
-        created_at=datetime.now(timezone.utc),
-    )
-
-    global_alert = _scope_session_alert_ids([alert], None)[0]
-    session_alerts = _scope_session_alert_ids([alert, alert], "session-123")
-
-    assert global_alert.alert_id == "alert:base"
-    assert session_alerts[0].alert_id.startswith("alert:base:session:")
-    assert session_alerts[0].alert_id != alert.alert_id
-    assert len(_dedupe_alerts(session_alerts)) == 1
+    assert {"full_text", "vector"} <= set(ranked[1]["reasons"])
 
 
 def test_fake_note_surfaces_as_source_artifact() -> None:
@@ -126,8 +178,8 @@ def test_fake_note_surfaces_as_source_artifact() -> None:
         }
     )
 
-    assert artifact["artifact_id"] == "crm:FakeNote:note-1"
+    assert artifact["artifact_id"] == "test-note:note-1"
     assert artifact["artifact_type"] == "pdf"
     assert artifact["mime_type"] == "application/pdf"
-    assert artifact["metadata"]["source_object"] == "FakeNote"
+    assert artifact["metadata"]["source_object"] == "TestNote"
     assert "EU hosting is required." in artifact["extracted_text"]

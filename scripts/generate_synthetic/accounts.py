@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import textwrap
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Literal
@@ -130,9 +131,19 @@ def _email(
         cc=cc,
         sent_at=sent_at,
         subject=subject,
-        body=body.strip(),
+        body=_normalise_email_body(body),
         in_reply_to=in_reply_to,
         references=references,
+    )
+
+
+def _normalise_email_body(body: str) -> str:
+    raw = textwrap.dedent(body).strip()
+    paragraphs = raw.split("\n\n")
+    return "\n\n".join(
+        " ".join(line.strip() for line in paragraph.splitlines() if line.strip())
+        for paragraph in paragraphs
+        if paragraph.strip()
     )
 
 
@@ -860,11 +871,6 @@ def build_crm_records(accounts: list[AccountSpec], reference_date: date) -> dict
         }
     ]
     account_rows: list[dict[str, Any]] = []
-    contact_rows: list[dict[str, Any]] = []
-    opportunity_rows: list[dict[str, Any]] = []
-    contract_rows: list[dict[str, Any]] = []
-    activity_rows: list[dict[str, Any]] = []
-
     for index, account in enumerate(accounts, start=1):
         created_at = datetime.combine(shift_date(d("2026-03-20"), reference_date), time(8), tzinfo=timezone.utc)
         updated_at = now - timedelta(days=index)
@@ -887,155 +893,6 @@ def build_crm_records(accounts: list[AccountSpec], reference_date: date) -> dict
                 "raw_record_hash": f"hash_account_{index:04d}",
             }
         )
-        for contact in account.contacts:
-            contact_rows.append(
-                {
-                    "contact_id": contact.contact_id,
-                    "account_id": account.account_id,
-                    "name": contact.name,
-                    "first_name": contact.first_name,
-                    "last_name": contact.last_name,
-                    "email": contact.email,
-                    "phone": contact.phone,
-                    "mobile_phone": "",
-                    "title": contact.title,
-                    "role_or_department": contact.role,
-                    "owner_id": OWNER_ID,
-                    "created_at": created_at.isoformat(),
-                    "updated_at": updated_at.isoformat(),
-                    "source_url": "",
-                    "raw_record_id": contact.contact_id.replace("SYN_", "CRM_"),
-                    "raw_record_hash": f"hash_{contact.contact_id.lower()}",
-                }
-            )
-        opportunity_rows.append(
-            {
-                "opportunity_id": account.opportunity_id,
-                "account_id": account.account_id,
-                "primary_contact_id": account.contacts[0].contact_id,
-                "contract_id": "SYN_CTR_0001" if account.account_id == "SYN_ACC_0003" else "",
-                "name": account.opportunity_name,
-                "stage": account.opportunity_stage,
-                "amount": f"{account.opportunity_amount:.2f}",
-                "currency": "EUR",
-                "probability": f"{account.opportunity_probability:.2f}",
-                "close_date": account.opportunity_close_date.isoformat(),
-                "is_closed": False,
-                "is_won": False,
-                "owner_id": OWNER_ID,
-                "record_type_id": "SYN_RECORD_TYPE_NEW_BUSINESS",
-                "created_at": created_at.isoformat(),
-                "updated_at": updated_at.isoformat(),
-                "source_url": "",
-                "raw_record_id": account.opportunity_id.replace("SYN_", "CRM_"),
-                "raw_record_hash": f"hash_{account.opportunity_id.lower()}",
-            }
-        )
-
-    contract_rows.append(
-        {
-            "contract_id": "SYN_CTR_0001",
-            "account_id": "SYN_ACC_0003",
-            "opportunity_id_if_available": "SYN_OPP_0003",
-            "contract_number": "CAL-PILOT-DRAFT-2026-01",
-            "status": "Draft",
-            "start_date": shift_date(d("2026-06-01"), reference_date).isoformat(),
-            "end_date": shift_date(d("2026-07-15"), reference_date).isoformat(),
-            "activated_date": "",
-            "customer_signed_contact_id": "SYN_CON_0008",
-            "owner_id": OWNER_ID,
-            "created_at": (now - timedelta(days=3)).isoformat(),
-            "updated_at": (now - timedelta(days=1)).isoformat(),
-            "source_url": "",
-            "raw_record_id": "CRM_CTR_0001",
-            "raw_record_hash": "hash_contract_0001",
-        }
-    )
-
-    activity_templates = [
-        ("Event", "Discovery call", "Meeting", "Completed", "Normal", -35),
-        ("Task", "Send proposal", "Email", "Completed", "High", -14),
-        ("Task", "Answer open stakeholder question", "Follow-up", "Open", "High", -2),
-        ("Event", "Technical review", "Meeting", "Completed", "Normal", -10),
-        ("Task", "Prepare decision summary", "Call", "Open", "Normal", 3),
-    ]
-    activity_id = 1
-    for account in accounts:
-        for source_object, subject, activity_type, status, priority, offset in activity_templates:
-            activity_day = reference_date + timedelta(days=offset)
-            start = datetime.combine(activity_day, time(10, 0), tzinfo=timezone.utc)
-            activity_rows.append(
-                {
-                    "activity_id": f"SYN_ACT_{activity_id:04d}",
-                    "source_object": source_object,
-                    "account_id": account.account_id,
-                    "opportunity_id": account.opportunity_id,
-                    "contact_id": account.contacts[0].contact_id,
-                    "lead_id": "",
-                    "contract_id": "SYN_CTR_0001" if account.account_id == "SYN_ACC_0003" else "",
-                    "who_id": account.contacts[0].contact_id,
-                    "what_id": account.opportunity_id,
-                    "owner_id": OWNER_ID,
-                    "subject": subject,
-                    "activity_type": activity_type,
-                    "subtype": activity_type,
-                    "status": status,
-                    "priority": priority,
-                    "activity_date": activity_day.isoformat(),
-                    "start_datetime": start.isoformat() if source_object == "Event" else "",
-                    "end_datetime": (start + timedelta(minutes=45)).isoformat() if source_object == "Event" else "",
-                    "description": _activity_description(account, subject),
-                    "created_at": (start - timedelta(days=1)).isoformat(),
-                    "updated_at": start.isoformat(),
-                    "source_url": "",
-                    "raw_record_id": f"CRM_ACT_{activity_id:04d}",
-                    "raw_record_hash": f"hash_activity_{activity_id:04d}",
-                }
-            )
-            activity_id += 1
-    activity_rows.append(
-        {
-            "activity_id": f"SYN_ACT_{activity_id:04d}",
-            "source_object": "Task",
-            "account_id": "SYN_ACC_0002",
-            "opportunity_id": "SYN_OPP_0002",
-            "contact_id": "SYN_CON_0006",
-            "lead_id": "",
-            "contract_id": "",
-            "who_id": "SYN_CON_0006",
-            "what_id": "SYN_OPP_0002",
-            "owner_id": OWNER_ID,
-            "subject": "Respond to procurement milestone question",
-            "activity_type": "Follow-up",
-            "subtype": "Email",
-            "status": "Open",
-            "priority": "High",
-            "activity_date": shift_date(d("2026-04-22"), reference_date).isoformat(),
-            "start_datetime": "",
-            "end_datetime": "",
-            "description": "Femke asked whether spreadsheet connector work and success metrics affect payment milestones. No response is recorded.",
-            "created_at": shift_datetime(at("2026-04-17", 12), reference_date).isoformat(),
-            "updated_at": shift_datetime(at("2026-04-21", 15), reference_date).isoformat(),
-            "source_url": "",
-            "raw_record_id": f"CRM_ACT_{activity_id:04d}",
-            "raw_record_hash": f"hash_activity_{activity_id:04d}",
-        }
-    )
-    return {
-        "users": users,
-        "accounts": account_rows,
-        "contacts": contact_rows,
-        "opportunities": opportunity_rows,
-        "contracts": contract_rows,
-        "activities": activity_rows,
-    }
+    return {"users": users, "accounts": account_rows}
 
 
-def _activity_description(account: AccountSpec, subject: str) -> str:
-    if "stakeholder" in subject.lower():
-        return account.story_arc
-    if account.account_id == "SYN_ACC_0001":
-        return "Track security evidence and procurement terms before the decision meeting."
-    if account.account_id == "SYN_ACC_0002":
-        return "Account is stalled after an unanswered procurement question."
-    return "Compliance is resolved; prepare pilot proposal with clear milestones."

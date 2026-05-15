@@ -28,14 +28,10 @@ class ManifestAccount(BaseModel):
 
 
 class ManifestCrm(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     users: str
     accounts: str
-    contacts: str
-    opportunities: str
-    contracts: str
-    activities: str
 
 
 class SyntheticManifest(BaseModel):

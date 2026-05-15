@@ -41,8 +41,7 @@ async function submitFakeNote(dialog, accountId) {
 
   try {
     setFakeNoteSubmitting(dialog, true);
-    const result = await addFakeNote(accountId, payload);
-    state.update("alertsByAccount", (alertsByAccount) => ({ ...alertsByAccount, [accountId]: result.alerts || alertsByAccount[accountId] || [] }));
+    await addFakeNote(accountId, payload);
     const [notes, artifacts] = await Promise.all([listFakeNotes(accountId), listAccountArtifacts(accountId)]);
     state.update("fakeNotesByAccount", (notesByAccount) => ({ ...notesByAccount, [accountId]: notes }));
     state.update("artifactsByAccount", (artifactsByAccount) => ({ ...artifactsByAccount, [accountId]: artifacts }));

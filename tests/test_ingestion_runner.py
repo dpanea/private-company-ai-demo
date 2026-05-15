@@ -24,7 +24,7 @@ def test_run_demo_ingestion_populates_expected_tables(empty_db: str, tmp_path: P
 
     assert report.accounts == 1
     assert report.raw_artifacts == 3
-    assert report.rag_documents >= 7
+    assert report.rag_documents >= 3
     with psycopg.connect(empty_db) as conn:
         doc_types = {
             row[0]
@@ -37,7 +37,7 @@ def test_run_demo_ingestion_populates_expected_tables(empty_db: str, tmp_path: P
             UNION ALL SELECT 'source_citations', count(*) FROM source_citations
             """
         ).fetchall())
-    assert {"email_thread_summary", "meeting_summary", "risk_summary"} <= doc_types
+    assert doc_types == {"source_artifact_chunk"}
     assert counts["raw_artifacts"] == report.raw_artifacts
     assert counts["rag_documents"] == report.rag_documents
     assert counts["source_citations"] == report.source_citations
@@ -96,26 +96,6 @@ def _mini_corpus(tmp_path: Path) -> Path:
         ["account_id", "account_name", "owner_id", "industry"],
         [["SYN_ACC_0001", "Northstar Robotics", "SYN_USER_0001", "Manufacturing"]],
     )
-    _write_csv(
-        crm / "contacts.csv",
-        ["contact_id", "account_id", "name", "title"],
-        [["SYN_CON_0001", "SYN_ACC_0001", "Jordan Lee", "Operations Director"]],
-    )
-    _write_csv(
-        crm / "opportunities.csv",
-        ["opportunity_id", "account_id", "primary_contact_id", "name", "stage", "amount", "close_date"],
-        [["SYN_OPP_0001", "SYN_ACC_0001", "SYN_CON_0001", "Pilot rollout", "Proposal sent", "42000", "2026-05-30"]],
-    )
-    _write_csv(
-        crm / "contracts.csv",
-        ["contract_id", "account_id", "opportunity_id_if_available", "contract_number", "status"],
-        [["SYN_CTR_0001", "SYN_ACC_0001", "SYN_OPP_0001", "CTR-001", "Draft"]],
-    )
-    _write_csv(
-        crm / "activities.csv",
-        ["activity_id", "source_object", "account_id", "opportunity_id", "contact_id", "owner_id", "subject", "status", "priority", "activity_date", "description"],
-        [["SYN_ACT_0001", "Task", "SYN_ACC_0001", "SYN_OPP_0001", "SYN_CON_0001", "SYN_USER_0001", "Answer security concern", "Open", "High", "2026-05-04", "Security concern needs a written response."]],
-    )
     _write_mbox(account_dir / "emails.mbox")
     (account_dir / "meeting.md").write_text(
         """# Meeting: Northstar pilot review
@@ -148,10 +128,6 @@ def _mini_corpus(tmp_path: Path) -> Path:
                 "crm": {
                     "users": "crm/users.csv",
                     "accounts": "crm/accounts.csv",
-                    "contacts": "crm/contacts.csv",
-                    "opportunities": "crm/opportunities.csv",
-                    "contracts": "crm/contracts.csv",
-                    "activities": "crm/activities.csv",
                 },
             }
         ),

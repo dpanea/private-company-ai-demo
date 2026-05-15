@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import logging
+import json
 import re
 from typing import Any
 
 from pcad.models import SourceCitation
 
 
-logger = logging.getLogger(__name__)
-SOURCE_RE = re.compile(r"\[Source:\s*([^\]]+)\]")
+USER_VISIBLE_SOURCE_OBJECTS = {"Email", "PDF", "WordDocument", "Meeting", "TestNote"}
 
 
 def citation_label(citation: dict[str, Any] | SourceCitation) -> str:
@@ -17,87 +16,126 @@ def citation_label(citation: dict[str, Any] | SourceCitation) -> str:
     return f"{citation['source_object']} {citation['source_record_id']}"
 
 
+def citation_is_user_visible(citation: dict[str, Any] | SourceCitation) -> bool:
+    if isinstance(citation, SourceCitation):
+        return citation.source_object in USER_VISIBLE_SOURCE_OBJECTS
+    return str(citation.get("source_object") or "") in USER_VISIBLE_SOURCE_OBJECTS
+
+
 def allowed_citation_labels(pack: dict[str, Any]) -> set[str]:
     labels: set[str] = set()
     for item in pack.get("retrieved_documents", []):
         for citation in item.get("citations", []):
-            labels.add(citation_label(citation))
+            if citation_is_user_visible(citation):
+                labels.add(citation_label(citation))
     return labels
 
 
-def validate_citations(answer: str, pack: dict[str, Any]) -> dict[str, Any]:
-    allowed = allowed_citation_labels(pack)
-    cited = set(SOURCE_RE.findall(answer))
+def insufficient_evidence_validation(pack: dict[str, Any]) -> dict[str, Any]:
+    """Validation dict used when we fall back to an insufficient-evidence answer."""
     return {
-        "allowed_citations": sorted(allowed),
-        "cited": sorted(cited),
-        "unknown_citations": sorted(cited - allowed),
-        "has_citation": bool(cited),
-        "valid": bool(cited) and not (cited - allowed),
+        "allowed_citations": sorted(allowed_citation_labels(pack)),
+        "cited": [],
+        "unknown_citations": [],
+        "has_citation": False,
+        "status": "insufficient_evidence",
+        "valid": True,
     }
 
 
-def normalize_citation_format(answer: str, pack: dict[str, Any]) -> str:
-    labels = allowed_citation_labels(pack)
-    if not labels:
-        return answer
-    label_alt = "|".join(re.escape(label) for label in sorted(labels, key=len, reverse=True))
-    pattern = re.compile(
-        rf"\[\[?Source:\s*(?P<label>{label_alt})\s*\]?\]"
-        rf"|\(Source:\s*(?P<label2>{label_alt})\s*\)"
-        rf"|(?<!\[)\bSource:\s*(?P<label3>{label_alt})\b(?!\])"
-    )
-    return pattern.sub(lambda m: f"[Source: {m.group('label') or m.group('label2') or m.group('label3')}]", answer)
+def render_structured_answer(raw: str, pack: dict[str, Any]) -> tuple[str, dict[str, Any], dict[str, Any]]:
+    """Validate the structured JSON answer and render the final user-facing text.
 
-
-def repair_missing_citations(answer: str, pack: dict[str, Any]) -> str:
-    validation = validate_citations(answer, pack)
-    if validation["valid"]:
-        return answer
+    Returns a tuple `(rendered_text, validation, payload)` where `rendered_text`
+    contains the answer with inline `[Source: ...]` citation labels appended
+    after each block (or the clarification message / insufficiency notice).
+    """
+    payload = _extract_json_object(raw)
+    status = _answer_status(payload.get("status"))
     allowed = allowed_citation_labels(pack)
-    if not allowed:
-        return answer
+    blocks = payload.get("blocks") if isinstance(payload.get("blocks"), list) else []
+    cited: list[str] = []
+    rendered_blocks: list[str] = []
+    unknown: set[str] = set()
 
-    repaired = answer
-    for label in sorted(allowed, key=len, reverse=True):
-        if f"[Source: {label}]" in repaired:
+    for block in blocks:
+        if not isinstance(block, dict):
             continue
-        pattern = re.compile(rf"(?<!\[Source:\s){re.escape(label)}(?!\s*\])")
-        repaired = pattern.sub(f"[Source: {label}]", repaired)
-    repaired = normalize_citation_format(repaired, pack)
-    if validate_citations(repaired, pack)["valid"]:
-        return repaired
+        text = str(block.get("text") or "").strip()
+        if not text:
+            continue
+        labels = [str(label).strip() for label in block.get("citations") or [] if str(label).strip()]
+        labels = list(dict.fromkeys(labels))
+        for label in labels:
+            if label not in allowed:
+                unknown.add(label)
+            else:
+                cited.append(label)
+        if labels and status == "answered":
+            text = text.rstrip() + " " + " ".join(f"[Source: {label}]" for label in labels if label in allowed)
+        rendered_blocks.append(text)
 
-    fallback = _fallback_citation_label(pack)
-    if not fallback:
-        logger.warning(
-            "citations.repair_missing_citation.no_fallback allowed=%s cited=%s",
-            len(allowed),
-            sorted(validation.get("cited") or []),
-        )
-        return answer
-    logger.warning(
-        "citations.repair_missing_citation.fallback_used label=%s unknown=%s",
-        fallback,
-        sorted(validation.get("unknown_citations") or []),
-    )
-    return answer.rstrip() + f"\n\nSources consulted: see panel on the right. [Source: {fallback}]"
+    if status == "insufficient_evidence":
+        rendered = "\n\n".join(rendered_blocks).strip() or "I do not have enough evidence in the visible source artifacts to answer that."
+        cited = []
+        unknown = set()
+        valid = True
+    elif status == "needs_account_clarification":
+        clarification = payload.get("clarification") if isinstance(payload.get("clarification"), dict) else {}
+        rendered = str(clarification.get("message") or "").strip() or "Which client do you mean?"
+        cited = []
+        unknown = set()
+        valid = True
+    else:
+        rendered = "\n\n".join(rendered_blocks).strip()
+        valid = bool(rendered and cited) and not unknown
+        if not rendered:
+            rendered = "I do not have enough evidence in the visible source artifacts to answer that."
+            status = "insufficient_evidence"
+            valid = True
+
+    validation = {
+        "allowed_citations": sorted(allowed),
+        "cited": sorted(set(cited)),
+        "unknown_citations": sorted(unknown),
+        "has_citation": bool(cited),
+        "status": status,
+        "valid": valid,
+    }
+    return rendered, validation, payload
 
 
-def _fallback_citation_label(pack: dict[str, Any]) -> str | None:
-    for item in pack.get("retrieved_documents", []):
-        for citation in item.get("citations", []):
-            if _citation_points_to_artifact(citation, pack.get("account_id")):
-                return citation_label(citation)
-    if pack.get("account_id"):
-        return None
-    allowed = sorted(allowed_citation_labels(pack))
-    return allowed[0] if allowed else None
+def _answer_status(value: Any) -> str:
+    if value in {"answered", "insufficient_evidence", "needs_account_clarification"}:
+        return str(value)
+    return "answered"
 
 
-def _citation_points_to_artifact(citation: dict[str, Any], account_id: str | None) -> bool:
-    record_id = str(citation.get("source_record_id") or "")
-    source_object = str(citation.get("source_object") or "")
-    if source_object in {"Email", "Meeting"}:
-        return ":" in record_id or bool(account_id)
-    return False
+_CODE_FENCE_RE = re.compile(r"^\s*```(?:json|JSON)?\s*\n?(.*?)\n?\s*```\s*$", re.DOTALL)
+
+
+def _extract_json_object(text: str) -> dict[str, Any]:
+    if not text or not text.strip():
+        raise ValueError("structured answer was empty")
+    cleaned = text.strip()
+    fence = _CODE_FENCE_RE.match(cleaned)
+    if fence:
+        cleaned = fence.group(1).strip()
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        for index, char in enumerate(cleaned):
+            if char != "{":
+                continue
+            try:
+                parsed, _ = decoder.raw_decode(cleaned[index:])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, dict):
+                return parsed
+        snippet = cleaned[:200].replace("\n", " ")
+        raise ValueError(f"structured answer did not contain a valid JSON object (got: {snippet!r})")
+    if not isinstance(parsed, dict):
+        raise ValueError(f"structured answer was not a JSON object (got: {type(parsed).__name__})")
+    return parsed

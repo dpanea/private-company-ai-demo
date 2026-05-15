@@ -65,10 +65,6 @@ export function listAccountArtifacts(id) {
   return request(`/accounts/${encodeURIComponent(id)}/artifacts`);
 }
 
-export function getAccountAlerts(id) {
-  return request(`/accounts/${encodeURIComponent(id)}/alerts`);
-}
-
 export function getArtifact(id) {
   return request(`/artifacts/${encodeURIComponent(id)}`);
 }
@@ -119,7 +115,6 @@ const mockAccounts = [
     status: "Late stage positive",
     context: "Procurement is aligned, but the technical sponsor needs confidence around sovereign deployment.",
     artifact_count: 5,
-    alert_count: 2,
     days_since_activity: 4,
   },
   {
@@ -130,7 +125,6 @@ const mockAccounts = [
     status: "Compliance review",
     context: "Pilot scope is narrow and privacy review is the gating item before a clinical rollout.",
     artifact_count: 3,
-    alert_count: 1,
     days_since_activity: 7,
   },
   {
@@ -141,7 +135,6 @@ const mockAccounts = [
     status: "Stalled",
     context: "Operations sees value, while finance is waiting on a clearer integration estimate.",
     artifact_count: 3,
-    alert_count: 1,
     days_since_activity: 22,
   },
 ];
@@ -163,19 +156,6 @@ const mockArtifacts = {
     artifact("art-ryn-email", "SYN_ACC_RYNVOSS", "email", "Finance follow-up email", "plain_text", { sender: "Niels Voss", date: "2026-04-21", subject: "Integration estimate" }),
     artifact("art-ryn-proposal", "SYN_ACC_RYNVOSS", "pdf", "Logistics proposal", "plain_text", { page_count: 5 }),
     artifact("art-ryn-meeting", "SYN_ACC_RYNVOSS", "meeting_transcript", "Procurement review transcript", "plain_text", { attendees_count: 6, date: "2026-04-17" }),
-  ],
-};
-
-const mockAlerts = {
-  SYN_ACC_BRANNFELD: [
-    alert("al-brann-1", "SYN_ACC_BRANNFELD", "warning", "Sponsor confidence is the active risk", "The technical sponsor asked for a written explanation of the sovereign deployment path before procurement moves the deal forward.", ["art-brann-meeting"]),
-    alert("al-brann-2", "SYN_ACC_BRANNFELD", "info", "Champion signal remains positive", "Procurement confirmed that the private deployment model matches their internal data boundary requirements.", ["art-brann-email-1"]),
-  ],
-  SYN_ACC_CALDRISA: [
-    alert("al-cald-1", "SYN_ACC_CALDRISA", "critical", "Compliance review blocks expansion", "The pilot cannot expand until the DPA questions around clinical notes and retention are answered.", ["art-cald-dpa"]),
-  ],
-  SYN_ACC_RYNVOSS: [
-    alert("al-ryn-1", "SYN_ACC_RYNVOSS", "warning", "No recent activity", "There has been no logged activity for more than two weeks after finance requested the integration estimate.", ["art-ryn-email"]),
   ],
 };
 
@@ -201,20 +181,6 @@ function artifact(artifact_id, account_id, artifact_type, title, extraction_meth
   };
 }
 
-function alert(alert_id, account_id, severity, title, body_markdown, evidence_artifact_ids) {
-  return {
-    alert_id,
-    account_id,
-    alert_type: "unresolved_objection",
-    severity,
-    title,
-    body_markdown,
-    evidence_doc_ids: [],
-    evidence_artifact_ids,
-    created_at: today,
-  };
-}
-
 async function mockRequest(path, options) {
   await new Promise((resolve) => window.setTimeout(resolve, 90));
   const method = options.method || "GET";
@@ -225,7 +191,7 @@ async function mockRequest(path, options) {
     mockMessages = {};
     mockFakeNotes = {};
     for (const accountId of Object.keys(mockArtifacts)) {
-      mockArtifacts[accountId] = mockArtifacts[accountId].filter((item) => !String(item.artifact_id).startsWith("crm:FakeNote:"));
+      mockArtifacts[accountId] = mockArtifacts[accountId].filter((item) => !String(item.artifact_id).startsWith("test-note:"));
     }
     return { ok: true };
   }
@@ -238,9 +204,6 @@ async function mockRequest(path, options) {
 
   const accountArtifacts = path.match(/^\/accounts\/([^/]+)\/artifacts$/);
   if (accountArtifacts) return mockArtifacts[decodeURIComponent(accountArtifacts[1])] || [];
-
-  const accountAlerts = path.match(/^\/accounts\/([^/]+)\/alerts$/);
-  if (accountAlerts) return mockAlerts[decodeURIComponent(accountAlerts[1])] || [];
 
   const accountFakeNotes = path.match(/^\/accounts\/([^/]+)\/fake-notes$/);
   if (accountFakeNotes) {
@@ -263,8 +226,10 @@ async function mockRequest(path, options) {
 
   const deleteNote = path.match(/^\/fake-notes\/([^/]+)$/);
   if (deleteNote && method === "DELETE") {
+    const noteId = decodeURIComponent(deleteNote[1]);
     for (const accountId of Object.keys(mockFakeNotes)) {
-      mockFakeNotes[accountId] = mockFakeNotes[accountId].filter((note) => note.note_id !== decodeURIComponent(deleteNote[1]));
+      mockFakeNotes[accountId] = mockFakeNotes[accountId].filter((note) => note.note_id !== noteId);
+      mockArtifacts[accountId] = (mockArtifacts[accountId] || []).filter((item) => item.artifact_id !== `test-note:${noteId}`);
     }
     return null;
   }
@@ -303,20 +268,18 @@ function addMockNote(accountId, payload) {
   };
   mockFakeNotes[accountId] = [note, ...(mockFakeNotes[accountId] || [])];
   const newArtifact = artifact(
-    `crm:FakeNote:${noteId}`,
+    `test-note:${noteId}`,
     accountId,
     payload.note_type,
     payload.title,
     payload.note_type === "docx" ? "docx_xml" : "plain_text",
-    { source_object: "FakeNote", source_record_id: noteId, date: payload.note_date, synthetic: true },
+    { source_object: "TestNote", source_record_id: noteId, date: payload.note_date, synthetic: true, test_note: true },
   );
-  newArtifact.extracted_text = `# Synthetic ${payload.note_type.replaceAll("_", " ")}: ${payload.title}\n\n${payload.body}`;
+  newArtifact.extracted_text = `# Test ${payload.note_type.replaceAll("_", " ")}: ${payload.title}\n\n${payload.body}`;
   newArtifact.created_at = note.created_at;
   newArtifact.ingested_at = note.created_at;
   mockArtifacts[accountId] = [newArtifact, ...(mockArtifacts[accountId] || [])];
-  const newAlert = alert(`mock-alert-${Date.now()}`, accountId, "info", `New test note: ${payload.title}`, "The session-scoped note is now part of this temporary demo session's company memory.", []);
-  mockAlerts[accountId] = [newAlert, ...(mockAlerts[accountId] || [])];
-  return { note, alerts: mockAlerts[accountId] };
+  return { note };
 }
 
 export function appendMockMessage(threadId, message) {

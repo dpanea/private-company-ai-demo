@@ -15,20 +15,17 @@ from pcad.db import connect
 from pcad.ingestion.ai_ready_documents import DocumentBuilder
 from pcad.ingestion.embeddings import index_pending_embeddings
 from pcad.ingestion.manifest import ManifestArtifact, load_manifest
-from pcad.ingestion.normalize import EmailThread, MeetingSummaryInput, normalize_email_threads, normalize_meeting_for_summary
 from pcad.ingestion.parsers.csv_crm import parse_crm_manifest_csvs
 from pcad.ingestion.parsers.docx import parse_docx
 from pcad.ingestion.parsers.mbox import ParsedEmail, parse_mbox
 from pcad.ingestion.parsers.meeting_md import parse_meeting_md
 from pcad.ingestion.parsers.pdf import parse_pdf
 from pcad.models import RagDocument, RawArtifact, SourceCitation, SyntheticDataset
-from pcad.retrieval.alerts import ProactiveAlertGenerator
 from pcad.util import safe_id
 
 
 logger = logging.getLogger(__name__)
 APPLICATION_TABLES = [
-    "proactive_alerts",
     "fake_notes",
     "conversation_messages",
     "conversation_threads",
@@ -36,10 +33,6 @@ APPLICATION_TABLES = [
     "source_citations",
     "rag_documents",
     "raw_artifacts",
-    "activities",
-    "contracts",
-    "opportunities",
-    "contacts",
     "accounts",
     "users_or_owners",
 ]
@@ -49,10 +42,6 @@ APPLICATION_TABLES = [
 class IngestionReport:
     users: int = 0
     accounts: int = 0
-    contacts: int = 0
-    opportunities: int = 0
-    contracts: int = 0
-    activities: int = 0
     raw_artifacts: int = 0
     rag_documents: int = 0
     source_citations: int = 0
@@ -77,31 +66,17 @@ def run_demo_ingestion(
     crm_paths = manifest.crm.model_dump()
     dataset = parse_crm_manifest_csvs(synthetic_dir, crm_paths)
     raw_artifacts: list[RawArtifact] = []
-    email_threads: list[EmailThread] = []
-    meeting_summaries: list[MeetingSummaryInput] = []
     ocr_runs = 0
     rendered_root = synthetic_dir.parent / "rendered"
 
     for account in manifest.accounts:
         for artifact in account.artifacts:
-            parsed = _parse_artifact(
-                synthetic_dir,
-                rendered_root,
-                account.account_id,
-                artifact,
-            )
+            parsed = _parse_artifact(synthetic_dir, rendered_root, account.account_id, artifact)
             raw_artifacts.extend(parsed.raw_artifacts)
-            email_threads.extend(parsed.email_threads)
-            meeting_summaries.extend(parsed.meeting_summaries)
             ocr_runs += parsed.ocr_runs
 
     dataset.raw_artifacts = raw_artifacts
-    docs = DocumentBuilder(
-        dataset,
-        email_threads=email_threads,
-        meeting_summaries=meeting_summaries,
-        raw_artifacts=raw_artifacts,
-    ).build_all()
+    docs = DocumentBuilder(dataset, raw_artifacts=raw_artifacts).build_all()
     dataset.rag_documents = docs
     dataset.source_citations = [citation for doc in docs for citation in doc.citations]
 
@@ -109,22 +84,15 @@ def run_demo_ingestion(
         with conn.transaction():
             if clean:
                 _clean_tables(conn)
-            _insert_crm(conn, dataset)
+            _insert_owners_and_accounts(conn, dataset)
             _insert_raw_artifacts(conn, raw_artifacts)
             _insert_rag_documents(conn, docs)
 
     embedding_calls = 0 if skip_embeddings else index_pending_embeddings(settings)
-    alert_generator = ProactiveAlertGenerator(settings)
-    for account in dataset.accounts:
-        alert_generator.generate_for_account(account.account_id)
     elapsed = time.monotonic() - started
     report = IngestionReport(
         users=len(dataset.users),
         accounts=len(dataset.accounts),
-        contacts=len(dataset.contacts),
-        opportunities=len(dataset.opportunities),
-        contracts=len(dataset.contracts),
-        activities=len(dataset.activities),
         raw_artifacts=len(raw_artifacts),
         rag_documents=len(docs),
         source_citations=len(dataset.source_citations),
@@ -148,8 +116,6 @@ def run_demo_ingestion(
 @dataclass(frozen=True)
 class ParsedArtifactBundle:
     raw_artifacts: list[RawArtifact]
-    email_threads: list[EmailThread]
-    meeting_summaries: list[MeetingSummaryInput]
     ocr_runs: int = 0
 
 
@@ -173,10 +139,7 @@ def _parse_artifact(
 
 def _parse_mbox_artifact(path: Path, source_path: str, account_id: str) -> ParsedArtifactBundle:
     emails = parse_mbox(path)
-    email_artifacts = [_email_raw_artifact(email, source_path, account_id) for email in emails]
-    prefix = f"email:{account_id}"
-    threads = normalize_email_threads(emails, artifact_prefix=prefix, account_id=account_id)
-    return ParsedArtifactBundle(email_artifacts, threads, [])
+    return ParsedArtifactBundle([_email_raw_artifact(email, source_path, account_id) for email in emails])
 
 
 def _parse_pdf_artifact(
@@ -199,6 +162,7 @@ def _parse_pdf_artifact(
         extracted_text="\n\n".join(parsed.text_per_page).strip(),
         metadata={
             "page_count": parsed.page_count,
+            "text_per_page": parsed.text_per_page,
             "rendered_image_paths": [str(item) for item in parsed.rendered_image_paths],
             "requires_ocr": artifact.requires_ocr,
         },
@@ -206,7 +170,7 @@ def _parse_pdf_artifact(
         created_at=_file_created_at(path),
         ingested_at=_now(),
     )
-    return ParsedArtifactBundle([raw], [], [], ocr_runs=1 if parsed.extraction_method == "ocr" else 0)
+    return ParsedArtifactBundle([raw], ocr_runs=1 if parsed.extraction_method == "ocr" else 0)
 
 
 def _parse_docx_artifact(path: Path, source_path: str, account_id: str) -> ParsedArtifactBundle:
@@ -224,14 +188,13 @@ def _parse_docx_artifact(path: Path, source_path: str, account_id: str) -> Parse
         created_at=_file_created_at(path),
         ingested_at=_now(),
     )
-    return ParsedArtifactBundle([raw], [], [])
+    return ParsedArtifactBundle([raw])
 
 
 def _parse_meeting_artifact(path: Path, source_path: str, account_id: str) -> ParsedArtifactBundle:
     parsed = parse_meeting_md(path)
-    artifact_id = f"meeting:{account_id}:{safe_id(path.stem)}"
     raw = RawArtifact(
-        artifact_id=artifact_id,
+        artifact_id=f"meeting:{account_id}:{safe_id(path.stem)}",
         account_id=account_id,
         artifact_type="meeting_transcript",
         title=parsed.meeting_title,
@@ -247,13 +210,7 @@ def _parse_meeting_artifact(path: Path, source_path: str, account_id: str) -> Pa
         created_at=_file_created_at(path),
         ingested_at=_now(),
     )
-    summary = normalize_meeting_for_summary(
-        parsed,
-        meeting_id=safe_id(path.stem),
-        account_id=account_id,
-        source_artifact_id=artifact_id,
-    )
-    return ParsedArtifactBundle([raw], [], [summary])
+    return ParsedArtifactBundle([raw])
 
 
 def _email_raw_artifact(email: ParsedEmail, source_path: str, account_id: str) -> RawArtifact:
@@ -285,7 +242,7 @@ def _clean_tables(conn: Connection[Any]) -> None:
     conn.execute(f"TRUNCATE {', '.join(APPLICATION_TABLES)} RESTART IDENTITY CASCADE")
 
 
-def _insert_crm(conn: Connection[Any], dataset: SyntheticDataset) -> None:
+def _insert_owners_and_accounts(conn: Connection[Any], dataset: SyntheticDataset) -> None:
     cur = conn.cursor()
     cur.executemany(
         """
@@ -300,34 +257,6 @@ def _insert_crm(conn: Connection[Any], dataset: SyntheticDataset) -> None:
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         [(a.account_id, a.account_name, a.account_type, a.industry, a.website, a.phone, a.billing_country, a.billing_city, a.owner_id, a.parent_account_id, a.created_at, a.updated_at, a.source_url, a.raw_record_id, a.raw_record_hash) for a in dataset.accounts],
-    )
-    cur.executemany(
-        """
-        INSERT INTO contacts (contact_id, account_id, name, first_name, last_name, email, phone, mobile_phone, title, role_or_department, owner_id, created_at, updated_at, source_url, raw_record_id, raw_record_hash)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        [(c.contact_id, c.account_id, c.name, c.first_name, c.last_name, c.email, c.phone, c.mobile_phone, c.title, c.role_or_department, c.owner_id, c.created_at, c.updated_at, c.source_url, c.raw_record_id, c.raw_record_hash) for c in dataset.contacts],
-    )
-    cur.executemany(
-        """
-        INSERT INTO opportunities (opportunity_id, account_id, primary_contact_id, contract_id, name, stage, amount, currency, probability, close_date, is_closed, is_won, owner_id, record_type_id, created_at, updated_at, source_url, raw_record_id, raw_record_hash)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        [(o.opportunity_id, o.account_id, o.primary_contact_id, o.contract_id, o.name, o.stage, o.amount, o.currency, o.probability, o.close_date, o.is_closed, o.is_won, o.owner_id, o.record_type_id, o.created_at, o.updated_at, o.source_url, o.raw_record_id, o.raw_record_hash) for o in dataset.opportunities],
-    )
-    cur.executemany(
-        """
-        INSERT INTO contracts (contract_id, account_id, opportunity_id_if_available, contract_number, status, start_date, end_date, activated_date, customer_signed_contact_id, owner_id, created_at, updated_at, source_url, raw_record_id, raw_record_hash)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        [(c.contract_id, c.account_id, c.opportunity_id_if_available, c.contract_number, c.status, c.start_date, c.end_date, c.activated_date, c.customer_signed_contact_id, c.owner_id, c.created_at, c.updated_at, c.source_url, c.raw_record_id, c.raw_record_hash) for c in dataset.contracts],
-    )
-    cur.executemany(
-        """
-        INSERT INTO activities (activity_id, source_object, account_id, opportunity_id, contact_id, lead_id, contract_id, who_id, what_id, owner_id, subject, activity_type, subtype, status, priority, activity_date, start_datetime, end_datetime, description, created_at, updated_at, source_url, raw_record_id, raw_record_hash)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-        [(a.activity_id, a.source_object, a.account_id, a.opportunity_id, a.contact_id, a.lead_id, a.contract_id, a.who_id, a.what_id, a.owner_id, a.subject, a.activity_type, a.subtype, a.status, a.priority, a.activity_date, a.start_datetime, a.end_datetime, a.description, a.created_at, a.updated_at, a.source_url, a.raw_record_id, a.raw_record_hash) for a in dataset.activities],
     )
 
 
@@ -361,8 +290,8 @@ def _insert_rag_documents(conn: Connection[Any], docs: list[RagDocument]) -> Non
     cur = conn.cursor()
     cur.executemany(
         """
-        INSERT INTO rag_documents (doc_id, doc_type, title, content_markdown, metadata_json, source_record_ids, source_record_hashes, account_id, opportunity_id, contract_id, owner_id, session_id, last_source_updated_at, generated_at, source_hash)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO rag_documents (doc_id, doc_type, title, content_markdown, metadata_json, source_record_ids, source_record_hashes, account_id, owner_id, session_id, last_source_updated_at, generated_at, source_hash)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """,
         [
             (
@@ -374,8 +303,6 @@ def _insert_rag_documents(conn: Connection[Any], docs: list[RagDocument]) -> Non
                 doc.source_record_ids,
                 doc.source_record_hashes,
                 doc.account_id,
-                doc.opportunity_id,
-                doc.contract_id,
                 doc.owner_id,
                 doc.session_id,
                 doc.last_source_updated_at,

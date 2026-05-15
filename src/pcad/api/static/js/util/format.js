@@ -16,7 +16,6 @@ export function formatArtifactType(type) {
     pdf: "PDF",
     docx: "Word document",
     meeting_transcript: "Meeting",
-    crm_record: "CRM record",
   };
   return labels[type] || String(type || "Artifact");
 }
@@ -27,7 +26,6 @@ export function artifactIcon(type) {
     pdf: "PDF",
     docx: "DOC",
     meeting_transcript: "MTG",
-    crm_record: "CRM",
   }[type] || "SRC";
 }
 
@@ -38,7 +36,6 @@ export function artifactIconSvg(type) {
     pdf: `<svg ${common}><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M9 14h6"/><path d="M9 17h4"/></svg>`,
     docx: `<svg ${common}><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 16h6"/><path d="M9 19h3"/></svg>`,
     meeting_transcript: `<svg ${common}><path d="M7 4v3"/><path d="M17 4v3"/><path d="M5 8h14"/><path d="M6 5h12v15H6z"/><path d="M8.5 12h7"/><path d="M8.5 15h5"/></svg>`,
-    crm_record: `<svg ${common}><path d="M4 5h16v14H4z"/><path d="M8 9h8"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>`,
   };
   return icons[type] || `<svg ${common}><path d="M6 4h12v16H6z"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>`;
 }

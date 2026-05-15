@@ -28,6 +28,10 @@ def parse_docx(path: Path) -> ParsedDocx:
 
 def _heading_prefix(style_name: str) -> str:
     normalized = style_name.casefold()
+    if normalized == "title":
+        return "# "
+    if normalized == "subtitle":
+        return "## "
     if normalized == "heading 1":
         return "# "
     if normalized == "heading 2":
@@ -35,4 +39,3 @@ def _heading_prefix(style_name: str) -> str:
     if normalized == "heading 3":
         return "### "
     return ""
-

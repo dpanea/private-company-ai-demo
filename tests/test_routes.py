@@ -48,16 +48,16 @@ def _seed_minimal_account(settings) -> str:
     )
     seed_rag_document(
         settings,
-        doc_id="account_memory:ACC_R1",
+        doc_id="source_artifact_chunk:email:ACC_R1:msg_1:message",
         account_id="ACC_R1",
-        doc_type="account_memory",
-        title="Account memory: Routes Test Account",
+        doc_type="source_artifact_chunk",
+        title="Route test email",
         content="Account memory used by route tests.",
         citations=[
             {
-                "source_object": "Account",
-                "source_record_id": "ACC_R1",
-                "title": "Routes Test Account",
+                "source_object": "Email",
+                "source_record_id": "msg_1",
+                "title": "Route test email",
             }
         ],
     )
@@ -149,7 +149,7 @@ def test_accounts_endpoint_returns_seeded_accounts(migrated_db: str) -> None:
     assert payload[0]["account_name"] == "Routes Test Account"
 
 
-def test_account_detail_includes_related_records(migrated_db: str) -> None:
+def test_account_detail_returns_account_metadata(migrated_db: str) -> None:
     settings = make_settings(migrated_db)
     _seed_minimal_account(settings)
     app, _ = _app_with_deterministic_llm(settings)
@@ -159,9 +159,9 @@ def test_account_detail_includes_related_records(migrated_db: str) -> None:
     assert response.status_code == 200
     detail = response.json()
     assert detail["account_id"] == "ACC_R1"
-    assert detail["contacts"] == []
-    assert detail["opportunities"] == []
-    assert detail["contracts"] == []
+    assert detail["account_name"] == "Routes Test Account"
+    assert "contacts" not in detail
+    assert "opportunities" not in detail
     assert missing.status_code == 404
 
 
@@ -204,7 +204,7 @@ def test_create_thread_then_send_message_via_sse_stream(migrated_db: str) -> Non
 
     roles = [m["role"] for m in messages_after]
     assert roles == ["user", "assistant"]
-    assert "[Source: Account ACC_R1]" in messages_after[-1]["content"]
+    assert "[Source: Email msg_1]" in messages_after[-1]["content"]
 
 
 # ---------------------------------------------------------------------------
@@ -230,9 +230,7 @@ def test_fake_note_post_persists_and_triggers_background_task(migrated_db: str) 
         assert response.status_code == 200
         note = response.json()["note"]
         assert note["title"] == "Visitor note"
-        # The endpoint returns alerts=[] immediately and the background task
-        # populates the alerts table.
-        assert response.json()["alerts"] == []
+        assert "alerts" not in response.json()
 
         # GET returns the note we just posted.
         list_resp = client.get("/api/accounts/ACC_R1/fake-notes")
@@ -240,14 +238,9 @@ def test_fake_note_post_persists_and_triggers_background_task(migrated_db: str) 
         listed = list_resp.json()
         assert [item["note_id"] for item in listed] == [note["note_id"]]
 
-        # The background task ran alerts generation (it runs synchronously
-        # after the response body is sent under TestClient, so by the time
-        # this GET returns, the alerts row group has been written).
-        alerts_resp = client.get("/api/accounts/ACC_R1/alerts")
-        assert alerts_resp.status_code == 200
-        # We can't guarantee any specific alert fires for this minimal seed,
-        # but the call must succeed and return a JSON list.
-        assert isinstance(alerts_resp.json(), list)
+        artifacts_resp = client.get("/api/accounts/ACC_R1/artifacts")
+        assert artifacts_resp.status_code == 200
+        assert any(item["artifact_id"] == f"test-note:{note['note_id']}" for item in artifacts_resp.json())
 
 
 def test_fake_note_post_on_unknown_account_returns_404(migrated_db: str) -> None:

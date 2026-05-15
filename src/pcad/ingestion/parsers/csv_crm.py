@@ -6,30 +6,17 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from pcad.models import Account, Activity, Contact, Contract, Opportunity, SyntheticDataset, UserOwner
+from pcad.models import Account, SyntheticDataset, UserOwner
 
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
-CSV_MODELS: dict[str, type[BaseModel]] = {
-    "users": UserOwner,
-    "accounts": Account,
-    "contacts": Contact,
-    "opportunities": Opportunity,
-    "contracts": Contract,
-    "activities": Activity,
-}
-
 
 def parse_crm_manifest_csvs(synthetic_dir: Path, paths: dict[str, str]) -> SyntheticDataset:
-    """Load CRM CSVs from manifest-relative paths."""
+    """Load owners and accounts CSVs from manifest-relative paths."""
     return SyntheticDataset(
         users=_load_csv(synthetic_dir / paths["users"], UserOwner),
         accounts=_load_csv(synthetic_dir / paths["accounts"], Account),
-        contacts=_load_csv(synthetic_dir / paths["contacts"], Contact),
-        opportunities=_load_csv(synthetic_dir / paths["opportunities"], Opportunity),
-        contracts=_load_csv(synthetic_dir / paths["contracts"], Contract),
-        activities=_load_csv(synthetic_dir / paths["activities"], Activity),
     )
 
 
@@ -64,4 +51,3 @@ def _empty_to_none(value: Any) -> Any:
     if value == "":
         return None
     return value
-

@@ -10,16 +10,12 @@ from pcad.llm.client import TokenUsage
 class DeterministicLlm:
     """In-process LLM test double.
 
-    - `embed` / `embed_batch` produce vectors of `embedding_dim` floats, seeded
-      from the text content so they are deterministic across runs. The default
-      dim (1536) matches the demo's `rag_documents.embedding` column so the
-      stub can drive `vector_search` without dimension mismatches.
-    - `complete` returns whatever was passed via `response`. If `response` is
-      `None` it parses the prompt's `Allowed citations:` block and constructs an
-      answer that cites the first allowed label, which is enough to satisfy the
-      agent's citation validator in tests.
-    - `complete_stream` tokenizes that answer on whitespace and yields each
-      piece, so callers exercising streaming see realistic SSE-shaped events.
+    - `embed`/`embed_batch` produce deterministic vectors.
+    - `complete` and `complete_stream` return a structured `company_memory_answer`
+      JSON document that cites the first allowed label parsed from the prompt's
+      `Allowed citations:` block, so the citation validator passes in tests.
+      `complete_stream` yields the same JSON one whitespace-separated token at a
+      time so callers exercising streaming see realistic SSE-shaped events.
     """
 
     def __init__(self, response: str | None = None, *, embedding_dim: int = 1536) -> None:
@@ -48,30 +44,7 @@ class DeterministicLlm:
         self.calls.append(messages)
         if self.response is not None:
             return self.response
-        if response_format:
-            return json.dumps(
-                {
-                    "intent": "account_question",
-                    "confidence": 0.9,
-                    "doc_types": ["account_memory"],
-                    "account_hint": None,
-                    "needs_recent_activity": False,
-                    "needs_contracts": False,
-                    "wants_draft": False,
-                }
-            )
-        user_content = messages[-1]["content"] if messages else ""
-        citation = "Account SYN_ACC_0001"
-        marker = "Allowed citations:"
-        if marker in user_content:
-            tail = user_content.split(marker, 1)[1].strip().splitlines()
-            if tail:
-                citation = tail[0].strip("- ").strip()
-        return (
-            "Deterministic answer generated without calling an external LLM. "
-            "The retrieved evidence is available in the context. "
-            f"[Source: {citation}]"
-        )
+        return _structured_demo_answer(messages)
 
     def complete_stream(
         self,
@@ -79,10 +52,37 @@ class DeterministicLlm:
         *,
         temperature: float = 0.1,
         max_tokens: int = 700,
+        response_format: dict[str, Any] | None = None,
     ) -> Iterator[str]:
-        answer = self.complete(messages, temperature=temperature, max_tokens=max_tokens)
+        answer = self.complete(messages, temperature=temperature, max_tokens=max_tokens, response_format=response_format)
         for token in answer.split(" "):
             yield token + " "
 
     def close(self) -> None:  # parity with OpenAICompatibleClient.close
         return None
+
+
+def _structured_demo_answer(messages: list[dict[str, str]]) -> str:
+    user_content = messages[-1]["content"] if messages else ""
+    citation = "Email msg_1"
+    marker = "Allowed citations:"
+    if marker in user_content:
+        for line in user_content.split(marker, 1)[1].strip().splitlines():
+            label = line.strip("- ").strip()
+            if label:
+                citation = label
+                break
+    return json.dumps(
+        {
+            "status": "answered",
+            "account": {"account_id": None, "account_name": None},
+            "clarification": {"message": "", "candidates": []},
+            "blocks": [
+                {
+                    "type": "paragraph",
+                    "text": "Deterministic answer generated without calling an external LLM. The retrieved evidence is available in the context.",
+                    "citations": [citation],
+                }
+            ],
+        }
+    )

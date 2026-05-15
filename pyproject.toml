@@ -47,6 +47,8 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
+addopts = "-m 'not live'"
 markers = [
     "requires_tesseract: tests that require local Tesseract and Poppler binaries",
+    "live: hits the real configured LLM endpoint; requires PCAD_LIVE_LLM=1",
 ]

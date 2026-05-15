@@ -50,3 +50,18 @@ def test_landing_links_to_demo_route() -> None:
 
     assert 'href="/demo"' in landing_html
     assert 'href="/"' in demo_html
+
+
+def test_demo_layout_uses_inline_citations_and_grouped_sources() -> None:
+    account_detail = (STATIC_ROOT / "js" / "views" / "account_detail.js").read_text(encoding="utf-8")
+    conversation_panel = (STATIC_ROOT / "js" / "views" / "conversation_panel.js").read_text(encoding="utf-8")
+    artifact_modal = (STATIC_ROOT / "js" / "views" / "artifact_modal.js").read_text(encoding="utf-8")
+
+    assert "Chat citations" not in account_detail
+    assert "renderCitationsPanel" not in account_detail
+    assert "renderAlertsPanel" not in account_detail
+    assert 'aria-label="Source artifacts"' in account_detail
+    assert "<details" in account_detail
+    assert "data-pcad-account-select" in account_detail
+    assert "sourceLinks: true" in conversation_panel
+    assert "reflowParagraph" in artifact_modal

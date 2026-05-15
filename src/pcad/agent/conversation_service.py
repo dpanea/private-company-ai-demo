@@ -14,11 +14,11 @@ from psycopg.types.json import Jsonb
 from pcad.api.rate_limit import BUDGET_MESSAGE, check_daily_budget, record_token_usage, session_message_limiter
 from pcad.config import Settings
 from pcad.db import connect_dict
-from pcad.llm.citations import citation_label, normalize_citation_format, repair_missing_citations, validate_citations
+from pcad.llm.citations import citation_label, insufficient_evidence_validation, render_structured_answer
 from pcad.llm.client import LlmClient, OpenAICompatibleClient
-from pcad.llm.prompts import DEFAULT_CONTEXT_TOKEN_BUDGET, DEFAULT_GENERATION_MAX_ATTEMPTS, RESPONSE_MAX_TOKENS, build_answer_messages, render_context_prompt
+from pcad.llm.prompts import ANSWER_RESPONSE_FORMAT, DEFAULT_CONTEXT_TOKEN_BUDGET, RESPONSE_MAX_TOKENS, build_answer_messages, render_context_prompt
+from pcad.llm.streaming import StructuredAnswerStreamer
 from pcad.models import ConversationMessage, ConversationThread
-from pcad.retrieval.alerts import ProactiveAlertGenerator
 from pcad.retrieval.intent import IntentResolver, IntentResult
 from pcad.retrieval.retriever import AccountResolutionError, PostgresHybridRetriever
 from pcad.util import safe_id
@@ -37,17 +37,27 @@ WORKFLOW_SEEDS = {
 
 @dataclass
 class PreparedPipeline:
-    intent: IntentResult
     account_id: str
     account_name: str
     pack: dict[str, Any]
-    new_doc_ids: list[str]
 
 
 @dataclass
 class ClarificationResult:
     answer: str
     error: AccountResolutionError
+
+
+# Maps the LLM-facing source_object (used in citation labels) to the artifact-id
+# prefix the API uses when opening an artifact, and the sidebar label prefix.
+SOURCE_OBJECT_SPECS: dict[str, tuple[str, str, bool]] = {
+    # source_object: (artifact_id_prefix, sidebar_label_prefix, scope_to_account)
+    "Email": ("email", "Email", True),
+    "PDF": ("pdf", "PDF", True),
+    "WordDocument": ("docx", "Word", True),
+    "Meeting": ("meeting", "Meeting", True),
+    "TestNote": ("test-note", "Test note", False),
+}
 
 
 class ConversationService:
@@ -57,13 +67,11 @@ class ConversationService:
         *,
         retriever: PostgresHybridRetriever | None = None,
         llm_client: LlmClient | None = None,
-        alerts: ProactiveAlertGenerator | None = None,
     ) -> None:
         self.settings = settings
         self.llm_client = llm_client or OpenAICompatibleClient(settings)
         self.retriever = retriever or PostgresHybridRetriever(settings, embedding_client=self.llm_client)
-        self.intent_resolver = IntentResolver(self.llm_client)
-        self.alerts = alerts or ProactiveAlertGenerator(settings)
+        self.intent_resolver = IntentResolver()
 
     def list_threads(self, session_id: str) -> list[ConversationThread]:
         with connect_dict(self.settings) as conn:
@@ -87,7 +95,7 @@ class ConversationService:
                 (thread_id, session_id, account_id, account_name, title, workflow_seed),
             ).fetchone()
             if workflow_seed:
-                title = _title_from_message(_workflow_seed_to_prompt(workflow_seed, account_name or "this account"))
+                title = _title_from_message(WORKFLOW_SEEDS[workflow_seed].format(account_name=account_name or "this account"))
                 row = conn.execute(
                     "UPDATE conversation_threads SET title = %s, updated_at = now() WHERE thread_id = %s RETURNING *",
                     (title, thread_id),
@@ -135,18 +143,15 @@ class ConversationService:
         thread = self.get_thread(session_id, thread_id)
         prev_account_id = thread.account_id
         prev_account_name = thread.account_name
-        # When the first message on a workflow-seeded thread arrives, expand the visible
-        # label (e.g. "Brief me before a call") into the full retrieval prompt. We detect
-        # "first message" by counting existing user messages before inserting this one.
         pipeline_clean = clean
         if thread.workflow_seed in WORKFLOW_SEEDS and self._user_message_count(thread_id) == 0:
-            pipeline_clean = _workflow_seed_to_prompt(thread.workflow_seed, prev_account_name or "this account")
+            pipeline_clean = WORKFLOW_SEEDS[thread.workflow_seed].format(account_name=prev_account_name or "this account")
+        # Snapshot history BEFORE the new user message so it doesn't appear twice
+        # (once as conversation_history, once as the user_request in the pack).
+        history = self._recent_history(thread_id)
         user_message = self._insert_message(thread_id, "user", clean, account_id=prev_account_id, account_name=prev_account_name)
         yield _sse("user_message", _model_dump(user_message))
 
-        # Cheapest possible budget short-circuit: refuse before the pipeline (which itself
-        # can call the LLM for intent classification). This is the only path that avoids
-        # spending tokens once we are over budget for the day.
         if not check_daily_budget(self.settings):
             assistant = self._insert_message(
                 thread_id,
@@ -167,7 +172,13 @@ class ConversationService:
         pending_meta = last_assistant.metadata if last_assistant else {}
         if pending_meta.get("response_type") == "account_clarification":
             original_request = pending_meta.get("original_request") or clean
-            explicit_id = _candidate_id_from_text(clean, pending_meta.get("account_candidates", []))
+            candidates = pending_meta.get("account_candidates", [])
+            explicit_id = _candidate_id_from_text(clean, candidates)
+            if not explicit_id:
+                try:
+                    explicit_id, _ = self.retriever.resolve_account(clean)
+                except AccountResolutionError:
+                    explicit_id = None
             pipeline_request = original_request
             pipeline_explicit_id = explicit_id
             pipeline_prev_account_id = None
@@ -184,38 +195,42 @@ class ConversationService:
             explicit_account_id=pipeline_explicit_id,
             previous_account_id=pipeline_prev_account_id,
             previous_account_name=pipeline_prev_account_name,
-            history=self._recent_history(thread_id),
+            history=history,
         )
         if isinstance(prepared, ClarificationResult):
             yield from self._finalize_clarification(thread_id, clean, prepared, original_request=pipeline_request)
             return
 
         yield _sse("status", {"status": "generating"})
-        early_citations = _citations_from_pack(prepared.pack, {})
-        if early_citations:
-            yield _sse("citations", {"citations": early_citations})
         budget = self.settings.context_token_budget or DEFAULT_CONTEXT_TOKEN_BUDGET
         context_prompt = render_context_prompt(prepared.pack, token_budget=budget)
-        messages = build_answer_messages(context_prompt, attempt=1, previous_answer="", previous_validation={})
-        accumulated: list[str] = []
-        stream_fn = getattr(self.llm_client, "complete_stream", None)
-        if callable(stream_fn):
-            try:
-                for token in stream_fn(messages, max_tokens=RESPONSE_MAX_TOKENS):
-                    accumulated.append(token)
-                    yield _sse("token", {"content": token})
-            except RuntimeError as exc:
-                logger.error("conversation.stream.llm_failed error=%s", exc)
-                yield _sse("error", {"detail": "The model failed while generating the answer."})
-                return
-            raw_answer = "".join(accumulated)
-        else:
-            raw_answer = self.llm_client.complete(messages, max_tokens=RESPONSE_MAX_TOKENS)
-            yield _sse("token", {"content": raw_answer})
+        messages = build_answer_messages(context_prompt)
+        streamer = StructuredAnswerStreamer()
+        try:
+            for token in self.llm_client.complete_stream(
+                messages,
+                temperature=0.0,
+                max_tokens=RESPONSE_MAX_TOKENS,
+                response_format=ANSWER_RESPONSE_FORMAT,
+            ):
+                visible = streamer.feed(token)
+                if visible:
+                    yield _sse("token", {"content": visible})
+        except RuntimeError as exc:
+            logger.error("conversation.stream.llm_failed error=%s", exc)
+            yield _sse("error", {"detail": "The model failed while generating the answer."})
+            return
 
-        answer, validation = self._finalize_answer_text(prepared, raw_answer, context_prompt)
-        if answer != raw_answer:
-            yield _sse("replace", {"content": answer})
+        raw = streamer.raw
+        try:
+            answer, validation, _ = render_structured_answer(raw, prepared.pack)
+        except ValueError as exc:
+            logger.warning("conversation.structured_answer.invalid error=%s raw=%r", exc, raw[:500])
+            answer = "I do not have enough evidence in the visible source artifacts to answer that."
+            validation = insufficient_evidence_validation(prepared.pack)
+
+        yield _sse("replace", {"content": answer})
+
         usage = getattr(self.llm_client, "last_usage", None)
         if usage and (usage.prompt_tokens or usage.completion_tokens):
             record_token_usage(self.settings, tokens_in=usage.prompt_tokens, tokens_out=usage.completion_tokens)
@@ -232,14 +247,12 @@ class ConversationService:
         history: list[dict[str, str]] | None = None,
     ) -> PreparedPipeline | ClarificationResult:
         intent = self.intent_resolver.resolve(user_request)
-        if previous_account_id and not intent.account_hint and not explicit_account_id:
+        if previous_account_id and not explicit_account_id:
             account_id, account_name = previous_account_id, previous_account_name or ""
         else:
             try:
                 account_id, account_name = self.retriever.resolve_account(
-                    user_request,
-                    explicit_account_id=explicit_account_id,
-                    account_hint=intent.account_hint,
+                    user_request, explicit_account_id=explicit_account_id
                 )
             except AccountResolutionError as exc:
                 return ClarificationResult(answer=_account_resolution_error_answer(exc), error=exc)
@@ -248,27 +261,7 @@ class ConversationService:
         base_context = self.retriever.fetch_base_context(plan)
         fresh = self.retriever.hybrid_search(plan, base_context)
         pack = self.retriever.build_context_pack(user_request, plan, fresh, conversation_history=history or [])
-        return PreparedPipeline(intent=intent, account_id=account_id, account_name=account_name, pack=pack, new_doc_ids=[item["doc_id"] for item in pack["retrieved_documents"]])
-
-    def _finalize_answer_text(
-        self,
-        prepared: PreparedPipeline,
-        raw_answer: str,
-        context_prompt: str,
-    ) -> tuple[str, dict[str, Any]]:
-        answer = normalize_citation_format(raw_answer, prepared.pack)
-        validation = validate_citations(answer, prepared.pack)
-        attempts = max(1, self.settings.agent_generation_max_attempts or DEFAULT_GENERATION_MAX_ATTEMPTS)
-        for attempt in range(2, attempts + 1):
-            if validation["valid"]:
-                break
-            messages = build_answer_messages(context_prompt, attempt=attempt, previous_answer=answer, previous_validation=validation)
-            answer = normalize_citation_format(self.llm_client.complete(messages, max_tokens=RESPONSE_MAX_TOKENS), prepared.pack)
-            validation = validate_citations(answer, prepared.pack)
-        if not validation["valid"]:
-            answer = repair_missing_citations(answer, prepared.pack)
-            validation = validate_citations(answer, prepared.pack)
-        return answer, validation
+        return PreparedPipeline(account_id=account_id, account_name=account_name, pack=pack)
 
     def _finalize_answer(
         self,
@@ -305,7 +298,17 @@ class ConversationService:
             thread_id,
             "assistant",
             clarification.answer,
-            metadata={"response_type": "account_clarification", "account_candidates": candidates, "original_request": original_request},
+            metadata={
+                "response_type": "account_clarification",
+                "structured_response": {
+                    "status": "needs_account_clarification",
+                    "account": {"account_id": None, "account_name": None},
+                    "clarification": {"message": clarification.answer, "candidates": candidates},
+                    "blocks": [],
+                },
+                "account_candidates": candidates,
+                "original_request": original_request,
+            },
         )
         thread = self._update_thread_after_message(thread_id, user_message, None, None)
         yield _sse("done", {"assistant_message": _model_dump(assistant), "thread": _serialize_row(thread)})
@@ -393,12 +396,6 @@ class ConversationService:
         return [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
 
 
-def _workflow_seed_to_prompt(seed: str, account_name: str) -> str:
-    if seed not in WORKFLOW_SEEDS:
-        raise ValueError(f"Unknown workflow_seed {seed!r}")
-    return WORKFLOW_SEEDS[seed].format(account_name=account_name)
-
-
 def _account_resolution_error_answer(error: AccountResolutionError) -> str:
     if error.code == "account_ambiguous":
         candidates = "; ".join(f"{c.account_name} ({c.account_id})" for c in error.candidates[:5])
@@ -430,7 +427,7 @@ def _collect_citations_from_pack(pack: dict[str, Any], cited: set[str]) -> list[
             seen.add(label)
             citations.append(
                 {
-                    "label": _sidebar_citation_label(citation, artifact_id),
+                    "label": _sidebar_citation_label(citation),
                     "source_label": label,
                     "source_object": citation["source_object"],
                     "source_record_id": citation["source_record_id"],
@@ -446,37 +443,28 @@ def _collect_citations_from_pack(pack: dict[str, Any], cited: set[str]) -> list[
 
 def _artifact_id_for_citation(citation: dict[str, Any], account_id: str | None) -> str | None:
     record_id = str(citation.get("source_record_id") or "")
-    source_object = str(citation.get("source_object") or "")
     if ":" in record_id:
         return record_id
-    if source_object == "Email" and account_id:
-        return f"email:{account_id}:{safe_id(record_id)}"
-    if source_object in {"Account", "Contact", "Opportunity", "Contract", "Task", "Event", "FakeNote"}:
-        return f"crm:{source_object}:{record_id}"
-    return None
+    spec = SOURCE_OBJECT_SPECS.get(str(citation.get("source_object") or ""))
+    if spec is None:
+        return None
+    prefix, _label, scope_to_account = spec
+    if scope_to_account:
+        if not account_id:
+            return None
+        return f"{prefix}:{account_id}:{safe_id(record_id)}"
+    return f"{prefix}:{record_id}"
 
 
-_ARTIFACT_PREFIX_LABELS = {
-    "email": "Email",
-    "pdf": "PDF",
-    "docx": "Word document",
-    "meeting": "Meeting",
-}
-
-
-def _sidebar_citation_label(citation: dict[str, Any], artifact_id: str) -> str:
-    source_object = str(citation.get("source_object") or "")
+def _sidebar_citation_label(citation: dict[str, Any]) -> str:
     record_id = str(citation.get("source_record_id") or "")
-    if source_object == "RiskEvidence":
-        prefix, _, suffix = artifact_id.partition(":")
-        label = _ARTIFACT_PREFIX_LABELS.get(prefix)
-        if label:
-            return f"{label} {suffix.rsplit(':', 1)[-1]}"
-    if source_object == "Email" and record_id:
-        return f"Email {record_id}"
-    if artifact_id.startswith("crm:") and source_object and record_id:
-        return f"{source_object} {record_id}"
-    return citation_label(citation)
+    spec = SOURCE_OBJECT_SPECS.get(str(citation.get("source_object") or ""))
+    if spec is None:
+        return citation_label(citation)
+    _prefix, label, _scope = spec
+    # Email sidebars use the message-id; everything else prefers the human title.
+    body = record_id if label == "Email" else (citation.get("title") or record_id)
+    return f"{label} {body}"
 
 
 def _candidate_id_from_text(text: str, candidates: list[dict[str, Any]]) -> str | None:

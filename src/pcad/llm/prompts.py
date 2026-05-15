@@ -7,37 +7,58 @@ from .citations import allowed_citation_labels, citation_label
 
 
 DEFAULT_CONTEXT_TOKEN_BUDGET = 6000
-DEFAULT_GENERATION_MAX_ATTEMPTS = 3
 RESPONSE_MAX_TOKENS = 700
 APPROX_CHARS_PER_TOKEN = 4
 DOC_MIN_TOKENS = 80  # do not truncate a doc below this; drop it instead
 
-DEFAULT_SYSTEM_PROMPT = (
-    "You are a private company memory copilot for a public demo. "
-    "Answer only from the provided context. If the answer is not present, say that explicitly. "
-    "Cite every substantive paragraph or bullet with an exact allowed source label. "
-    "Use citation format [Source: ObjectType RecordId]. "
-    "Return plain text or basic markdown only; do not use links, footnotes, or invented sources."
+# `json_object` is the broadly-supported "force JSON output" mode across the
+# OpenAI-compatible providers OpenRouter fronts. Strict json_schema is
+# OpenAI/Azure-only — relying on it caused empty/non-JSON responses on other
+# providers. The expected shape is described literally in the system prompt
+# below, and the parser validates the result.
+ANSWER_RESPONSE_FORMAT = {"type": "json_object"}
+
+ANSWER_JSON_SHAPE = {
+    "status": "answered | insufficient_evidence | needs_account_clarification",
+    "account": {"account_id": "string|null", "account_name": "string|null"},
+    "clarification": {
+        "message": "string (only set when status=needs_account_clarification)",
+        "candidates": [
+            {"account_id": "string", "account_name": "string", "score": 0.0, "method": "string"}
+        ],
+    },
+    "blocks": [
+        {
+            "type": "paragraph | bullet | email_draft",
+            "text": "string",
+            "citations": ["one of Allowed citations exactly, e.g. 'PDF mutual_nda'"],
+        }
+    ],
+}
+
+
+_ANSWER_SYSTEM_PROMPT = (
+    "You answer questions from a private company memory using only the retrieved "
+    "visible source artifacts.\n\n"
+    "Return ONLY a single JSON object — no prose before or after, no markdown code fences. "
+    "It must match this exact shape:\n"
+    f"{json.dumps(ANSWER_JSON_SHAPE, indent=2)}\n\n"
+    "Rules:\n"
+    "- status=answered: the retrieved artifacts support the answer. Every block must include "
+    "at least one citation drawn verbatim from the Allowed citations list.\n"
+    "- status=insufficient_evidence: the artifacts do not support an answer. Set blocks=[] "
+    "and citations=[]; do not invent sources.\n"
+    "- status=needs_account_clarification: the account is ambiguous or missing. Put a single "
+    "short question in clarification.message and leave blocks=[].\n"
+    "- Never invent citations. Never cite anything outside the Allowed citations list."
 )
 
 
-def build_answer_messages(
-    context_prompt: str,
-    *,
-    attempt: int,
-    previous_answer: str,
-    previous_validation: dict[str, Any],
-    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
-) -> list[dict[str, str]]:
-    user = context_prompt
-    if attempt > 1:
-        user += (
-            "\n\nThe previous answer failed citation validation. "
-            "Rewrite it using only allowed citations and preserve the exact [Source: ObjectType RecordId] format.\n"
-            f"Previous validation: {json.dumps(previous_validation, ensure_ascii=False, default=str)}\n"
-            f"Previous answer: {previous_answer}"
-        )
-    return [{"role": "system", "content": system_prompt}, {"role": "user", "content": user}]
+def build_answer_messages(context_prompt: str) -> list[dict[str, str]]:
+    return [
+        {"role": "system", "content": _ANSWER_SYSTEM_PROMPT},
+        {"role": "user", "content": context_prompt},
+    ]
 
 
 def render_context_prompt(pack: dict[str, Any], *, token_budget: int = DEFAULT_CONTEXT_TOKEN_BUDGET) -> str:
@@ -101,7 +122,6 @@ def estimate_tokens(text: str) -> int:
 
 
 def _render_plan_summary(plan: dict[str, Any], account_name: str | None) -> str:
-    """Minimal retrieval-plan hint for the model — intent + account only."""
     intent = plan.get("intent")
     if not intent and not account_name:
         return ""
@@ -125,7 +145,6 @@ def _render_history(history: list[dict[str, str]]) -> str:
 
 
 def _truncate_doc_to_budget(doc: dict[str, Any], remaining_tokens: int) -> dict[str, Any] | None:
-    """Trim `content` so the doc fits within `remaining_tokens`. Drop if too small."""
     if remaining_tokens < DOC_MIN_TOKENS:
         return None
     overhead = estimate_tokens(json.dumps({**doc, "content": ""}, ensure_ascii=False, default=str))

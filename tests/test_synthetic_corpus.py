@@ -10,18 +10,11 @@ from typing import Any
 
 from pypdf import PdfReader
 
-from pcad.models import Account, Activity, Contact, Contract, Opportunity, UserOwner
+from pcad.models import Account, UserOwner
 
 
 REFERENCE_DATE = "2026-05-13"
-CSV_MODELS = {
-    "users": UserOwner,
-    "accounts": Account,
-    "contacts": Contact,
-    "opportunities": Opportunity,
-    "contracts": Contract,
-    "activities": Activity,
-}
+CSV_MODELS = {"users": UserOwner, "accounts": Account}
 
 
 def test_generate_synthetic_cli_creates_complete_manifest(tmp_path: Path) -> None:

@@ -48,6 +48,7 @@ class LlmClient(Protocol):
         *,
         temperature: float = 0.1,
         max_tokens: int = 700,
+        response_format: dict[str, Any] | None = None,
     ) -> Iterator[str]: ...
 
 
@@ -164,10 +165,7 @@ class OpenAICompatibleClient:
         content = _extract_chat_content(response)
         if not content:
             choice = (response.get("choices") or [{}])[0]
-            raise RuntimeError(
-                "OpenAI-compatible endpoint returned no assistant text content. "
-                f"model={response.get('model')} finish_reason={choice.get('finish_reason')}"
-            )
+            raise _no_content_error(self.settings.llm_model, choice.get("finish_reason"), streaming=False)
         return content
 
     def complete_stream(
@@ -176,21 +174,28 @@ class OpenAICompatibleClient:
         *,
         temperature: float = 0.1,
         max_tokens: int = 700,
+        response_format: dict[str, Any] | None = None,
     ) -> Iterator[str]:
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.settings.llm_model,
             "messages": messages,
             "temperature": temperature,
             "max_completion_tokens": max_tokens,
             "stream": True,
+            # Some providers only emit usage on the [DONE] frame when this is set.
+            "stream_options": {"include_usage": True},
             "reasoning": {"effort": self.settings.llm_reasoning_effort, "exclude": True},
         }
+        if response_format is not None:
+            payload["response_format"] = response_format
         client = self._http_client()
+        emitted_chars = 0
+        finish_reason: str | None = None
         try:
             with client.stream("POST", "/chat/completions", json=payload, headers=self._headers()) as response:
                 if response.status_code >= 400:
                     body = response.read().decode("utf-8", errors="replace")
-                    logger.error("llm.stream.failed status=%s", response.status_code)
+                    logger.error("llm.stream.failed status=%s body=%s", response.status_code, body[:500])
                     raise RuntimeError(f"OpenAI-compatible HTTP {response.status_code}: {body}")
                 for raw_line in response.iter_lines():
                     if not raw_line:
@@ -207,13 +212,20 @@ class OpenAICompatibleClient:
                         continue
                     if data.get("usage"):
                         self._record_usage(data["usage"])
-                    delta = (data.get("choices") or [{}])[0].get("delta") or {}
+                    choice = (data.get("choices") or [{}])[0]
+                    if choice.get("finish_reason"):
+                        finish_reason = choice["finish_reason"]
+                    delta = choice.get("delta") or {}
                     text = delta.get("content")
                     if text:
+                        emitted_chars += len(text)
                         yield text
         except httpx.RequestError as exc:
             logger.error("llm.stream.transport_error error=%s", exc)
             raise RuntimeError(f"OpenAI-compatible streaming request failed: {exc}") from exc
+        if emitted_chars == 0:
+            logger.error("llm.stream.empty model=%s finish_reason=%s", self.settings.llm_model, finish_reason)
+            raise _no_content_error(self.settings.llm_model, finish_reason, streaming=True)
 
     def _record_usage(self, usage: dict[str, Any] | None) -> None:
         if not usage:
@@ -222,6 +234,14 @@ class OpenAICompatibleClient:
             prompt_tokens=int(usage.get("prompt_tokens") or 0),
             completion_tokens=int(usage.get("completion_tokens") or 0),
         )
+
+
+def _no_content_error(model: str, finish_reason: str | None, *, streaming: bool) -> RuntimeError:
+    mode = "streaming" if streaming else "request"
+    return RuntimeError(
+        f"OpenAI-compatible {mode} returned no assistant text content. "
+        f"model={model} finish_reason={finish_reason}"
+    )
 
 
 def _sleep_with_backoff(attempt: int, retry_after: str | None = None) -> None:

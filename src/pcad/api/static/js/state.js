@@ -4,7 +4,6 @@ const initialState = {
   currentAccountId: null,
   currentArtifactId: null,
   artifactsByAccount: {},
-  alertsByAccount: {},
   fakeNotesByAccount: {},
   threads: [],
   currentThreadId: null,

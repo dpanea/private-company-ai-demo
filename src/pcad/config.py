@@ -80,7 +80,6 @@ class Settings:
     rate_limit_per_session_per_hour: int
     daily_token_budget: int
     context_token_budget: int = 6000
-    agent_generation_max_attempts: int = 3
     db_pool_min_size: int = 1
     db_pool_max_size: int = 10
     llm_timeout_seconds: float = 120.0
@@ -110,7 +109,6 @@ class Settings:
             rate_limit_per_session_per_hour=_env_int("RATE_LIMIT_PER_SESSION_PER_HOUR", 50),
             daily_token_budget=_env_int("DAILY_TOKEN_BUDGET", 1_500_000),
             context_token_budget=_env_int("CONTEXT_TOKEN_BUDGET", 6000),
-            agent_generation_max_attempts=_env_int("AGENT_GENERATION_MAX_ATTEMPTS", 3),
             db_pool_min_size=_env_int("DB_POOL_MIN_SIZE", 1),
             db_pool_max_size=_env_int("DB_POOL_MAX_SIZE", 10),
             llm_timeout_seconds=float(os.environ.get("LLM_TIMEOUT_SECONDS", "120")),
@@ -120,7 +118,7 @@ class Settings:
         if settings.llm_reasoning_effort not in {"low", "medium", "high"}:
             raise ValueError("LLM_REASONING_EFFORT must be one of: low, medium, high")
         logger.debug(
-            "settings.loaded database_url_configured=%s openrouter_key_configured=%s embedding_model=%s llm_model=%s embedding_dimensions=%s reasoning_effort=%s context_token_budget=%s generation_max_attempts=%s log_level=%s log_color=%s",
+            "settings.loaded database_url_configured=%s openrouter_key_configured=%s embedding_model=%s llm_model=%s embedding_dimensions=%s reasoning_effort=%s context_token_budget=%s log_level=%s log_color=%s",
             bool(settings.database_url),
             bool(settings.openrouter_api_key),
             settings.embedding_model,
@@ -128,7 +126,6 @@ class Settings:
             settings.embedding_dimensions,
             settings.llm_reasoning_effort,
             settings.context_token_budget,
-            settings.agent_generation_max_attempts,
             settings.log_level,
             settings.log_color,
         )

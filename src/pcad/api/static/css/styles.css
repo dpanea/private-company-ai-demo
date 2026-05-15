@@ -1308,6 +1308,29 @@ body {
   color: var(--d-surface);
 }
 
+.account-candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.account-candidate {
+  padding: 6px 11px;
+  border: 1px solid var(--d-line);
+  border-radius: var(--d-radius);
+  background: var(--d-surface);
+  color: var(--d-text);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.account-candidate:hover {
+  border-color: var(--d-text);
+  background: var(--d-surface-2, var(--d-surface));
+}
+
 .workflow-row button:hover {
   border-color: var(--d-text);
   background: var(--d-text);
@@ -2473,6 +2496,122 @@ dialog {
 .artifact-header-block {
   border-color: var(--d-line);
   background: var(--d-surface-strong);
+}
+
+.word-document {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 56px;
+  background: #fffdf8;
+  box-shadow: 0 18px 50px rgba(23, 33, 38, 0.16);
+}
+
+.word-document h1 {
+  margin-bottom: 8px;
+  color: var(--d-text);
+  font-size: 32px;
+  font-weight: 650;
+  line-height: 1.08;
+}
+
+.word-document h2:first-of-type {
+  margin-top: 0;
+  color: var(--d-text-2);
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.word-document h2,
+.word-document h3 {
+  margin-top: 28px;
+}
+
+.memory-shell {
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(260px, 340px);
+}
+
+.control-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 18px 18px;
+}
+
+.account-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.account-picker select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--d-line-strong);
+  border-radius: var(--d-radius);
+  background: var(--d-surface);
+  color: var(--d-text);
+  padding: 0 10px;
+}
+
+.workflow-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.workflow-stack .workflow-btn {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 34px;
+}
+
+.sidebar-thread-history {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+}
+
+.sidebar-thread-history .thread-chip,
+.sidebar-thread-history .thread-history-empty {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.sidebar-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.source-panel .artifact-group {
+  border-bottom: 1px solid var(--d-divider);
+  padding: 4px 0;
+}
+
+.source-panel .artifact-group summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  padding: 9px 0;
+}
+
+.source-panel .artifact-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.source-panel .artifact-group summary::before {
+  content: "+";
+  margin-right: 8px;
+  color: var(--d-text-3);
+}
+
+.source-panel .artifact-group[open] summary::before {
+  content: "-";
+}
+
+.source-panel .artifact-row {
+  margin: 0 0 6px 0;
 }
 
 @media (max-width: 1180px) {

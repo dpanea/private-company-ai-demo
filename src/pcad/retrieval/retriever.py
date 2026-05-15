@@ -8,6 +8,7 @@ from typing import Any
 
 from pcad.config import Settings
 from pcad.db import connect_dict
+from pcad.llm.citations import citation_is_user_visible
 from pcad.llm.client import EmbeddingClient
 from pcad.retrieval.intent import IntentResult
 
@@ -16,16 +17,7 @@ logger = logging.getLogger(__name__)
 ACCOUNT_FUZZY_MIN_SCORE = 0.42
 ACCOUNT_AMBIGUITY_DELTA = 0.08
 RRF_K = 60
-DOC_TYPE_BOOSTS = {
-    "account_memory": 0.30,
-    "recent_activity_timeline": 0.20,
-    "opportunity_snapshot": 0.15,
-    "risk_summary": 0.15,
-    "email_thread_summary": 0.12,
-    "meeting_summary": 0.12,
-    "contract_snapshot": 0.10,
-    "stakeholder_map": 0.05,
-}
+DOC_TYPE_BOOSTS = {"source_artifact_chunk": 0.38}
 
 
 @dataclass(frozen=True)
@@ -49,14 +41,10 @@ class AccountResolutionError(RuntimeError):
 @dataclass(frozen=True)
 class RetrievalPlan:
     intent: str
-    intent_confidence: float
-    intent_source: str
     semantic_query: str
     keyword_query: str
     account_id: str | None
     account_name: str | None
-    account_hint: str | None
-    doc_types: list[str]
     session_id: str | None = None
     limit: int = 8
 
@@ -70,7 +58,6 @@ class PostgresHybridRetriever:
         self,
         query: str,
         explicit_account_id: str | None = None,
-        account_hint: str | None = None,
     ) -> tuple[str, str]:
         if explicit_account_id:
             with connect_dict(self.settings) as conn:
@@ -82,12 +69,7 @@ class PostgresHybridRetriever:
                 return row["account_id"], row["account_name"]
             raise AccountResolutionError("account_not_found", f"No account exists with id {explicit_account_id}.")
 
-        search_text = account_hint or query
         normalized_query = _normalize_for_match(query)
-        normalized_hint = _normalize_for_match(account_hint or "")
-        # One CTE that computes score+method per row, then a single WHERE-by-method filter.
-        # Trigram index on accounts.account_name covers the fuzzy path; the exact/substring
-        # paths are linear but bounded by row count (3 demo accounts).
         with connect_dict(self.settings) as conn:
             rows = conn.execute(
                 """
@@ -96,12 +78,10 @@ class PostgresHybridRetriever:
                         account_id,
                         account_name,
                         CASE
-                            WHEN %(hint)s <> '' AND lower(account_name) = lower(%(hint_raw)s) THEN 'intent_account_hint'
                             WHEN %(query_norm)s <> '' AND %(query_norm)s LIKE '%%' || lower(account_name) || '%%' THEN 'name_in_query'
                             ELSE 'fuzzy_trigram'
                         END AS method,
                         CASE
-                            WHEN %(hint)s <> '' AND lower(account_name) = lower(%(hint_raw)s) THEN 1.0
                             WHEN %(query_norm)s <> '' AND %(query_norm)s LIKE '%%' || lower(account_name) || '%%' THEN 1.0
                             ELSE GREATEST(similarity(account_name, %(search)s), strict_word_similarity(account_name, %(search)s))
                         END::float AS score
@@ -114,10 +94,8 @@ class PostgresHybridRetriever:
                 LIMIT 5
                 """,
                 {
-                    "hint": normalized_hint,
-                    "hint_raw": account_hint or "",
                     "query_norm": normalized_query,
-                    "search": search_text,
+                    "search": query,
                     "threshold": ACCOUNT_FUZZY_MIN_SCORE,
                 },
             ).fetchall()
@@ -125,8 +103,23 @@ class PostgresHybridRetriever:
             AccountCandidate(row["account_id"], row["account_name"], float(row["score"]), row["method"])
             for row in rows
         ]
-        selected = _select_account_candidate(candidates)
+        try:
+            selected = _select_account_candidate(candidates)
+        except AccountResolutionError as exc:
+            # If the query gave us no plausible matches, surface a few real accounts
+            # so the user can pick one rather than getting a dead-end "I don't know".
+            if not exc.candidates:
+                exc.candidates = self._all_accounts(limit=5)
+            raise
         return selected.account_id, selected.account_name
+
+    def _all_accounts(self, *, limit: int = 5) -> list[AccountCandidate]:
+        with connect_dict(self.settings) as conn:
+            rows = conn.execute(
+                "SELECT account_id, account_name FROM accounts ORDER BY account_name LIMIT %s",
+                (limit,),
+            ).fetchall()
+        return [AccountCandidate(row["account_id"], row["account_name"], 0.0, "all_accounts") for row in rows]
 
     def build_retrieval_plan(
         self,
@@ -139,14 +132,10 @@ class PostgresHybridRetriever:
     ) -> RetrievalPlan:
         return RetrievalPlan(
             intent=intent.intent,
-            intent_confidence=intent.confidence,
-            intent_source=intent.source,
             semantic_query=query,
             keyword_query=query,
             account_id=account_id,
             account_name=account_name,
-            account_hint=intent.account_hint,
-            doc_types=intent.doc_types,
             session_id=session_id,
         )
 
@@ -157,14 +146,15 @@ class PostgresHybridRetriever:
             return conn.execute(
                 """
                 SELECT doc_id, doc_type, title, content_markdown, metadata_json,
-                       account_id, opportunity_id, contract_id, owner_id, generated_at,
+                       account_id, owner_id, generated_at,
                        0.0::float AS score, ARRAY['base_context']::text[] AS reasons
                 FROM rag_documents
                 WHERE account_id = %s
                   AND (session_id IS NULL OR session_id = %s)
-                  AND doc_type IN ('account_memory', 'recent_activity_timeline')
-                ORDER BY CASE doc_type WHEN 'account_memory' THEN 1 WHEN 'recent_activity_timeline' THEN 2 ELSE 3 END
-                LIMIT 3
+                  AND doc_type = 'source_artifact_chunk'
+                ORDER BY last_source_updated_at DESC NULLS LAST,
+                         generated_at DESC
+                LIMIT 6
                 """,
                 (plan.account_id, plan.session_id),
             ).fetchall()
@@ -174,18 +164,18 @@ class PostgresHybridRetriever:
             return conn.execute(
                 """
                 SELECT doc_id, doc_type, title, content_markdown, metadata_json,
-                       account_id, opportunity_id, contract_id, owner_id, generated_at,
+                       account_id, owner_id, generated_at,
                        ts_rank_cd(search_vector, websearch_to_tsquery('english', %s))::float AS score,
                        ARRAY['full_text']::text[] AS reasons
                 FROM rag_documents
                 WHERE (%s::text IS NULL OR account_id = %s)
                   AND (session_id IS NULL OR session_id = %s)
-                  AND doc_type = ANY(%s)
+                  AND doc_type = 'source_artifact_chunk'
                   AND search_vector @@ websearch_to_tsquery('english', %s)
                 ORDER BY score DESC
                 LIMIT %s
                 """,
-                (plan.keyword_query, plan.account_id, plan.account_id, plan.session_id, plan.doc_types, plan.keyword_query, plan.limit),
+                (plan.keyword_query, plan.account_id, plan.account_id, plan.session_id, plan.keyword_query, plan.limit),
             ).fetchall()
 
     def vector_search(self, plan: RetrievalPlan) -> list[dict[str, Any]]:
@@ -197,18 +187,18 @@ class PostgresHybridRetriever:
             return conn.execute(
                 """
                 SELECT doc_id, doc_type, title, content_markdown, metadata_json,
-                       account_id, opportunity_id, contract_id, owner_id, generated_at,
+                       account_id, owner_id, generated_at,
                        (1.0 - (embedding <=> %s::vector))::float AS score,
                        ARRAY['vector']::text[] AS reasons
                 FROM rag_documents
                 WHERE embedding IS NOT NULL
                   AND (%s::text IS NULL OR account_id = %s)
                   AND (session_id IS NULL OR session_id = %s)
-                  AND doc_type = ANY(%s)
+                  AND doc_type = 'source_artifact_chunk'
                 ORDER BY embedding <=> %s::vector
                 LIMIT %s
                 """,
-                (vector_literal, plan.account_id, plan.account_id, plan.session_id, plan.doc_types, vector_literal, plan.limit),
+                (vector_literal, plan.account_id, plan.account_id, plan.session_id, vector_literal, plan.limit),
             ).fetchall()
 
     def hybrid_search(self, plan: RetrievalPlan, base_context: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
@@ -261,7 +251,7 @@ class PostgresHybridRetriever:
                     "metadata": row["metadata_json"],
                     "score": row["score"],
                     "reasons": row["reasons"],
-                    "citations": citations_by_doc.get(row["doc_id"], [])[:5],
+                    "citations": [citation for citation in citations_by_doc.get(row["doc_id"], []) if citation_is_user_visible(citation)][:5],
                 }
                 for row in rows
             ],

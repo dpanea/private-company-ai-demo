@@ -37,7 +37,6 @@ class AccountOut(BaseModel):
     billing_country: str | None = None
     billing_city: str | None = None
     artifact_count: int | None = None
-    alert_count: int | None = None
     days_since_activity: int | None = None
 
 
@@ -54,18 +53,6 @@ class ArtifactOut(BaseModel):
     page_urls: list[str] = Field(default_factory=list)
 
 
-class AlertOut(BaseModel):
-    alert_id: str
-    account_id: str
-    alert_type: str
-    severity: str
-    title: str
-    body_markdown: str
-    evidence_doc_ids: list[str] = Field(default_factory=list)
-    evidence_artifact_ids: list[str] = Field(default_factory=list)
-    created_at: datetime
-
-
 class FakeNoteOut(BaseModel):
     note_id: str
     session_id: str
@@ -76,7 +63,3 @@ class FakeNoteOut(BaseModel):
     note_date: date
     created_at: datetime
 
-
-class FakeNoteCreateOut(BaseModel):
-    note: FakeNoteOut
-    alerts: list[AlertOut]

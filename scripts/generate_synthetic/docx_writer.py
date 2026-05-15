@@ -34,14 +34,14 @@ def write_docx(path: Path, spec: DocxSpec) -> None:
 
     # Cover block — big title, lighter subtitle, an author/date line, and a rule
     # between the cover and the content.
-    title = document.add_paragraph()
+    title = document.add_heading(spec.title, level=0)
     title.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    title_run = title.add_run(spec.title)
-    title_run.bold = True
-    title_run.font.size = Pt(28)
-    title_run.font.color.rgb = RGBColor(0x0F, 0x17, 0x2A)
+    for title_run in title.runs:
+        title_run.bold = True
+        title_run.font.size = Pt(28)
+        title_run.font.color.rgb = RGBColor(0x0F, 0x17, 0x2A)
 
-    subtitle = document.add_paragraph()
+    subtitle = document.add_paragraph(style="Subtitle")
     subtitle_run = subtitle.add_run(spec.subtitle)
     subtitle_run.italic = True
     subtitle_run.font.size = Pt(13)

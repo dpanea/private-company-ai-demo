@@ -8,14 +8,9 @@ from pcad.config import Settings
 from pcad.migrations import apply_migrations
 from pcad.models import (
     Account,
-    Activity,
-    Contact,
-    Contract,
     ConversationMessage,
     ConversationThread,
     FakeNote,
-    Opportunity,
-    ProactiveAlert,
     RagDocument,
     RawArtifact,
     Session,
@@ -29,10 +24,6 @@ EXPECTED_TABLES = {
     "schema_migrations",
     "users_or_owners",
     "accounts",
-    "contacts",
-    "opportunities",
-    "contracts",
-    "activities",
     "raw_artifacts",
     "rag_documents",
     "source_citations",
@@ -40,9 +31,9 @@ EXPECTED_TABLES = {
     "conversation_threads",
     "conversation_messages",
     "fake_notes",
-    "proactive_alerts",
     "daily_budget_usage",
 }
+DROPPED_CRM_TABLES = {"contacts", "opportunities", "contracts", "activities"}
 
 
 def _settings(db_url: str) -> Settings:
@@ -87,6 +78,9 @@ def test_apply_migrations_runs_and_is_idempotent(empty_db: str) -> None:
         "0010_daily_budget_usage",
         "0011_fake_note_artifact_types",
         "0012_session_scoped_cascade",
+        "0013_drop_proactive_alerts",
+        "0014_delete_crm_source_citations",
+        "0015_drop_crm_tables",
     ]
     assert second == []
 
@@ -118,6 +112,7 @@ def test_expected_tables_and_extensions_exist(empty_db: str) -> None:
         }
 
     assert EXPECTED_TABLES <= tables
+    assert tables.isdisjoint(DROPPED_CRM_TABLES)
     assert extensions == {"vector", "pg_trgm"}
 
 
@@ -129,7 +124,7 @@ def test_pydantic_models_round_trip_json() -> None:
     citation = SourceCitation(
         citation_id="cit_1",
         doc_id="doc_1",
-        source_object="email",
+        source_object="Email",
         source_record_id="artifact_1",
         title="Renewal email",
         source_date=today,
@@ -138,15 +133,11 @@ def test_pydantic_models_round_trip_json() -> None:
     models = [
         UserOwner(user_id="user_1", name="Avery Stone", email="avery@example.com"),
         Account(account_id="acct_1", account_name="Northstar Robotics", owner_id="user_1"),
-        Contact(contact_id="contact_1", account_id="acct_1", name="Jordan Lee"),
-        Opportunity(opportunity_id="opp_1", account_id="acct_1", name="Expansion", close_date=today),
-        Contract(contract_id="contract_1", account_id="acct_1", contract_number="C-100"),
-        Activity(activity_id="act_1", source_object="Task", account_id="acct_1", subject="Follow up"),
         citation,
         RagDocument(
             doc_id="doc_1",
-            doc_type="account_memory",
-            title="Account memory",
+            doc_type="source_artifact_chunk",
+            title="Source artifact chunk",
             content_markdown="Customer wants a security review.",
             source_hash="hash_1",
             citations=[citation],
@@ -162,17 +153,6 @@ def test_pydantic_models_round_trip_json() -> None:
             extraction_method="plain_text",
             created_at=now,
             ingested_at=now,
-        ),
-        ProactiveAlert(
-            alert_id="alert_1",
-            account_id="acct_1",
-            alert_type="missing_followup",
-            severity="warning",
-            title="Follow-up missing",
-            body_markdown="No reply has been sent yet.",
-            evidence_doc_ids=["doc_1"],
-            evidence_artifact_ids=["artifact_1"],
-            created_at=now,
         ),
         FakeNote(
             note_id="note_1",

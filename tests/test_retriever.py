@@ -21,9 +21,8 @@ from pcad.retrieval.retriever import (
 from tests._seed import make_settings, seed_account, seed_rag_document, seed_user
 
 
-# ---------------------------------------------------------------------------
-# resolve_account
-# ---------------------------------------------------------------------------
+def _intent(query: str) -> IntentResult:
+    return IntentResult(raw_query=query, intent="account_question", confidence=1.0, source="test")
 
 
 def test_resolve_account_explicit_id_returns_account(migrated_db: str) -> None:
@@ -48,28 +47,19 @@ def test_resolve_account_explicit_id_not_found_raises(migrated_db: str) -> None:
     assert exc_info.value.code == "account_not_found"
 
 
-def test_resolve_account_exact_lowercase_match_wins_over_fuzzy_siblings(
-    migrated_db: str,
-) -> None:
+def test_resolve_account_exact_lowercase_match_wins_over_fuzzy_siblings(migrated_db: str) -> None:
     settings = make_settings(migrated_db)
     seed_user(settings)
     seed_account(settings, account_id="ACC_GMBH", account_name="Brannfeld Industrial GmbH")
     seed_account(settings, account_id="ACC_AG", account_name="Brannfeld Industrial AG")
     retriever = PostgresHybridRetriever(settings)
 
-    # The case-insensitive substring-of-query rule pins to ACC_GMBH; ACC_AG only
-    # matches via fuzzy trigram, which scores below 1.0 and loses by more than
-    # ACCOUNT_AMBIGUITY_DELTA, so the resolver picks ACC_GMBH unambiguously.
     account_id, name = retriever.resolve_account("brannfeld industrial gmbh")
     assert account_id == "ACC_GMBH"
     assert name == "Brannfeld Industrial GmbH"
 
 
-def test_resolve_account_ambiguous_when_one_name_is_a_prefix_of_another(
-    migrated_db: str,
-) -> None:
-    """If two account names both substring-match the query, the resolver
-    refuses rather than guessing."""
+def test_resolve_account_ambiguous_when_one_name_is_a_prefix_of_another(migrated_db: str) -> None:
     settings = make_settings(migrated_db)
     seed_user(settings)
     seed_account(settings, account_id="ACC_GMBH", account_name="Brannfeld Industrial GmbH")
@@ -81,20 +71,6 @@ def test_resolve_account_ambiguous_when_one_name_is_a_prefix_of_another(
     assert exc_info.value.code == "account_ambiguous"
 
 
-def test_resolve_account_uses_account_hint_for_exact_match(migrated_db: str) -> None:
-    settings = make_settings(migrated_db)
-    seed_user(settings)
-    seed_account(settings, account_id="ACC_RYNVOSS", account_name="Rynvoss Logistics BV")
-    seed_account(settings, account_id="ACC_BRANN", account_name="Brannfeld Industrial")
-    retriever = PostgresHybridRetriever(settings)
-
-    # Query references neither account by name; the hint disambiguates.
-    account_id, _ = retriever.resolve_account(
-        "what changed lately?", account_hint="Rynvoss Logistics BV"
-    )
-    assert account_id == "ACC_RYNVOSS"
-
-
 def test_resolve_account_substring_in_query_wins(migrated_db: str) -> None:
     settings = make_settings(migrated_db)
     seed_user(settings)
@@ -102,9 +78,7 @@ def test_resolve_account_substring_in_query_wins(migrated_db: str) -> None:
     seed_account(settings, account_id="ACC_BETA", account_name="Beta Logistics")
     retriever = PostgresHybridRetriever(settings)
 
-    account_id, _ = retriever.resolve_account(
-        "Tell me about alpha robotics open risks"
-    )
+    account_id, _ = retriever.resolve_account("Tell me about alpha robotics open risks")
     assert account_id == "ACC_ALPHA"
 
 
@@ -122,8 +96,6 @@ def test_resolve_account_below_threshold_raises_unresolved(migrated_db: str) -> 
 def test_resolve_account_ambiguous_when_two_fuzzy_matches_tie(migrated_db: str) -> None:
     settings = make_settings(migrated_db)
     seed_user(settings)
-    # Two accounts whose names are equally close to "northstar" so the
-    # ACCOUNT_AMBIGUITY_DELTA tie-break fires.
     seed_account(settings, account_id="ACC_NORTH_A", account_name="Northstar Alpha")
     seed_account(settings, account_id="ACC_NORTH_B", account_name="Northstar Beta")
     retriever = PostgresHybridRetriever(settings)
@@ -131,15 +103,7 @@ def test_resolve_account_ambiguous_when_two_fuzzy_matches_tie(migrated_db: str) 
     with pytest.raises(AccountResolutionError) as exc_info:
         retriever.resolve_account("northstar")
     assert exc_info.value.code == "account_ambiguous"
-    assert {c.account_id for c in exc_info.value.candidates} >= {
-        "ACC_NORTH_A",
-        "ACC_NORTH_B",
-    }
-
-
-# ---------------------------------------------------------------------------
-# hybrid_search and RRF
-# ---------------------------------------------------------------------------
+    assert {c.account_id for c in exc_info.value.candidates} >= {"ACC_NORTH_A", "ACC_NORTH_B"}
 
 
 def test_hybrid_search_combines_full_text_vector_and_base_context(migrated_db: str) -> None:
@@ -152,56 +116,41 @@ def test_hybrid_search_combines_full_text_vector_and_base_context(migrated_db: s
     target_embedding = llm.embed(_query_instruction(query))
     other_embedding = [1.0 - value for value in target_embedding]
 
-    # account_memory: matches base_context AND has the FTS terms.
     seed_rag_document(
         settings,
-        doc_id="account_memory:ACC_HYBRID",
+        doc_id="source_artifact_chunk:email:ACC_HYBRID:msg_1:message",
         account_id="ACC_HYBRID",
-        doc_type="account_memory",
-        title="Account memory: Hybrid Test Account",
+        doc_type="source_artifact_chunk",
+        title="Security review email",
         content="Security review approved for the pilot rollout.",
         embedding=target_embedding,
-        citations=[
-            {"source_object": "Account", "source_record_id": "ACC_HYBRID"}
-        ],
+        citations=[{"source_object": "Email", "source_record_id": "msg_1"}],
     )
-    # risk_summary: doesn't match FTS, deliberately distant embedding.
     seed_rag_document(
         settings,
-        doc_id="risk_summary:ACC_HYBRID",
+        doc_id="source_artifact_chunk:email:ACC_HYBRID:msg_2:message",
         account_id="ACC_HYBRID",
-        doc_type="risk_summary",
-        title="Risk summary: Hybrid Test Account",
+        doc_type="source_artifact_chunk",
+        title="Unrelated note",
         content="No notable risks were recorded for this account.",
         embedding=other_embedding,
-        citations=[
-            {"source_object": "Account", "source_record_id": "ACC_HYBRID"}
-        ],
+        citations=[{"source_object": "Email", "source_record_id": "msg_2"}],
     )
 
     retriever = PostgresHybridRetriever(settings, embedding_client=llm)
-    intent = IntentResult(
-        raw_query=query,
-        intent="account_question",
-        confidence=1.0,
-        source="test",
-        doc_types=["account_memory", "risk_summary"],
-    )
-    plan = retriever.build_retrieval_plan(query, "ACC_HYBRID", "Hybrid Test Account", intent)
+    plan = retriever.build_retrieval_plan(query, "ACC_HYBRID", "Hybrid Test Account", _intent(query))
 
     base = retriever.fetch_base_context(plan)
     fts = retriever.full_text_search(plan)
     vec = retriever.vector_search(plan)
     merged = retriever.hybrid_search(plan, base)
 
-    # All three rankers found *something* and the merged result is non-empty.
-    assert any(row["doc_id"] == "account_memory:ACC_HYBRID" for row in base)
-    assert any(row["doc_id"] == "account_memory:ACC_HYBRID" for row in fts)
-    assert vec[0]["doc_id"] == "account_memory:ACC_HYBRID"
+    target_id = "source_artifact_chunk:email:ACC_HYBRID:msg_1:message"
+    assert any(row["doc_id"] == target_id for row in base)
+    assert any(row["doc_id"] == target_id for row in fts)
+    assert vec[0]["doc_id"] == target_id
 
-    # account_memory wins on combined signal + doc-type boost.
-    assert merged[0]["doc_id"] == "account_memory:ACC_HYBRID"
-    # And the reasons are the union of every ranker that found it.
+    assert merged[0]["doc_id"] == target_id
     assert {"base_context", "full_text", "vector"} <= set(merged[0]["reasons"])
 
 
@@ -214,51 +163,97 @@ def test_hybrid_search_scopes_to_account_and_session(migrated_db: str) -> None:
 
     seed_rag_document(
         settings,
-        doc_id="account_memory:ACC_OURS",
+        doc_id="source_artifact_chunk:email:ACC_OURS:msg_1:message",
         account_id="ACC_OURS",
-        doc_type="account_memory",
-        title="Account memory: Ours",
+        doc_type="source_artifact_chunk",
+        title="Ours email",
         content="Security review approved for the pilot.",
-        citations=[{"source_object": "Account", "source_record_id": "ACC_OURS"}],
+        citations=[{"source_object": "Email", "source_record_id": "ours_msg_1"}],
     )
-    # Wrong account
     seed_rag_document(
         settings,
-        doc_id="account_memory:ACC_THEIRS",
+        doc_id="source_artifact_chunk:email:ACC_THEIRS:msg_1:message",
         account_id="ACC_THEIRS",
-        doc_type="account_memory",
-        title="Account memory: Theirs",
+        doc_type="source_artifact_chunk",
+        title="Theirs email",
         content="Security review approved for the pilot.",
-        citations=[{"source_object": "Account", "source_record_id": "ACC_THEIRS"}],
+        citations=[{"source_object": "Email", "source_record_id": "theirs_msg_1"}],
     )
-    # Right account, wrong session
     seed_rag_document(
         settings,
         doc_id="fake_note:ours:other_session",
         account_id="ACC_OURS",
-        doc_type="account_memory",
+        doc_type="source_artifact_chunk",
         title="Visitor note from another session",
         content="Security review approved for the pilot.",
         session_id="some_other_session",
-        citations=[{"source_object": "Account", "source_record_id": "ACC_OURS"}],
+        citations=[{"source_object": "TestNote", "source_record_id": "other_note"}],
     )
 
     retriever = PostgresHybridRetriever(settings)
-    intent = IntentResult(
-        raw_query="security review",
-        intent="account_question",
-        confidence=1.0,
-        source="test",
-        doc_types=["account_memory"],
-    )
     plan = retriever.build_retrieval_plan(
-        "security review", "ACC_OURS", "Ours", intent, session_id="my_session"
+        "security review", "ACC_OURS", "Ours", _intent("security review"), session_id="my_session"
     )
     base = retriever.fetch_base_context(plan)
     fts = retriever.full_text_search(plan)
 
-    ids_in_base = {row["doc_id"] for row in base}
-    ids_in_fts = {row["doc_id"] for row in fts}
-    assert "account_memory:ACC_OURS" in (ids_in_base | ids_in_fts)
-    assert "account_memory:ACC_THEIRS" not in (ids_in_base | ids_in_fts)
-    assert "fake_note:ours:other_session" not in (ids_in_base | ids_in_fts)
+    ids = {row["doc_id"] for row in base} | {row["doc_id"] for row in fts}
+    assert "source_artifact_chunk:email:ACC_OURS:msg_1:message" in ids
+    assert "source_artifact_chunk:email:ACC_THEIRS:msg_1:message" not in ids
+    assert "fake_note:ours:other_session" not in ids
+
+
+@pytest.mark.parametrize(
+    ("query", "doc_id", "title", "content", "citation"),
+    [
+        (
+            "What does the mutual NDA say for Rynvoss?",
+            "source_artifact_chunk:pdf:ACC_RYNVOSS:mutual_nda:page_1",
+            "Mutual NDA (page 1)",
+            "The mutual NDA covers confidential information exchanged during the Rynvoss evaluation.",
+            {"source_object": "PDF", "source_record_id": "mutual_nda", "title": "Mutual NDA"},
+        ),
+        (
+            "What is in the proposal for production-line workflow automation?",
+            "source_artifact_chunk:pdf:ACC_RYNVOSS:proposal:page_1",
+            "Proposal (page 1)",
+            "The proposal describes production-line workflow automation scope, pricing, and pilot timeline.",
+            {"source_object": "PDF", "source_record_id": "proposal", "title": "Proposal"},
+        ),
+        (
+            "What next step is listed in the Word account plan?",
+            "source_artifact_chunk:docx:ACC_RYNVOSS:account_plan:next_steps",
+            "Account plan (Next steps)",
+            "The Word account plan says the next step is to send the audit posture note.",
+            {"source_object": "WordDocument", "source_record_id": "account_plan", "title": "Account plan"},
+        ),
+    ],
+)
+def test_source_artifact_questions_retrieve_pdf_and_word_chunks(
+    migrated_db: str,
+    query: str,
+    doc_id: str,
+    title: str,
+    content: str,
+    citation: dict[str, str],
+) -> None:
+    settings = make_settings(migrated_db)
+    seed_user(settings)
+    seed_account(settings, account_id="ACC_RYNVOSS", account_name="Rynvoss Logistics BV")
+    seed_rag_document(
+        settings,
+        doc_id=doc_id,
+        account_id="ACC_RYNVOSS",
+        doc_type="source_artifact_chunk",
+        title=title,
+        content=content,
+        citations=[citation],
+    )
+    retriever = PostgresHybridRetriever(settings)
+    plan = retriever.build_retrieval_plan(query, "ACC_RYNVOSS", "Rynvoss Logistics BV", _intent(query))
+
+    rows = retriever.hybrid_search(plan)
+    pack = retriever.build_context_pack(query, plan, rows)
+
+    assert rows[0]["doc_id"] == doc_id
+    assert pack["retrieved_documents"][0]["citations"][0]["source_object"] == citation["source_object"]

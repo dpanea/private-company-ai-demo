@@ -11,23 +11,21 @@ import pytest
 from docx import Document
 from PIL import Image, ImageDraw
 
-from pcad.ingestion.normalize import normalize_email_threads
 from pcad.ingestion.parsers.docx import parse_docx
 from pcad.ingestion.parsers.mbox import parse_mbox
 from pcad.ingestion.parsers.meeting_md import parse_meeting_md
 from pcad.ingestion.parsers.pdf import parse_pdf
 
 
-def test_mbox_parser_produces_messages_and_threads(tmp_path: Path) -> None:
+def test_mbox_parser_produces_messages_with_thread_metadata(tmp_path: Path) -> None:
     path = tmp_path / "emails.mbox"
     _write_mbox(path)
 
     emails = parse_mbox(path)
-    threads = normalize_email_threads(emails, account_id="SYN_ACC_TEST")
 
     assert len(emails) == 3
-    assert len(threads) == 2
-    assert any(len(thread.emails) == 2 for thread in threads)
+    references = {email.in_reply_to for email in emails if email.in_reply_to}
+    assert references == {"root@example.test"}
 
 
 def test_pdf_parser_extracts_text_layer(tmp_path: Path) -> None:
@@ -69,6 +67,20 @@ def test_docx_parser_preserves_headings(tmp_path: Path) -> None:
 
     assert "# Account Plan" in parsed.text
     assert "## Risks" in parsed.text
+
+
+def test_docx_parser_promotes_title_and_subtitle(tmp_path: Path) -> None:
+    path = tmp_path / "account_plan.docx"
+    document = Document()
+    document.add_heading("Account Plan", level=0)
+    document.add_paragraph("Private memory pilot", style="Subtitle")
+    document.add_paragraph("Procurement needs a follow-up.")
+    document.save(path)
+
+    parsed = parse_docx(path)
+
+    assert "# Account Plan" in parsed.text
+    assert "## Private memory pilot" in parsed.text
 
 
 def test_meeting_markdown_parser_extracts_header_and_turns(tmp_path: Path) -> None:
@@ -167,4 +179,3 @@ def _write_minimal_text_pdf(path: Path, text: str) -> None:
         f"trailer << /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_at}\n%%EOF\n".encode("ascii")
     )
     path.write_bytes(bytes(content))
-
