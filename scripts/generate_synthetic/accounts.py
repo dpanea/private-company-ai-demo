@@ -142,32 +142,37 @@ def _proposal_sections(account_name: str, focus: str, risk: str) -> tuple[tuple[
             "Executive summary",
             (
                 f"{account_name} is evaluating a focused private company memory layer for {focus}. "
-                "The proposed pilot turns fragmented operational notes, CRM exports, and team documents into a cited account workspace.",
-                "The recommendation is a bounded pilot with synthetic and approved business data first, followed by a measured expansion only after security review.",
+                "The proposed pilot turns fragmented operational notes, CRM exports, and team documents into a cited account workspace that internal staff can query in plain language.",
+                "The strategic problem is recurring: relevant context exists somewhere in the company, but the people who need it before a customer-facing decision spend more time hunting for it than acting on it. Sales, operations, and customer-facing roles each rebuild the same context multiple times a week from email threads, attachments, and CRM exports, and the resulting briefings are inconsistent because each person stops at a different point.",
+                "Our recommendation is a bounded pilot with synthetic and approved business data first, followed by a measured expansion only after security review. The pilot is deliberately scoped to validate the architecture in a real environment without depending on production-grade connectors or autonomous actions, so the value can be evaluated against an honest cost.",
+                "The deliverable at the end of the pilot is a working demo on customer-controlled infrastructure, an evidence pack documenting retrieval quality and citation behaviour, and a rollout recommendation that names the next two or three concrete workflows that would justify a broader engagement.",
             ),
         ),
         (
             "Scope of work",
             (
-                "Configure ingestion for email archives, CRM exports, meeting notes, PDFs, and Word documents.",
-                "Normalize each source into AI-ready account memory with source citations, retrieval metadata, and a visible raw-artifact inventory.",
-                "Deliver guided workflows for call briefing, recent-change review, risk surfacing, and follow-up drafting.",
+                "The pilot configures ingestion for email archives, CRM exports, meeting notes, PDFs, and Word documents. Each artifact is parsed into raw extracted text, then normalised into AI-ready account memory documents with full source citations and retrieval metadata. The raw-artifact inventory remains visible behind every answer so internal reviewers can audit any claim.",
+                "Retrieval is hybrid: full-text search and dense embeddings are merged with reciprocal rank fusion, and an intent classifier picks the document types most likely to answer a given question. The classifier is conservative by design; when it cannot resolve which account a question refers to, the system asks rather than guessing.",
+                "Answer generation runs through a strict citation contract. Every substantive paragraph or bullet is paired with an exact source label that points back to the underlying artifact, and the system retries when the model produces unsupported claims. Operators can inspect both the cited and the rejected attempts in the evidence pack.",
+                "Guided workflows are wired up for call briefing, recent-change review, open-risk surfacing, next-action recommendation, and follow-up drafting. These are entry points, not closed paths: every workflow opens a thread the user can extend with free-text follow-ups against the same retrieval context.",
             ),
         ),
         (
             "Risk and dependency notes",
             (
                 risk,
-                "Any production deployment would require customer-owned credentials, access review, logging policies, and a jointly approved retention policy.",
+                "Any production deployment would require customer-owned credentials, access review, logging policies, and a jointly approved retention policy. The pilot intentionally avoids touching production data so this approval can take its normal cadence without blocking the architecture review.",
+                "Two dependencies sit on the customer side and are worth flagging early. First, the source inventory needs at least one owner per artifact category — without that, the ingestion gets stuck on permission questions rather than on technical ones. Second, the evaluation framing must be agreed up front: a pilot that ends without a clear bar for success or failure tends to be relitigated rather than concluded.",
+                "On the architecture side, the main risk is over-broadening scope. The system intentionally does not orchestrate autonomous actions in the pilot; it produces cited briefings and drafts that a human approves. Where customer stakeholders ask for autonomous behaviour, that conversation is staged as a follow-on engagement with its own evaluation plan.",
             ),
         ),
         (
             "Timeline",
             (
-                "Week 1: source inventory, access review, and success criteria.",
-                "Week 2: ingestion prototype and retrieval evaluation.",
-                "Week 3: guided workflows, citation validation, and stakeholder review.",
-                "Week 4: pilot readout and rollout recommendation.",
+                "Week 1 focuses on source inventory, access review, and success criteria. The goal is to leave the week with a shared list of artifact categories, named owners, and a written definition of what \"good\" looks like for the chosen workflows. No code change is more important than this alignment.",
+                "Week 2 builds the ingestion prototype and runs the first retrieval evaluation. Sample questions are drawn from the customer's actual workflows, and the evaluation captures retrieval quality, answer quality, and any citation failures, with the underlying retrieved context preserved for review.",
+                "Week 3 enables the guided workflows, hardens citation validation, and runs a stakeholder review with operations, IT, and any compliance contacts. The output is a working environment that internal reviewers can use, plus a written readout of the open issues and their mitigations.",
+                "Week 4 closes the pilot with a readout and a rollout recommendation. The recommendation explicitly names which next workflows would benefit, which integrations would have to be built, and which questions would still need to be answered before broader rollout. We treat \"do not roll out\" as an honest possible outcome.",
             ),
         ),
     )
@@ -176,31 +181,42 @@ def _proposal_sections(account_name: str, focus: str, risk: str) -> tuple[tuple[
 def _nda_sections(account_name: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
     return (
         (
+            "Parties and purpose",
+            (
+                f"This mutual non-disclosure agreement is entered into between Daniel Panea Lichtig (\"the Architect\") and {account_name} (\"the Customer\") for the purpose of evaluating a private company memory layer reference architecture and any related professional services engagement.",
+                "The agreement governs information exchanged between the parties from the effective date until two years after the last exchange, or until superseded by a signed services agreement that includes its own confidentiality terms.",
+            ),
+        ),
+        (
             "Confidential information",
             (
-                f"Each party may disclose business, technical, operational, and commercial information related to the {account_name} evaluation.",
-                "Confidential information excludes material already known, independently developed, publicly available, or lawfully received from another source.",
+                f"Each party may disclose business, technical, operational, and commercial information related to the {account_name} evaluation. This includes proposals, architecture documents, deployment diagrams, retrieval and evaluation results, financial estimates, pilot timelines, and any data the Customer chooses to share as part of the evaluation.",
+                "Confidential information excludes material already known to the receiving party at the time of disclosure, independently developed without reference to the disclosed information, publicly available without breach of this agreement, or lawfully received from another source without confidentiality obligations.",
+                "Marking is not required for information to be confidential, but parties should label particularly sensitive material so reviewers can apply the appropriate handling. Where the same information could reasonably be considered either business-sensitive or commercially neutral, the parties default to treating it as confidential.",
             ),
         ),
         (
             "Permitted use",
             (
-                "The receiving party may use confidential information only to evaluate a potential pilot and related professional services.",
-                "Access must be limited to personnel and advisers who need the information and are bound by comparable confidentiality obligations.",
+                "The receiving party may use confidential information only to evaluate a potential pilot and related professional services, and may not use it for any other purpose, including product development unrelated to the evaluation, marketing, or competitive analysis.",
+                "Access must be limited to personnel and advisers who need the information for the evaluation and who are bound by comparable confidentiality obligations through employment, contract, or professional duty. Each party is responsible for the acts and omissions of its personnel and advisers.",
+                "Neither party acquires any licence, ownership, or other right in the other party's intellectual property by virtue of disclosure under this agreement. Any rights to derivative work product produced during a pilot will be set out in a separate services agreement.",
             ),
         ),
         (
             "Data handling",
             (
-                "No production customer data is required for the reference demo. Any later pilot will use a jointly approved data handling plan.",
-                "Security documentation, deployment diagrams, and audit evidence may be shared under this agreement.",
+                "No production customer data is required for the reference demo. Any later pilot will use a jointly approved data handling plan that specifies the categories of source artifacts, the retention period, the deletion process, and the named points of contact on each side.",
+                "Security documentation, deployment diagrams, retrieval logs, and audit evidence may be shared under this agreement. Where logs contain personal data, both parties agree to apply the minimum necessary disclosure and to redact identifiers that are not relevant to the evaluation.",
+                "If either party becomes aware of an actual or suspected unauthorised disclosure of confidential information, that party will notify the other without undue delay and cooperate in good faith on the remediation steps.",
             ),
         ),
         (
-            "Signatures",
+            "Term and signatures",
             (
+                "This agreement takes effect on the date of last signature and remains in force for two years from the most recent exchange of confidential information unless extended in writing or superseded by a services agreement.",
                 "Signed for Daniel Panea Lichtig: Daniel Panea Lichtig, Principal Architect.",
-                f"Signed for {account_name}: Authorized business representative.",
+                f"Signed for {account_name}: Authorised business representative.",
             ),
         ),
     )
@@ -734,10 +750,37 @@ def build_accounts(reference_date: date) -> list[AccountSpec]:
                     "compliance_addendum",
                     shift_date(d("2026-05-04"), reference_date),
                     (
-                        ("Purpose", ("The pilot processes de-identified operational notes to improve clinic workflow briefings.",)),
-                        ("Excluded data", ("Patient-level clinical records, diagnostics, and treatment recommendations are outside the pilot scope.",)),
-                        ("Retention", ("Pilot source files are retained only for the evaluation period unless Caldrisa approves an extension.",)),
-                        ("Deletion", ("Deleted source artifacts are removed from the raw store and the retrieval index is rebuilt.",)),
+                        (
+                            "Purpose",
+                            (
+                                "The pilot processes de-identified operational notes, schedules, and meeting transcripts to improve the briefings clinical operations leads prepare before regional reviews. The intended use is to summarise workflow context, surface open follow-ups, and link claims back to specific source artifacts.",
+                                "The pilot is explicitly framed as operational support. It is not a clinical decision support tool and does not produce diagnoses, treatment plans, or any recommendation that would substitute for clinical judgement. Clinical staff retain full authority and accountability for clinical decisions.",
+                                "This addendum sits alongside the pilot proposal and applies for the duration of the evaluation. Any decision to move beyond the pilot will be governed by a separate services agreement and a new data processing addendum scoped to the production use case.",
+                            ),
+                        ),
+                        (
+                            "Excluded data",
+                            (
+                                "Patient-level clinical records, diagnostics, treatment plans, and any direct identifiers (full name, national identifier, contact details, date of birth, address) are out of scope for the pilot.",
+                                "Where operational notes incidentally reference patient information, those notes are excluded from ingestion at the source. Where exclusion is impractical at the source, the relevant fields are redacted before the artifact enters the raw store. Redaction is performed by Caldrisa-named personnel using an agreed redaction guide.",
+                                "Free-text fields that may contain incidental personal data are subject to spot-check audits during the pilot. Any artifact found to contain in-scope-excluded data is removed from the raw store, the embedding index is rebuilt, and a short note is added to the pilot evidence pack documenting the removal.",
+                            ),
+                        ),
+                        (
+                            "Retention",
+                            (
+                                "Pilot source files are retained only for the evaluation period and for up to thirty days after the pilot ends to allow the joint readout, unless Caldrisa explicitly approves a written extension. After this window, the raw store and the derived retrieval index are deleted.",
+                                "Retention applies equally to raw artifacts, derived AI-ready documents, embedding vectors, and any cached evaluation outputs. Log files used for operations and audit are kept for the same window unless a longer retention is required to investigate an incident.",
+                            ),
+                        ),
+                        (
+                            "Deletion",
+                            (
+                                "Deleted source artifacts are removed from the raw store and the retrieval index is rebuilt so the removed content is no longer surfaced in retrieved context. Deletion requests can be submitted by Caldrisa's named compliance contact and are acknowledged within five business days.",
+                                "End-of-pilot deletion is performed by the Architect, witnessed by Caldrisa's compliance contact, and confirmed in writing. A short deletion report is added to the evidence pack and shared with both parties.",
+                                "If a request to delete a specific artifact arrives during the pilot, that artifact is removed within five business days, with the index rebuild completed in the same window. Where retrieval has already produced an answer that cited the removed artifact, that answer is annotated so reviewers understand the source is no longer available.",
+                            ),
+                        ),
                     ),
                 ),
             ),

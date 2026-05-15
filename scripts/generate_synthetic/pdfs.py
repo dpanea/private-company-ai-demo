@@ -5,10 +5,19 @@ from typing import Callable
 
 from reportlab import rl_config
 from reportlab.lib import colors
+from reportlab.lib.enums import TA_JUSTIFY
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    KeepTogether,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 from .accounts import AccountSpec, PdfSpec
 
@@ -22,8 +31,8 @@ def write_pdf(path: Path, account: AccountSpec, spec: PdfSpec) -> None:
         ParagraphStyle(
             name="Small",
             parent=styles["Normal"],
-            fontSize=8,
-            leading=10,
+            fontSize=8.5,
+            leading=11,
             textColor=colors.HexColor("#4b5563"),
         )
     )
@@ -36,46 +45,85 @@ def write_pdf(path: Path, account: AccountSpec, spec: PdfSpec) -> None:
             spaceAfter=16,
         )
     )
+    styles.add(
+        ParagraphStyle(
+            name="CoverKicker",
+            parent=styles["Normal"],
+            fontSize=10,
+            leading=14,
+            textColor=colors.HexColor("#6b7280"),
+            spaceAfter=4,
+        )
+    )
+    # Body copy: justified, generous leading, modest space below each paragraph
+    # so pages fill out naturally instead of looking like skeleton drafts.
+    styles.add(
+        ParagraphStyle(
+            name="BodyPara",
+            parent=styles["Normal"],
+            fontSize=10.5,
+            leading=15,
+            alignment=TA_JUSTIFY,
+            spaceAfter=8,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="SectionHeading",
+            parent=styles["Heading1"],
+            fontSize=14,
+            leading=18,
+            textColor=colors.HexColor("#0f172a"),
+            spaceBefore=10,
+            spaceAfter=8,
+        )
+    )
     doc = SimpleDocTemplate(
         str(path),
         pagesize=A4,
-        rightMargin=2 * cm,
-        leftMargin=2 * cm,
-        topMargin=2 * cm,
-        bottomMargin=2 * cm,
+        rightMargin=2.2 * cm,
+        leftMargin=2.2 * cm,
+        topMargin=2.2 * cm,
+        bottomMargin=2.2 * cm,
         title=spec.title,
         author="Daniel Panea Lichtig",
         subject=spec.subtitle,
     )
     story: list[object] = [
-        Spacer(1, 2 * cm),
-        Paragraph(account.name, styles["Small"]),
+        Paragraph(account.name, styles["CoverKicker"]),
         Paragraph(spec.title, styles["CoverTitle"]),
         Paragraph(spec.subtitle, styles["Heading2"]),
-        Spacer(1, 0.5 * cm),
+        Spacer(1, 0.4 * cm),
         Paragraph(f"Issue date: {spec.issue_date.isoformat()}", styles["Normal"]),
         Paragraph("Prepared by: Daniel Panea Lichtig", styles["Normal"]),
-        Spacer(1, 0.5 * cm),
+        Spacer(1, 0.4 * cm),
         Paragraph(
             "Synthetic business document generated for the Private Company Memory Demo. "
-            "All companies, people, domains, and scenarios are fictional.",
+            "All companies, people, domains, and scenarios are fictional and any resemblance "
+            "to a real engagement is unintended.",
             styles["Small"],
         ),
-        PageBreak(),
+        Spacer(1, 0.8 * cm),
     ]
 
-    for heading, paragraphs in spec.sections:
-        story.append(Paragraph(heading, styles["Heading1"]))
-        for paragraph in paragraphs:
-            story.append(Paragraph(paragraph, styles["Normal"]))
-            story.append(Spacer(1, 0.2 * cm))
+    last_index = len(spec.sections) - 1
+    for index, (heading, paragraphs) in enumerate(spec.sections):
+        # Avoid widow headings: keep the heading and the first paragraph together.
+        head_block: list[object] = [Paragraph(heading, styles["SectionHeading"])]
+        if paragraphs:
+            head_block.append(Paragraph(paragraphs[0], styles["BodyPara"]))
+        story.append(KeepTogether(head_block))
+        for paragraph in paragraphs[1:]:
+            story.append(Paragraph(paragraph, styles["BodyPara"]))
         if heading == "Scope of work":
+            story.append(Spacer(1, 0.15 * cm))
             story.append(_scope_table(styles["Small"]))
-            story.append(Spacer(1, 0.3 * cm))
-        story.append(PageBreak())
+        if index != last_index:
+            story.append(Spacer(1, 0.35 * cm))
 
     if spec.pricing_rows:
-        story.append(Paragraph("Commercial summary", styles["Heading1"]))
+        story.append(Spacer(1, 0.6 * cm))
+        story.append(Paragraph("Commercial summary", styles["SectionHeading"]))
         rows = [("Item", "Duration", "Fee")] + list(spec.pricing_rows)
         table = Table(rows, colWidths=[7 * cm, 4 * cm, 4 * cm])
         table.setStyle(
@@ -97,8 +145,10 @@ def write_pdf(path: Path, account: AccountSpec, spec: PdfSpec) -> None:
         story.append(Spacer(1, 0.4 * cm))
         story.append(
             Paragraph(
-                "Production-grade connector hardening, multi-tenant operations, billing, and admin dashboards are outside this pilot.",
-                styles["Normal"],
+                "Production-grade connector hardening, multi-tenant operations, billing, and "
+                "admin dashboards are explicitly outside this pilot. They can be scoped as a "
+                "separate engagement once the pilot has been reviewed.",
+                styles["BodyPara"],
             )
         )
 
