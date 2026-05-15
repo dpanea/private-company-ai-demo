@@ -24,7 +24,9 @@ def test_frontend_uses_native_modules_without_framework() -> None:
 
 
 def test_required_microcopy_is_present() -> None:
-    text = "\n".join(
+    import re
+
+    raw = "\n".join(
         path.read_text(encoding="utf-8")
         for path in [
             STATIC_ROOT / "index.html",
@@ -33,6 +35,9 @@ def test_required_microcopy_is_present() -> None:
             STATIC_ROOT / "js" / "views" / "conversation_panel.js",
         ]
     )
+    # Strip inline HTML so emphasis tags inside microcopy (added by the
+    # landing-page redesign) don't break literal substring checks.
+    text = re.sub(r"<[^>]+>", "", raw)
     assert "Never prepare for a client call from scratch again." in text
     assert "Try the synthetic demo" in text
     assert "This public demo uses synthetic data only." in text
