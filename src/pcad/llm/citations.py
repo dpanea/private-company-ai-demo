@@ -70,8 +70,17 @@ def repair_missing_citations(answer: str, pack: dict[str, Any]) -> str:
 
     fallback = _fallback_citation_label(pack)
     if not fallback:
+        logger.warning(
+            "citations.repair_missing_citation.no_fallback allowed=%s cited=%s",
+            len(allowed),
+            sorted(validation.get("cited") or []),
+        )
         return answer
-    logger.debug("citations.repair_missing_citation fallback_citation=%s", fallback)
+    logger.warning(
+        "citations.repair_missing_citation.fallback_used label=%s unknown=%s",
+        fallback,
+        sorted(validation.get("unknown_citations") or []),
+    )
     return answer.rstrip() + f"\n\nSources consulted: see panel on the right. [Source: {fallback}]"
 
 

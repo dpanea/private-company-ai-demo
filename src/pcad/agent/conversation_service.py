@@ -143,6 +143,24 @@ class ConversationService:
             pipeline_clean = _workflow_seed_to_prompt(thread.workflow_seed, prev_account_name or "this account")
         user_message = self._insert_message(thread_id, "user", clean, account_id=prev_account_id, account_name=prev_account_name)
         yield _sse("user_message", _model_dump(user_message))
+
+        # Cheapest possible budget short-circuit: refuse before the pipeline (which itself
+        # can call the LLM for intent classification). This is the only path that avoids
+        # spending tokens once we are over budget for the day.
+        if not check_daily_budget(self.settings):
+            assistant = self._insert_message(
+                thread_id,
+                "assistant",
+                BUDGET_MESSAGE,
+                account_id=prev_account_id,
+                account_name=prev_account_name,
+                metadata={"response_type": "budget_exceeded"},
+            )
+            self._update_thread_after_message(thread_id, clean, prev_account_id, prev_account_name)
+            yield _sse("token", {"content": BUDGET_MESSAGE})
+            yield _sse("done", {"assistant_message": _model_dump(assistant), "thread": _model_dump(self.get_thread(session_id, thread_id))})
+            return
+
         yield _sse("status", {"status": "thinking"})
 
         last_assistant = self._last_assistant_message(thread_id)
@@ -170,20 +188,6 @@ class ConversationService:
         )
         if isinstance(prepared, ClarificationResult):
             yield from self._finalize_clarification(thread_id, clean, prepared, original_request=pipeline_request)
-            return
-
-        if not check_daily_budget(self.settings):
-            assistant = self._insert_message(
-                thread_id,
-                "assistant",
-                BUDGET_MESSAGE,
-                account_id=prepared.account_id,
-                account_name=prepared.account_name,
-                metadata={"response_type": "budget_exceeded"},
-            )
-            self._update_thread_after_message(thread_id, clean, prepared.account_id, prepared.account_name)
-            yield _sse("token", {"content": BUDGET_MESSAGE})
-            yield _sse("done", {"assistant_message": _model_dump(assistant), "thread": _model_dump(self.get_thread(session_id, thread_id))})
             return
 
         yield _sse("status", {"status": "generating"})
@@ -375,15 +379,16 @@ class ConversationService:
         return ConversationMessage.model_validate(dict(row)) if row else None
 
     def _recent_history(self, thread_id: str) -> list[dict[str, str]]:
+        limit = max(0, int(self.settings.conversation_history_turns))
         with connect_dict(self.settings) as conn:
             rows = conn.execute(
                 """
                 SELECT role, content FROM conversation_messages
                 WHERE thread_id = %s
                 ORDER BY created_at DESC, message_id DESC
-                LIMIT 6
+                LIMIT %s
                 """,
-                (thread_id,),
+                (thread_id, limit),
             ).fetchall()
         return [{"role": row["role"], "content": row["content"]} for row in reversed(rows)]
 

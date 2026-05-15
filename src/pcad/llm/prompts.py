@@ -10,6 +10,7 @@ DEFAULT_CONTEXT_TOKEN_BUDGET = 6000
 DEFAULT_GENERATION_MAX_ATTEMPTS = 3
 RESPONSE_MAX_TOKENS = 700
 APPROX_CHARS_PER_TOKEN = 4
+DOC_MIN_TOKENS = 80  # do not truncate a doc below this; drop it instead
 
 DEFAULT_SYSTEM_PROMPT = (
     "You are a private company memory copilot for a public demo. "
@@ -44,10 +45,12 @@ def render_context_prompt(pack: dict[str, Any], *, token_budget: int = DEFAULT_C
     history = pack.get("conversation_history") or []
     history_block = ""
     if history:
-        history_block = "Recent conversation history:\n" + json.dumps(history, indent=2, default=str) + "\n\n"
+        history_block = "Recent conversation history:\n" + _render_history(history) + "\n\n"
+    plan = pack.get("retrieval_plan") or {}
+    plan_block = _render_plan_summary(plan, pack.get("account_name"))
     prefix = (
         f"User request: {pack['user_request']}\n\n"
-        f"Retrieval plan:\n{json.dumps(pack['retrieval_plan'], indent=2, default=str)}\n\n"
+        f"{plan_block}"
         f"{history_block}"
         "Allowed citations:\n"
         + "\n".join(f"- {label}" for label in allowed)
@@ -59,9 +62,13 @@ def render_context_prompt(pack: dict[str, Any], *, token_budget: int = DEFAULT_C
     for item in pack["retrieved_documents"]:
         candidate = compact_context_doc(item)
         candidate_tokens = estimate_tokens(json.dumps(candidate, ensure_ascii=False, default=str))
-        if candidate_tokens > remaining and compact_docs:
-            omitted.append(item["doc_id"])
-            continue
+        if candidate_tokens > remaining:
+            truncated = _truncate_doc_to_budget(candidate, remaining)
+            if truncated is None:
+                omitted.append(item["doc_id"])
+                continue
+            candidate = truncated
+            candidate_tokens = estimate_tokens(json.dumps(candidate, ensure_ascii=False, default=str))
         compact_docs.append(candidate)
         remaining -= candidate_tokens
     prompt = prefix + json.dumps(compact_docs, indent=2, ensure_ascii=False, default=str)
@@ -91,3 +98,43 @@ def compact_context_doc(item: dict[str, Any]) -> dict[str, Any]:
 
 def estimate_tokens(text: str) -> int:
     return max(1, (len(text) + APPROX_CHARS_PER_TOKEN - 1) // APPROX_CHARS_PER_TOKEN)
+
+
+def _render_plan_summary(plan: dict[str, Any], account_name: str | None) -> str:
+    """Minimal retrieval-plan hint for the model — intent + account only."""
+    intent = plan.get("intent")
+    if not intent and not account_name:
+        return ""
+    parts: list[str] = []
+    if intent:
+        parts.append(f"intent={intent}")
+    if account_name:
+        parts.append(f"account={account_name}")
+    return f"Retrieval focus: {', '.join(parts)}\n\n"
+
+
+def _render_history(history: list[dict[str, str]]) -> str:
+    lines = []
+    for turn in history:
+        role = str(turn.get("role", "")).strip() or "user"
+        content = str(turn.get("content", "")).strip()
+        if not content:
+            continue
+        lines.append(f"{role}: {content}")
+    return "\n".join(lines)
+
+
+def _truncate_doc_to_budget(doc: dict[str, Any], remaining_tokens: int) -> dict[str, Any] | None:
+    """Trim `content` so the doc fits within `remaining_tokens`. Drop if too small."""
+    if remaining_tokens < DOC_MIN_TOKENS:
+        return None
+    overhead = estimate_tokens(json.dumps({**doc, "content": ""}, ensure_ascii=False, default=str))
+    budget_for_content = remaining_tokens - overhead
+    if budget_for_content < DOC_MIN_TOKENS:
+        return None
+    char_budget = max(DOC_MIN_TOKENS * APPROX_CHARS_PER_TOKEN, budget_for_content * APPROX_CHARS_PER_TOKEN)
+    content = doc["content"]
+    if len(content) <= char_budget:
+        return doc
+    truncated_content = content[: char_budget - 20].rstrip() + "\n... [truncated]"
+    return {**doc, "content": truncated_content}
