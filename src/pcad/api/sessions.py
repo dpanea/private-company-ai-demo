@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-import random
+import asyncio
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import uuid4
 
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -13,6 +15,9 @@ from starlette.responses import Response
 from pcad.config import Settings
 from pcad.db import connect_dict
 from pcad.models import Session
+
+
+logger = logging.getLogger(__name__)
 
 
 class SessionMiddleware(BaseHTTPMiddleware):
@@ -24,7 +29,8 @@ class SessionMiddleware(BaseHTTPMiddleware):
         self.serializer = URLSafeTimedSerializer(settings.session_secret, salt="pcad-session")
 
     async def dispatch(self, request: Request, call_next: Any) -> Response:
-        session = self._load_or_create(request)
+        # Run sync DB work in a threadpool so we do not block the event loop.
+        session = await run_in_threadpool(self._load_or_create, request)
         request.state.session = session
         response = await call_next(request)
         token = self.serializer.dumps({"sid": session.session_id})
@@ -36,8 +42,6 @@ class SessionMiddleware(BaseHTTPMiddleware):
             samesite="lax",
             secure=getattr(self.settings, "session_cookie_secure", False),
         )
-        if random.random() < 0.01:
-            cleanup_expired_sessions(self.settings)
         return response
 
     def _load_or_create(self, request: Request) -> Session:
@@ -48,6 +52,20 @@ class SessionMiddleware(BaseHTTPMiddleware):
             if refreshed:
                 return refreshed
         return create_session(self.settings)
+
+
+async def periodic_session_cleanup(settings: Settings, *, interval_seconds: float = 3600.0) -> None:
+    """Background task that prunes expired sessions roughly once per hour."""
+    while True:
+        try:
+            await asyncio.sleep(interval_seconds)
+            deleted = await run_in_threadpool(cleanup_expired_sessions, settings)
+            if deleted:
+                logger.info("sessions.cleanup.done deleted=%s", deleted)
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # pragma: no cover - defensive
+            logger.exception("sessions.cleanup.failed")
 
 
 def create_session(settings: Settings) -> Session:

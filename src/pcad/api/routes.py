@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 from fastapi.responses import FileResponse, StreamingResponse
 from psycopg.types.json import Jsonb
 
@@ -20,6 +21,7 @@ from pcad.retrieval.alerts import ProactiveAlertGenerator
 from .schemas import AccountOut, FakeNoteCreateIn, SendMessageIn, ThreadCreateIn
 
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -200,7 +202,12 @@ def stream_message(thread_id: str, payload: SendMessageIn, request: Request) -> 
 
 
 @router.post("/accounts/{account_id}/fake-notes")
-def create_fake_note(account_id: str, payload: FakeNoteCreateIn, request: Request) -> dict[str, Any]:
+def create_fake_note(
+    account_id: str,
+    payload: FakeNoteCreateIn,
+    request: Request,
+    background_tasks: BackgroundTasks,
+) -> dict[str, Any]:
     settings = get_settings(request)
     session_id = get_session_id(request)
     note = FakeNote(
@@ -226,9 +233,21 @@ def create_fake_note(account_id: str, payload: FakeNoteCreateIn, request: Reques
         )
         _insert_fake_note_doc(conn, note, account["account_name"])
         conn.commit()
-    index_pending_embeddings(settings, batch_limit=20)
-    alerts = ProactiveAlertGenerator(settings).generate_for_account(account_id, session_id=session_id)
-    return {"note": note.model_dump(mode="json"), "alerts": [alert.model_dump(mode="json") for alert in alerts]}
+    # Embedding the new doc and re-running alert heuristics can each take seconds,
+    # so defer them to a background task. The note is durable in fake_notes by now.
+    background_tasks.add_task(_finalize_fake_note, settings, account_id, session_id)
+    return {"note": note.model_dump(mode="json"), "alerts": []}
+
+
+def _finalize_fake_note(settings: Settings, account_id: str, session_id: str) -> None:
+    try:
+        index_pending_embeddings(settings, batch_limit=20)
+    except Exception:
+        logger.exception("fake_note.embedding_index.failed account=%s", account_id)
+    try:
+        ProactiveAlertGenerator(settings).generate_for_account(account_id, session_id=session_id)
+    except Exception:
+        logger.exception("fake_note.alerts.failed account=%s", account_id)
 
 
 @router.get("/accounts/{account_id}/fake-notes")
@@ -310,8 +329,8 @@ def _insert_fake_note_doc(conn: Any, note: FakeNote, account_name: str) -> None:
 def _serialize_artifact_row(row: dict[str, Any]) -> dict[str, Any]:
     # Legacy `email_thread` rows from older ingestions are surfaced as `email` for the UI.
     if row.get("artifact_type") == "email_thread":
-        row["artifact_type"] = "email"
-    return row
+        return {**row, "artifact_type": "email"}
+    return dict(row)
 
 
 def _fake_note_artifact(note: dict[str, Any]) -> dict[str, Any]:
@@ -352,7 +371,7 @@ def _virtual_crm_artifact(artifact_id: str, request: Request) -> dict[str, Any] 
         return None
     record = dict(row)
     title = _crm_record_title(source_object, record)
-    account_id = record.get("account_id") or (record.get("account_id_if_available") if source_object == "Contract" else None)
+    account_id = record.get("account_id")
     artifact_type = "crm_record"
     mime_type = "text/markdown"
     extraction_method = "csv_row"

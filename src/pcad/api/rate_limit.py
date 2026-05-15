@@ -78,17 +78,18 @@ def check_daily_budget(settings: Settings) -> bool:
     return total < settings.daily_token_budget
 
 
-def record_token_usage(settings: Settings, *, tokens_in: int = 0, tokens_out: int = 0, cost_estimate_eur: float = 0.0) -> None:
+def record_token_usage(settings: Settings, *, tokens_in: int = 0, tokens_out: int = 0) -> None:
+    """Accumulate per-day token counts. Cost (EUR) is not tracked here — it varies
+    by model and is best computed offline against an OpenRouter pricing table."""
     with connect_dict(settings) as conn:
         conn.execute(
             """
             INSERT INTO daily_budget_usage (usage_date, tokens_in, tokens_out, cost_estimate_eur)
-            VALUES (%s, %s, %s, %s)
+            VALUES (%s, %s, %s, 0)
             ON CONFLICT (usage_date) DO UPDATE
             SET tokens_in = daily_budget_usage.tokens_in + EXCLUDED.tokens_in,
-                tokens_out = daily_budget_usage.tokens_out + EXCLUDED.tokens_out,
-                cost_estimate_eur = daily_budget_usage.cost_estimate_eur + EXCLUDED.cost_estimate_eur
+                tokens_out = daily_budget_usage.tokens_out + EXCLUDED.tokens_out
             """,
-            (date.today(), tokens_in, tokens_out, cost_estimate_eur),
+            (date.today(), tokens_in, tokens_out),
         )
         conn.commit()
