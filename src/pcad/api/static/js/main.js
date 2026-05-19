@@ -96,8 +96,8 @@ function renderApp() {
   }
 
   document.title = currentAccount
-    ? `${accountName(currentAccount)} · Private Company Memory Demo`
-    : "Company Memory · Private Company Memory Demo";
+    ? `${accountName(currentAccount)} · The Company Knowledge AI Demo`
+    : "The Company Knowledge AI Demo";
 }
 
 async function loadArtifactsForAccount(accountId) {

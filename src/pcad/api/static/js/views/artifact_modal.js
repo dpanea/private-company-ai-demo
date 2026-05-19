@@ -84,7 +84,7 @@ function renderArtifactBody(artifact) {
   if (artifact.artifact_type === "pdf") return renderPdfArtifact(artifact);
   if (artifact.artifact_type === "email") return renderEmailArtifact(artifact);
   if (artifact.artifact_type === "meeting_transcript") return renderTranscriptArtifact(artifact);
-  if (artifact.artifact_type === "docx") return `<article class="document-page docx-page word-document markdown">${renderMarkdown(artifact.extracted_text)}</article>`;
+  if (artifact.artifact_type === "docx") return `<article class="document-page docx-page word-document markdown">${renderMarkdown(promoteDocxTitleLines(artifact.extracted_text))}</article>`;
   return `<div class="text-block">${escapeHtml(artifact.extracted_text || "No extracted text available.")}</div>`;
 }
 
@@ -148,6 +148,23 @@ function reflowParagraph(text) {
     .map((line) => line.trim())
     .filter(Boolean)
     .join(" ");
+}
+
+function promoteDocxTitleLines(text) {
+  const raw = String(text || "");
+  if (!raw.trim()) return raw;
+  const paragraphs = raw.split(/\n{2,}/);
+  let promoted = 0;
+  for (let i = 0; i < paragraphs.length && promoted < 2; i += 1) {
+    const part = paragraphs[i];
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    if (/^#{1,6}\s/.test(trimmed)) break;
+    if (/^[-*+]\s|^\d+\.\s|^>\s/.test(trimmed)) break;
+    paragraphs[i] = `${promoted === 0 ? "# " : "## "}${trimmed}`;
+    promoted += 1;
+  }
+  return paragraphs.join("\n\n");
 }
 
 function withMarkdownLineBreaks(text) {

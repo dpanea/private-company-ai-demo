@@ -24,9 +24,6 @@ export function renderAccountDetail(account, accounts = []) {
     <section class="page detail-view-page" data-pcad-view="company-memory">
       <div class="detail-shell memory-shell">
         <aside class="detail-panel control-panel" aria-label="Chat controls">
-          <div class="panel-header">
-            <span class="panel-title">Company memory</span>
-          </div>
           <div class="panel-body control-panel-body">
             <label class="account-picker">
               <span class="kicker">Client context</span>
@@ -133,16 +130,25 @@ export function bindAccountDetail(root, account, accounts = [], options = {}) {
 
 function renderThreadHistory(threads, currentThreadId) {
   if (!threads.length) {
-    return '<div class="thread-history sidebar-thread-history"><span class="thread-history-empty">Recent chats will appear here.</span></div>';
+    return `
+      <details class="thread-history-group" open>
+        <summary class="group-label"><span>Recent chats</span><span>0</span></summary>
+        <div class="thread-history-list"><span class="thread-history-empty">Recent chats will appear here.</span></div>
+      </details>
+    `;
   }
+  const items = threads.slice(0, 30);
   return `
-    <div class="thread-history sidebar-thread-history" aria-label="Recent chat history">
-      ${threads.slice(0, 8).map((thread) => `
-        <button type="button" class="thread-chip ${thread.thread_id === currentThreadId ? "active" : ""}" data-pcad-thread-chip="${escapeHtml(thread.thread_id)}">
-          <span>${escapeHtml(thread.title || "Untitled chat")}</span>
-        </button>
-      `).join("")}
-    </div>
+    <details class="thread-history-group" open>
+      <summary class="group-label"><span>Recent chats</span><span>${threads.length}</span></summary>
+      <div class="thread-history-list" data-pcad-scroll-key="threads:sidebar" aria-label="Recent chat history">
+        ${items.map((thread) => `
+          <button type="button" class="thread-row ${thread.thread_id === currentThreadId ? "active" : ""}" data-pcad-thread-chip="${escapeHtml(thread.thread_id)}">
+            <span class="thread-row-title">${escapeHtml(thread.title || "Untitled chat")}</span>
+          </button>
+        `).join("")}
+      </div>
+    </details>
   `;
 }
 
