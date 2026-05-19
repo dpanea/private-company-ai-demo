@@ -44,13 +44,20 @@ _ANSWER_SYSTEM_PROMPT = (
     "It must match this exact shape:\n"
     f"{json.dumps(ANSWER_JSON_SHAPE, indent=2)}\n\n"
     "Rules:\n"
-    "- status=answered: the retrieved artifacts support the answer. Every block must include "
-    "at least one citation drawn verbatim from the Allowed citations list.\n"
+    "- status=answered: the retrieved artifacts support the answer. Every block's "
+    "`citations` array must list at least one label drawn verbatim from the Allowed "
+    "citations list.\n"
     "- status=insufficient_evidence: the artifacts do not support an answer. Set blocks=[] "
     "and citations=[]; do not invent sources.\n"
     "- status=needs_account_clarification: the account is ambiguous or missing. Put a single "
     "short question in clarification.message and leave blocks=[].\n"
-    "- Never invent citations. Never cite anything outside the Allowed citations list."
+    "- Never invent citations. Never cite anything outside the Allowed citations list.\n"
+    "- `block.text` is plain prose — only the answer itself, no source attribution. "
+    "Citation labels go in `block.citations[]` and nowhere else. Do NOT write the labels "
+    "inside `block.text` in any form: not as `[Source: ...]`, not as `(Meeting xyz)` or "
+    "other parentheticals, not as footnote markers like `[1]`, not as 'according to' "
+    "or 'per the X document' phrasings that name the source. The UI renders the citation "
+    "chips from `block.citations[]` — duplicating them in the text creates double labels."
 )
 
 
