@@ -32,13 +32,23 @@ WORKFLOW_SEEDS = {
     "open_risks": "What are the open risks, objections, or unresolved questions for {account_name}?",
     "follow_up_draft": "Draft a short follow-up email to the primary contact at {account_name}. Reference the most recent meaningful interaction.",
     "next_action": "What is the most important next action I should take on {account_name} this week?",
+    "catch_me_up": "Catch me up on the topic the user provides, using all relevant company knowledge and visible source citations.",
+    "decision_archaeology": "Explain what was decided about the topic the user provides, including the reasoning and any conditions for reopening the decision.",
+}
+
+ACCOUNT_REQUIRED_INTENTS = {
+    "briefing",
+    "next_action",
+    "draft_follow_up",
+    "follow_up_draft",
+    "stakeholder_question",
 }
 
 
 @dataclass
 class PreparedPipeline:
-    account_id: str
-    account_name: str
+    account_id: str | None
+    account_name: str | None
     pack: dict[str, Any]
 
 
@@ -253,13 +263,19 @@ class ConversationService:
         intent = self.intent_resolver.resolve(user_request)
         if previous_account_id and not explicit_account_id:
             account_id, account_name = previous_account_id, previous_account_name or ""
-        else:
+        elif _requires_account_context(intent):
             try:
                 account_id, account_name = self.retriever.resolve_account(
                     user_request, explicit_account_id=explicit_account_id
                 )
             except AccountResolutionError as exc:
                 return ClarificationResult(answer=_account_resolution_error_answer(exc), error=exc)
+        else:
+            account_id, account_name = _optional_account_context(
+                self.retriever,
+                user_request,
+                explicit_account_id=explicit_account_id,
+            )
 
         plan = self.retriever.build_retrieval_plan(user_request, account_id, account_name, intent, session_id=session_id)
         base_context = self.retriever.fetch_base_context(plan)
@@ -407,11 +423,11 @@ def _account_resolution_error_answer(error: AccountResolutionError) -> str:
         return (
             "Happy to help — I just need to know which client you're asking about. "
             f"A few accounts could match: {candidates}. "
-            "Pick one from the client menu on the left, or mention the client name in your message."
+            "Pick one from the knowledge context menu on the left, or mention the client name in your message."
         )
     return (
         "Happy to help — I just need to know which client you're asking about. "
-        "Pick a client from the menu on the left, or include the client name in your message and I'll take it from there."
+        "Pick a client from the knowledge context menu on the left, or include the client name in your message and I'll take it from there."
     )
 
 
@@ -433,7 +449,11 @@ def _collect_citations_from_pack(pack: dict[str, Any], cited: set[str]) -> list[
                 continue
             if label in seen:
                 continue
-            artifact_id = _artifact_id_for_citation(citation, pack.get("account_id"))
+            artifact_id = _artifact_id_for_citation(
+                citation,
+                pack.get("account_id"),
+                item.get("metadata", {}),
+            )
             if artifact_id is None:
                 continue
             seen.add(label)
@@ -453,7 +473,14 @@ def _collect_citations_from_pack(pack: dict[str, Any], cited: set[str]) -> list[
     return citations
 
 
-def _artifact_id_for_citation(citation: dict[str, Any], account_id: str | None) -> str | None:
+def _artifact_id_for_citation(
+    citation: dict[str, Any],
+    account_id: str | None,
+    metadata: dict[str, Any] | None = None,
+) -> str | None:
+    source_artifact_id = (metadata or {}).get("source_artifact_id")
+    if source_artifact_id:
+        return str(source_artifact_id)
     record_id = str(citation.get("source_record_id") or "")
     if ":" in record_id:
         return record_id
@@ -466,6 +493,24 @@ def _artifact_id_for_citation(citation: dict[str, Any], account_id: str | None) 
             return None
         return f"{prefix}:{account_id}:{safe_id(record_id)}"
     return f"{prefix}:{record_id}"
+
+
+def _requires_account_context(intent: IntentResult) -> bool:
+    return intent.intent in ACCOUNT_REQUIRED_INTENTS
+
+
+def _optional_account_context(
+    retriever: PostgresHybridRetriever,
+    user_request: str,
+    *,
+    explicit_account_id: str | None,
+) -> tuple[str | None, str | None]:
+    if explicit_account_id:
+        return retriever.resolve_account(user_request, explicit_account_id=explicit_account_id)
+    try:
+        return retriever.resolve_account(user_request)
+    except AccountResolutionError:
+        return None, None
 
 
 def _sidebar_citation_label(citation: dict[str, Any]) -> str:

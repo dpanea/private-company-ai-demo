@@ -74,6 +74,11 @@ def run_demo_ingestion(
             parsed = _parse_artifact(synthetic_dir, rendered_root, account.account_id, artifact)
             raw_artifacts.extend(parsed.raw_artifacts)
             ocr_runs += parsed.ocr_runs
+    if manifest.internal_knowledge:
+        for artifact in manifest.internal_knowledge.artifacts:
+            parsed = _parse_artifact(synthetic_dir, rendered_root, manifest.internal_knowledge.account_id, artifact)
+            raw_artifacts.extend(parsed.raw_artifacts)
+            ocr_runs += parsed.ocr_runs
 
     dataset.raw_artifacts = raw_artifacts
     docs = DocumentBuilder(dataset, raw_artifacts=raw_artifacts).build_all()

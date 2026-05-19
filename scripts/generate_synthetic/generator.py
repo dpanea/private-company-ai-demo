@@ -10,6 +10,7 @@ from .accounts import AccountSpec, build_accounts, build_crm_records
 from .csv_writer import write_crm_csvs
 from .docx_writer import write_docx
 from .emails import write_mbox
+from .internal import write_internal_knowledge
 from .meetings import write_meeting
 from .pdfs import write_pdf
 from .render_scanned import render_scanned_pdf
@@ -86,10 +87,12 @@ def generate_corpus(output: Path, reference_date: date, clean: bool = False) -> 
             }
         )
 
+    internal_knowledge = write_internal_knowledge(output, reference_date)
     crm_paths = write_crm_csvs(output / "crm", build_crm_records(accounts, reference_date))
     manifest = {
         "reference_date": reference_date.isoformat(),
         "accounts": manifest_accounts,
+        "internal_knowledge": internal_knowledge,
         "crm": crm_paths,
     }
     (output / "manifest.json").write_text(

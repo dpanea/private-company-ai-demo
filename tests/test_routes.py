@@ -209,6 +209,59 @@ def test_create_thread_then_send_message_via_sse_stream(migrated_db: str) -> Non
     assert any("Email msg_1" in block["citations"] for block in assistant["metadata"]["blocks"])
 
 
+def test_all_company_thread_searches_without_account_clarification(migrated_db: str) -> None:
+    settings = make_settings(migrated_db)
+    seed_user(settings, user_id="USR_INTERNAL")
+    seed_account(
+        settings,
+        account_id="SYN_ACC_INTERNAL",
+        account_name="Internal company knowledge",
+        owner_id="USR_INTERNAL",
+    )
+    seed_rag_document(
+        settings,
+        doc_id="source_artifact_chunk:meeting:SYN_ACC_INTERNAL:engineering_decision_record:transcript",
+        account_id="SYN_ACC_INTERNAL",
+        doc_type="source_artifact_chunk",
+        title="Engineering decision record",
+        content="We decided to use Postgres with pgvector because citations, source artifacts, and embeddings can stay in one auditable database.",
+        metadata={
+            "source_artifact_id": "meeting:SYN_ACC_INTERNAL:engineering_decision_record",
+            "account_id": "SYN_ACC_INTERNAL",
+            "account_name": "Internal company knowledge",
+        },
+        citations=[
+            {
+                "source_object": "Meeting",
+                "source_record_id": "engineering_decision_record",
+                "title": "Engineering decision record",
+            }
+        ],
+    )
+    app, _ = _app_with_deterministic_llm(settings)
+
+    with TestClient(app) as client:
+        thread_response = client.post(
+            "/api/threads",
+            json={"account_id": None, "workflow_seed": None},
+        )
+        assert thread_response.status_code == 200
+        thread_id = thread_response.json()["thread_id"]
+
+        stream_resp = client.post(
+            f"/api/threads/{thread_id}/messages/stream",
+            json={"message": "What did we decide about Postgres and pgvector?"},
+        )
+        assert stream_resp.status_code == 200
+        assert "needs_account_clarification" not in stream_resp.text
+
+        messages_after = client.get(f"/api/threads/{thread_id}/messages").json()
+
+    assistant = messages_after[-1]
+    assert assistant["metadata"]["response_type"] == "answer"
+    assert assistant["citations"][0]["artifact_id"] == "meeting:SYN_ACC_INTERNAL:engineering_decision_record"
+
+
 # ---------------------------------------------------------------------------
 # Fake notes + background task
 # ---------------------------------------------------------------------------

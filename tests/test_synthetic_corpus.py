@@ -24,6 +24,9 @@ def test_generate_synthetic_cli_creates_complete_manifest(tmp_path: Path) -> Non
 
     assert manifest["reference_date"] == REFERENCE_DATE
     assert len(manifest["accounts"]) == 3
+    assert manifest["internal_knowledge"]["account_id"] == "SYN_ACC_INTERNAL"
+    assert manifest["internal_knowledge"]["account_name"] == "Internal company knowledge"
+    assert len(manifest["internal_knowledge"]["artifacts"]) == 4
     assert set(manifest["crm"]) == set(CSV_MODELS)
 
     requires_ocr = []
@@ -38,6 +41,9 @@ def test_generate_synthetic_cli_creates_complete_manifest(tmp_path: Path) -> Non
             assert artifact_path.exists(), artifact_path
             if artifact.get("requires_ocr"):
                 requires_ocr.append(artifact_path)
+    for artifact in manifest["internal_knowledge"]["artifacts"]:
+        artifact_path = output / artifact["path"]
+        assert artifact_path.exists(), artifact_path
 
     assert len(requires_ocr) == 1
     assert _extract_pdf_text(requires_ocr[0]) == ""
@@ -74,6 +80,10 @@ def test_generated_content_uses_verified_fictional_names(tmp_path: Path) -> None
     assert "Brannfeld Industrial GmbH" in manifest_text
     assert "Rynvoss Logistics BV" in manifest_text
     assert "Caldrisa Dental Group" in manifest_text
+    assert "Internal company knowledge" in manifest_text
+    assert "SOC 2 readiness work is underway; certification is not claimed" in (
+        output / "accounts" / "internal_company_knowledge" / "all_hands_strategy_recap.md"
+    ).read_text(encoding="utf-8")
 
 
 def _run_generator(output: Path) -> None:

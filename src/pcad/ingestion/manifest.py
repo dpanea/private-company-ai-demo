@@ -39,6 +39,7 @@ class SyntheticManifest(BaseModel):
 
     reference_date: date
     accounts: list[ManifestAccount]
+    internal_knowledge: ManifestAccount | None = None
     crm: ManifestCrm
 
 
@@ -50,4 +51,3 @@ def load_manifest(synthetic_dir: Path) -> SyntheticManifest:
     except FileNotFoundError as exc:
         raise FileNotFoundError(f"Synthetic manifest not found: {path}") from exc
     return SyntheticManifest.model_validate(payload)
-

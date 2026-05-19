@@ -22,8 +22,8 @@ def test_run_demo_ingestion_populates_expected_tables(empty_db: str, tmp_path: P
 
     report = run_demo_ingestion(settings, synthetic_dir=synthetic_dir, clean=True, skip_embeddings=True)
 
-    assert report.accounts == 1
-    assert report.raw_artifacts == 3
+    assert report.accounts == 2
+    assert report.raw_artifacts == 4
     assert report.rag_documents >= 3
     with psycopg.connect(empty_db) as conn:
         doc_types = {
@@ -88,13 +88,18 @@ def _mini_corpus(tmp_path: Path) -> Path:
     root = tmp_path / "mini_corpus"
     crm = root / "crm"
     account_dir = root / "accounts" / "northstar_robotics"
+    internal_dir = root / "accounts" / "internal_company_knowledge"
     crm.mkdir(parents=True)
     account_dir.mkdir(parents=True)
+    internal_dir.mkdir(parents=True)
     _write_csv(crm / "users.csv", ["user_id", "name"], [["SYN_USER_0001", "Avery Stone"]])
     _write_csv(
         crm / "accounts.csv",
         ["account_id", "account_name", "owner_id", "industry"],
-        [["SYN_ACC_0001", "Northstar Robotics", "SYN_USER_0001", "Manufacturing"]],
+        [
+            ["SYN_ACC_0001", "Northstar Robotics", "SYN_USER_0001", "Manufacturing"],
+            ["SYN_ACC_INTERNAL", "Internal company knowledge", "SYN_USER_0001", "Company operations"],
+        ],
     )
     _write_mbox(account_dir / "emails.mbox")
     (account_dir / "meeting.md").write_text(
@@ -107,6 +112,19 @@ def _mini_corpus(tmp_path: Path) -> Path:
 
 **Daniel:** We reviewed the pilot scope and agreed on the next step.
 **Jordan:** The main concern is security approval before procurement can sign.
+""",
+        encoding="utf-8",
+    )
+    (internal_dir / "decision.md").write_text(
+        """# Meeting: Engineering decision record - Postgres and pgvector
+
+**Date:** 2026-05-04
+**Attendees:** Daniel Panea, Architecture reviewers
+
+---
+
+**Daniel:** We decided to use Postgres with pgvector because source artifacts, citations, and embeddings can stay in one auditable database.
+**Reviewer:** The decision can be reopened if corpus size or isolation requirements exceed what a single database handles cleanly.
 """,
         encoding="utf-8",
     )
@@ -125,6 +143,18 @@ def _mini_corpus(tmp_path: Path) -> Path:
                         ],
                     }
                 ],
+                "internal_knowledge": {
+                    "account_id": "SYN_ACC_INTERNAL",
+                    "account_slug": "internal_company_knowledge",
+                    "account_name": "Internal company knowledge",
+                    "artifacts": [
+                        {
+                            "path": "accounts/internal_company_knowledge/decision.md",
+                            "type": "meeting_transcript",
+                            "format": "markdown",
+                        }
+                    ],
+                },
                 "crm": {
                     "users": "crm/users.csv",
                     "accounts": "crm/accounts.csv",

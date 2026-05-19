@@ -8,6 +8,9 @@ from typing import Any, Literal
 
 BASE_REFERENCE_DATE = date(2026, 5, 13)
 OWNER_ID = "SYN_USR_0001"
+INTERNAL_ACCOUNT_ID = "SYN_ACC_INTERNAL"
+INTERNAL_ACCOUNT_SLUG = "internal_company_knowledge"
+INTERNAL_ACCOUNT_NAME = "Internal company knowledge"
 
 
 @dataclass(frozen=True)
@@ -893,6 +896,24 @@ def build_crm_records(accounts: list[AccountSpec], reference_date: date) -> dict
                 "raw_record_hash": f"hash_account_{index:04d}",
             }
         )
+    account_rows.append(
+        {
+            "account_id": INTERNAL_ACCOUNT_ID,
+            "account_name": INTERNAL_ACCOUNT_NAME,
+            "account_type": "internal_knowledge",
+            "industry": "Company operations",
+            "website": "https://danielpanea.example/internal-knowledge",
+            "phone": "",
+            "billing_country": "",
+            "billing_city": "",
+            "owner_id": OWNER_ID,
+            "parent_account_id": "",
+            "created_at": datetime.combine(shift_date(d("2026-03-20"), reference_date), time(8), tzinfo=timezone.utc).isoformat(),
+            "updated_at": now.isoformat(),
+            "source_url": "",
+            "raw_record_id": "CRM_ACC_INTERNAL",
+            "raw_record_hash": "hash_account_internal",
+        }
+    )
     return {"users": users, "accounts": account_rows}
-
 

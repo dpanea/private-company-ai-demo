@@ -18,7 +18,7 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
           <div class="thread-context-copy">
             <p class="kicker">${escapeHtml(account?.industry || "Unified company memory")}</p>
             <h2>${escapeHtml(currentThread?.title || "Ask across company data")}</h2>
-            <p class="sub">${escapeHtml(account?.account_name || "No client selected")} · ${escapeHtml(threads.length ? `${threads.length} recent chats` : "No chats yet")}</p>
+            <p class="sub">${escapeHtml(account?.account_name || "All company knowledge")} · ${escapeHtml(threads.length ? `${threads.length} recent chats` : "No chats yet")}</p>
           </div>
         </div>
       </div>
@@ -28,7 +28,7 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
       </div>
       <form class="composer" data-pcad-composer>
         <div class="composer-row">
-          <textarea name="message" rows="2" placeholder="Ask about a client, artifact, risk, or follow-up" ${isStreaming ? "disabled" : ""}></textarea>
+          <textarea name="message" rows="2" placeholder="Ask about a client, policy, decision, artifact, or risk" ${isStreaming ? "disabled" : ""}></textarea>
           <button class="primary-action" type="submit" ${isStreaming ? "disabled" : ""}>Send</button>
         </div>
         <span class="affordance">Enter to send, Shift+Enter for newline</span>

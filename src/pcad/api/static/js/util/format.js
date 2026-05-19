@@ -43,6 +43,8 @@ export function artifactIconSvg(type) {
 export function workflowLabel(seed) {
   return {
     new_chat: "New chat",
+    catch_me_up: "Catch me up on a topic",
+    decision_archaeology: "What did we decide about...?",
     call_briefing: "Brief me before a call",
     what_changed: "What changed?",
     open_risks: "Open risks",

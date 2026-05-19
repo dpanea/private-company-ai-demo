@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 
 INTENT_KEYWORDS = {
+    "topic_catchup": ("catch me up", "catch up", "overview", "summary", "status", "where are we"),
+    "decision_archaeology": ("what did we decide", "decision", "decided", "why did we pick", "why we picked", "reopen"),
     "briefing": ("brief", "briefing", "before a call", "call prep", "prepare me"),
     "what_changed": ("what changed", "changed", "new", "recent", "last 14 days", "since", "updates"),
     "open_risks": ("risk", "risks", "objection", "concern", "blocker", "blocked", "unresolved", "worried"),

@@ -63,5 +63,13 @@ def test_demo_layout_uses_inline_citations_and_grouped_sources() -> None:
     assert 'aria-label="Source artifacts"' in account_detail
     assert "<details" in account_detail
     assert "data-pcad-account-select" in account_detail
+    assert "Knowledge context" in account_detail
+    assert "All company knowledge" in account_detail
+    assert "Internal company knowledge" in account_detail
+    assert "disabled>Clients</option>" in account_detail
+    assert "catch_me_up" in account_detail
+    assert "decision_archaeology" in account_detail
+    assert "what_changed" not in account_detail
+    assert "next_action" not in account_detail
     assert "renderAssistantBlocks" in conversation_panel
     assert "reflowParagraph" in artifact_modal

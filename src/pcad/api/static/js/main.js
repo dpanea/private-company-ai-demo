@@ -27,8 +27,8 @@ async function bootstrap() {
     state.set("session", session);
     state.set("accounts", accounts);
     state.set("threads", threads);
-    // Eagerly load every client's artifacts so the unified panel can show them
-    // collapsed-by-client before the user picks one.
+    // Eagerly load every knowledge context's artifacts so the unified panel can
+    // show internal sources and client sources before the user narrows context.
     await Promise.all(accounts.map((account) => loadArtifactsForAccount(account.account_id)));
   } catch (error) {
     state.set("lastError", error);

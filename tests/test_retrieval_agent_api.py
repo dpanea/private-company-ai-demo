@@ -15,6 +15,8 @@ def test_intent_resolver_new_workflow_intents() -> None:
     resolver = IntentResolver()
 
     assert resolver.resolve("Brief me before a call with Northstar").intent == "briefing"
+    assert resolver.resolve("Catch me up on SOC 2 readiness").intent == "topic_catchup"
+    assert resolver.resolve("What did we decide about Postgres and pgvector?").intent == "decision_archaeology"
     assert resolver.resolve("What changed in the last 14 days?").intent == "what_changed"
     assert resolver.resolve("What open risks or blockers remain?").intent == "open_risks"
     assert resolver.resolve("What is the next action this week?").intent == "next_action"
@@ -159,6 +161,30 @@ def test_source_artifact_citations_are_openable_artifacts() -> None:
             "excerpt": None,
         }
     ]
+
+
+def test_unscoped_source_artifact_citation_uses_doc_metadata_artifact_id() -> None:
+    pack = {
+        "account_id": None,
+        "retrieved_documents": [
+            {
+                "metadata": {
+                    "source_artifact_id": "meeting:SYN_ACC_INTERNAL:engineering_decision_record",
+                },
+                "citations": [
+                    {
+                        "source_object": "Meeting",
+                        "source_record_id": "engineering_decision_record",
+                        "title": "Engineering decision record",
+                    }
+                ],
+            }
+        ],
+    }
+
+    citations = _citations_from_pack(pack, {"cited": {"Meeting engineering_decision_record"}})
+
+    assert citations[0]["artifact_id"] == "meeting:SYN_ACC_INTERNAL:engineering_decision_record"
 
 
 def test_rrf_merge_aggregates_reasons_and_picks_top_rank_doc() -> None:

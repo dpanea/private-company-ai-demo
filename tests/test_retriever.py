@@ -22,7 +22,7 @@ from tests._seed import make_settings, seed_account, seed_rag_document, seed_use
 
 
 def _intent(query: str) -> IntentResult:
-    return IntentResult(raw_query=query, intent="account_question", confidence=1.0, source="test")
+    return IntentResult("account_question")
 
 
 def test_resolve_account_explicit_id_returns_account(migrated_db: str) -> None:

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Open-source reference architecture for turning messy company artifacts into source-backed AI account memory.</strong>
+  <strong>Open-source reference architecture for turning messy company artifacts into source-backed company knowledge.</strong>
 </p>
 
 <p align="center">
@@ -28,7 +28,7 @@
 
 ![Private Company Memory Copilot landing page](docs/assets/readme/landing-hero.png)
 
-This repo is a public, synthetic demo of a private company memory layer. It ingests messy account artifacts, normalizes them into AI-ready documents, indexes them in Postgres with hybrid retrieval, and answers account questions through guided workflows with citations.
+This repo is a public, synthetic demo of a private company memory layer. It ingests messy account and internal company artifacts, normalizes them into AI-ready documents, indexes them in Postgres with hybrid retrieval, and answers company knowledge questions through guided workflows with citations.
 
 It is designed to show the shape of a serious private AI deployment without publishing client data, auth systems, or production SaaS machinery.
 
@@ -44,8 +44,8 @@ It is designed to show the shape of a serious private AI deployment without publ
     </td>
   </tr>
   <tr>
-    <td><strong>Pick a synthetic account.</strong><br>Three fictional accounts expose different deal states, source counts, and alert profiles.</td>
-    <td><strong>Ask from the memory layer.</strong><br>Artifacts, guided workflows, alerts, chat, and citations live in one focused account workspace.</td>
+    <td><strong>Pick a knowledge context.</strong><br>All company knowledge, internal company knowledge, and three fictional client accounts are available.</td>
+    <td><strong>Ask from the memory layer.</strong><br>Artifacts, guided workflows, chat, and citations stay tied to the selected context.</td>
   </tr>
 </table>
 
@@ -58,10 +58,10 @@ Video slot for a future walkthrough:
 ## What It Proves
 
 - Multi-format ingestion: synthetic emails, PDFs, Word docs, meeting transcripts, and CRM-style CSV exports.
-- AI-ready account memory: parsed artifacts become normalized documents with metadata, source references, and embeddings.
+- AI-ready company memory: parsed artifacts become normalized documents with metadata, source references, and embeddings.
 - Hybrid retrieval: Postgres full-text search, vector search through pgvector, and reranking-ready retrieval plumbing.
 - Source-backed answers: the conversation service validates citations and keeps evidence visible.
-- Guided workflows: call briefing, what changed, open risks, follow-up draft, and next action are seeded as account-aware chat turns.
+- Guided workflows: topic catch-up, decision archaeology, call briefing, open risks, and follow-up drafting run with optional knowledge context.
 - Visitor-safe demo behavior: anonymous session cookies, visitor-scoped synthetic notes, and no user accounts.
 - Public reference boundary: enough architecture to learn from, without pretending to be a turnkey production product.
 

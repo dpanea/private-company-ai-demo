@@ -7,11 +7,25 @@ import { bindConversationPanel, renderConversationPanel, startThread } from "./c
 import { openFakeNoteModal } from "./fake_note_modal.js";
 import { openArtifactModal } from "./artifact_modal.js";
 
-const workflows = ["new_chat", "call_briefing", "what_changed", "open_risks", "follow_up_draft", "next_action"];
+const INTERNAL_ACCOUNT_ID = "SYN_ACC_INTERNAL";
+const generalPromptWorkflows = {
+  catch_me_up: "Catch me up on ",
+  decision_archaeology: "What did we decide about ",
+};
+const workflows = [
+  { seed: "new_chat", scope: "utility" },
+  { seed: "catch_me_up", scope: "general" },
+  { seed: "decision_archaeology", scope: "general" },
+  { seed: "call_briefing", scope: "client" },
+  { seed: "open_risks", scope: "client" },
+  { seed: "follow_up_draft", scope: "client" },
+];
 const artifactOrder = ["Email", "PDF", "Word document", "Meeting", "Test notes"];
 
 export function renderAccountDetail(account, accounts = []) {
   const accountId = account?.account_id || null;
+  const internalAccount = accounts.find(isInternalAccount) || null;
+  const clientAccounts = accounts.filter((item) => !isInternalAccount(item));
   const artifactsByAccount = state.get("artifactsByAccount") || {};
   const artifacts = accountId
     ? (artifactsByAccount[accountId] || [])
@@ -26,18 +40,19 @@ export function renderAccountDetail(account, accounts = []) {
         <aside class="detail-panel control-panel" aria-label="Chat controls">
           <div class="panel-body control-panel-body">
             <label class="account-picker">
-              <span class="kicker">Client context</span>
+              <span class="kicker">Knowledge context</span>
               <select data-pcad-account-select>
-                <option value="">No client selected</option>
-                ${accounts.map((item) => `<option value="${escapeHtml(item.account_id)}" ${item.account_id === accountId ? "selected" : ""}>${escapeHtml(accountName(item))}</option>`).join("")}
+                <option value="">All company knowledge</option>
+                ${internalAccount ? `<option value="${escapeHtml(internalAccount.account_id)}" ${internalAccount.account_id === accountId ? "selected" : ""}>Internal company knowledge</option>` : ""}
+                ${clientAccounts.length ? `<option value="" disabled>Clients</option>${clientAccounts.map((item) => `<option value="${escapeHtml(item.account_id)}" ${item.account_id === accountId ? "selected" : ""}>${escapeHtml(accountName(item))}</option>`).join("")}` : ""}
               </select>
             </label>
             <div class="workflow-stack" data-pcad-workflows>
-              ${workflows.map((seed) => `<button class="workflow-btn ${seed === "new_chat" ? "new-chat" : ""}" type="button" data-pcad-workflow="${seed}">${workflowLabel(seed)}</button>`).join("")}
+              ${workflows.map((workflow) => `<button class="workflow-btn ${workflow.seed === "new_chat" ? "new-chat" : ""}" type="button" data-pcad-workflow="${workflow.seed}" data-pcad-workflow-scope="${workflow.scope}">${workflowLabel(workflow.seed)}</button>`).join("")}
             </div>
             ${renderThreadHistory(threads, currentThreadId)}
             <div class="thread-actions sidebar-actions">
-              <button class="secondary-action memory-note-action" type="button" data-pcad-open-fake-note title="${accountId ? "Add a test note for this client" : "Pick a client first to add a test note"}">Add test note</button>
+              <button class="secondary-action memory-note-action" type="button" data-pcad-open-fake-note title="${accountId && accountId !== INTERNAL_ACCOUNT_ID ? "Add a test note for this client" : "Pick a client first to add a test note"}">Add test note</button>
               <button class="secondary-action session-reset-action" type="button" data-pcad-reset-demo-session>Reset demo</button>
             </div>
           </div>
@@ -80,8 +95,19 @@ export function bindAccountDetail(root, account, accounts = [], options = {}) {
   root.querySelectorAll("[data-pcad-workflow]").forEach((button) => {
     button.addEventListener("click", async () => {
       const workflow = button.dataset.pcadWorkflow;
+      const scope = button.dataset.pcadWorkflowScope;
       if (workflow === "new_chat") {
         await startThread(selectedAccountId, null, { streamSeed: false });
+        return;
+      }
+      if (scope === "general") {
+        prefillComposer(root, generalPromptWorkflows[workflow] || workflowLabel(workflow));
+        return;
+      }
+      if (scope === "client" && (!selectedAccountId || selectedAccountId === INTERNAL_ACCOUNT_ID)) {
+        const select = root.querySelector("[data-pcad-account-select]");
+        select?.focus();
+        showToast("Pick a client context for this workflow.", "warning");
         return;
       }
       await startThread(selectedAccountId, workflow, { streamSeed: true, account });
@@ -95,7 +121,7 @@ export function bindAccountDetail(root, account, accounts = [], options = {}) {
   });
 
   root.querySelector("[data-pcad-open-fake-note]")?.addEventListener("click", () => {
-    if (!selectedAccountId) {
+    if (!selectedAccountId || selectedAccountId === INTERNAL_ACCOUNT_ID) {
       const select = root.querySelector("[data-pcad-account-select]");
       select?.focus();
       showToast("Pick a client first — the test note attaches to one client.", "warning");
@@ -153,7 +179,7 @@ function renderThreadHistory(threads, currentThreadId) {
 }
 
 function renderArtifactGroups(artifacts, accountId) {
-  if (!artifacts.length) return emptyState("No source artifacts have loaded for this client.");
+  if (!artifacts.length) return emptyState("No source artifacts have loaded for this context.");
   const groups = new Map();
   for (const artifact of artifacts) {
     const label = artifact.metadata?.test_note ? "Test notes" : formatArtifactType(artifact.artifact_type);
@@ -171,12 +197,17 @@ function renderArtifactGroups(artifacts, accountId) {
 }
 
 function renderArtifactGroupsByAccount(accounts, artifactsByAccount) {
-  if (!accounts.length) return emptyState("No clients available.");
-  const sections = accounts
+  if (!accounts.length) return emptyState("No knowledge contexts available.");
+  const orderedAccounts = [
+    ...accounts.filter(isInternalAccount),
+    ...accounts.filter((account) => !isInternalAccount(account)),
+  ];
+  const sections = orderedAccounts
     .map((account) => {
       const items = artifactsByAccount[account.account_id] || [];
       if (!items.length) return "";
-      return renderArtifactGroup(account.account_name, items, account.account_id, false);
+      const label = isInternalAccount(account) ? "Internal company knowledge" : account.account_name;
+      return renderArtifactGroup(label, items, account.account_id, isInternalAccount(account));
     })
     .filter(Boolean);
   return sections.length ? sections.join("") : emptyState("No source artifacts have loaded yet.");
@@ -207,4 +238,16 @@ function renderArtifactRow(artifact, accountId) {
       </span>
     </a>
   `;
+}
+
+function prefillComposer(root, text) {
+  const textarea = root.querySelector("[data-pcad-composer] textarea");
+  if (!textarea) return;
+  textarea.value = text;
+  textarea.focus();
+  textarea.setSelectionRange(text.length, text.length);
+}
+
+function isInternalAccount(account) {
+  return account?.account_id === INTERNAL_ACCOUNT_ID || account?.account_type === "internal_knowledge";
 }

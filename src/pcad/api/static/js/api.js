@@ -108,6 +108,17 @@ const mockSession = { session_id: "mock-session-browser", created_at: today };
 
 const mockAccounts = [
   {
+    account_id: "SYN_ACC_INTERNAL",
+    account_name: "Internal company knowledge",
+    account_type: "internal_knowledge",
+    industry: "Company operations",
+    billing_country: "",
+    status: "Internal",
+    context: "Operating handbook, strategy notes, vendor boundaries, and engineering decisions.",
+    artifact_count: 4,
+    days_since_activity: 1,
+  },
+  {
     account_id: "SYN_ACC_BRANNFELD",
     account_name: "Brannfeld Industrial",
     industry: "Industrial automation",
@@ -140,6 +151,12 @@ const mockAccounts = [
 ];
 
 const mockArtifacts = {
+  SYN_ACC_INTERNAL: [
+    artifact("docx:SYN_ACC_INTERNAL:onboarding_handbook", "SYN_ACC_INTERNAL", "docx", "Internal onboarding handbook", "docx_xml", { paragraph_count: 22 }),
+    artifact("meeting:SYN_ACC_INTERNAL:all_hands_strategy_recap", "SYN_ACC_INTERNAL", "meeting_transcript", "All-hands strategy recap", "plain_text", { attendees_count: 3, date: "2026-05-09" }),
+    artifact("pdf:SYN_ACC_INTERNAL:vendor_contract_summary", "SYN_ACC_INTERNAL", "pdf", "Vendor contract summary", "plain_text", { page_count: 3 }),
+    artifact("meeting:SYN_ACC_INTERNAL:engineering_decision_record_postgres_pgvector", "SYN_ACC_INTERNAL", "meeting_transcript", "Engineering decision record: Postgres and pgvector", "plain_text", { attendees_count: 2, date: "2026-04-26" }),
+  ],
   SYN_ACC_BRANNFELD: [
     artifact("art-brann-email-1", "SYN_ACC_BRANNFELD", "email", "Procurement email: deployment boundary", "plain_text", { sender: "Marta Keller", date: "2026-05-04", subject: "Deployment boundary" }),
     artifact("art-brann-proposal", "SYN_ACC_BRANNFELD", "pdf", "Q2 proposal for private memory layer", "plain_text", { page_count: 4 }),
@@ -244,7 +261,7 @@ function createMockThread(accountId, workflowSeed) {
     session_id: mockSession.session_id,
     account_id: accountId,
     account_name: account?.account_name,
-    title: workflowSeed ? workflowSeed.replaceAll("_", " ") : "Account question",
+    title: workflowSeed ? workflowSeed.replaceAll("_", " ") : "Company question",
     workflow_seed: workflowSeed,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
