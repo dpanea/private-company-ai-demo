@@ -9,16 +9,11 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Isabel, thank you for outlining the clinic coordination problem. A private me=
-mory layer
-            can help regional leads understand appointment bottlenecks, refer=
-ral context, and open
-            follow-ups without exposing patient-level details in the demo. I =
-suggest we frame the
-            first pilot around operational notes, de-identified schedules, an=
-d compliance-approved
-            summaries. The output would be a cited briefing for clinical oper=
-ations, not a clinical
-            decision system.
+mory layer can help regional leads understand appointment bottlenecks, referr=
+al context, and open follow-ups without exposing patient-level details in the=
+ demo. I suggest we frame the first pilot around operational notes, de-identi=
+fied schedules, and compliance-approved summaries. The output would be a cite=
+d briefing for clinical operations, not a clinical decision system.
 
 From isabel.navarro@caldrisa-dental.es Wed, 15 Apr 2026 16:30:00 +0000
 Message-ID: <caldrisa-002@synthetic.danielpanea.com>
@@ -33,15 +28,11 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Daniel, this is very relevant. Our Madrid and Valencia clinics are sharing op=
-erational
-            lessons, but the context is buried in meeting notes and manager e=
-mails. Clara will need
-            comfort on GDPR and healthcare data handling before we use anythi=
-ng real. If we can
-            start with de-identified operational artifacts and still show use=
-ful answers with
-            citations, I think the clinical team will support a pilot proposa=
-l.
+erational lessons, but the context is buried in meeting notes and manager ema=
+ils. Clara will need comfort on GDPR and healthcare data handling before we u=
+se anything real. If we can start with de-identified operational artifacts an=
+d still show useful answers with citations, I think the clinical team will su=
+pport a pilot proposal.
 
 From clara.ramos@caldrisa-dental.es Fri, 24 Apr 2026 10:45:00 +0000
 Message-ID: <caldrisa-003@synthetic.danielpanea.com>
@@ -54,16 +45,11 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Daniel, before we proceed, please document how the pilot avoids patient-level=
- data,
-            how access to operational notes is scoped, and how generated answ=
-ers retain source
-            citations. I also need the retention period and deletion process =
-for any de-identified
-            source files. We can approve a narrow operational pilot, but only=
- if it is explicit
-            that the system does not make clinical recommendations or process=
- unnecessary health
-            data.
+ data, how access to operational notes is scoped, and how generated answers r=
+etain source citations. I also need the retention period and deletion process=
+ for any de-identified source files. We can approve a narrow operational pilo=
+t, but only if it is explicit that the system does not make clinical recommen=
+dations or process unnecessary health data.
 
 From daniel@danielpanea.com Tue, 28 Apr 2026 15:00:00 +0000
 Message-ID: <caldrisa-004@synthetic.danielpanea.com>
@@ -78,16 +64,11 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Clara and Isabel, I have attached the compliance memo. The recommended pilot =
-uses
-            de-identified operational artifacts, excludes patient-level clini=
-cal records, keeps
-            source citations visible, and treats every generated answer as op=
-erational support.
-            Retention is limited to the pilot window unless Caldrisa approves=
- an extension. The
-            architecture supports deletion by source artifact and re-indexing=
- so removed material
-            no longer appears in retrieved context.
+uses de-identified operational artifacts, excludes patient-level clinical rec=
+ords, keeps source citations visible, and treats every generated answer as op=
+erational support. Retention is limited to the pilot window unless Caldrisa a=
+pproves an extension. The architecture supports deletion by source artifact a=
+nd re-indexing so removed material no longer appears in retrieved context.
 
 From clara.ramos@caldrisa-dental.es Mon, 04 May 2026 11:15:00 +0000
 Message-ID: <caldrisa-005@synthetic.danielpanea.com>
@@ -100,14 +81,11 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Daniel, the memo resolves my main concern for the pilot phase. Please keep th=
-e wording
-            that the system is operational support and not clinical decision =
-support. I am also
-            comfortable with the proposed deletion process for de-identified =
-source files. From
-            Compliance, the next step can be a pilot proposal as long as Mate=
-o has reviewed the
-            access controls and Elena sees the commercial scope.
+e wording that the system is operational support and not clinical decision su=
+pport. I am also comfortable with the proposed deletion process for de-identi=
+fied source files. From Compliance, the next step can be a pilot proposal as =
+long as Mateo has reviewed the access controls and Elena sees the commercial =
+scope.
 
 From isabel.navarro@caldrisa-dental.es Fri, 08 May 2026 18:05:00 +0000
 Message-ID: <caldrisa-006@synthetic.danielpanea.com>
@@ -120,15 +98,11 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Daniel, the product specification and compliance memo landed well with the cl=
-inical
-            leads. This looks great, and I would like to move forward with a =
-pilot proposal for
-            patient-flow analytics. Please include the Madrid and Valencia cl=
-inic managers in the
-            first workshop and make the success metric practical: fewer misse=
-d follow-ups after
-            complex appointments and faster preparation for regional operatio=
-ns calls.
+inical leads. This looks great, and I would like to move forward with a pilot=
+ proposal for patient-flow analytics. Please include the Madrid and Valencia =
+clinic managers in the first workshop and make the success metric practical: =
+fewer missed follow-ups after complex appointments and faster preparation for=
+ regional operations calls.
 
 From elena.cortes@caldrisa-dental.es Mon, 11 May 2026 12:40:00 +0000
 Message-ID: <caldrisa-007@synthetic.danielpanea.com>
@@ -141,14 +115,9 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Daniel, Isabel briefed me on the clinical value and Clara confirmed that the =
-compliance
-            objections are resolved for a narrow pilot. Please send the EUR 3=
-4,000 proposal this
-            week with clear milestones and no production-grade integration la=
-nguage. If the scope
-            stays focused on de-identified operational context, Finance shoul=
-d be able to review it
-            quickly. I would also like a short note on what would remain out =
-of scope for any public
-            reference architecture.
+compliance objections are resolved for a narrow pilot. Please send the EUR 34=
+,000 proposal this week with clear milestones and no production-grade integra=
+tion language. If the scope stays focused on de-identified operational contex=
+t, Finance should be able to review it quickly. I would also like a short not=
+e on what would remain out of scope for any public reference architecture.
 

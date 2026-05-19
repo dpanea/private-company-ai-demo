@@ -8,20 +8,14 @@ Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
-Stefan, thanks for the short conversation after the Munich operations forum.
-            The pattern you described is exactly where a private company memo=
-ry layer helps:
-            maintenance notes, shift handovers, supplier emails, and CRM cont=
-ext all exist, but
-            no one has a reliable view before a production-line decision. I s=
-uggest a narrow
-            first discussion around one packaging line and the surrounding ve=
-ndor workflow.
-            The output would be a cited briefing rather than an autonomous de=
-cision system.
-            If useful, I can bring a small synthetic example so your team can=
- inspect how raw
-            source artifacts stay visible behind each answer.
+Stefan, thanks for the short conversation after the Munich operations forum. =
+The pattern you described is exactly where a private company memory layer hel=
+ps: maintenance notes, shift handovers, supplier emails, and CRM context all =
+exist, but no one has a reliable view before a production-line decision. I su=
+ggest a narrow first discussion around one packaging line and the surrounding=
+ vendor workflow. The output would be a cited briefing rather than an autonom=
+ous decision system. If useful, I can bring a small synthetic example so your=
+ team can inspect how raw source artifacts stay visible behind each answer.
 
 From stefan.moeller@brannfeld-industrial.de Thu, 09 Apr 2026 14:05:00 +0000
 Message-ID: <brannfeld-002@synthetic.danielpanea.com>
@@ -35,18 +29,13 @@ Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
-Daniel, this is timely. We lose too much time rebuilding context before weekly
-            production reviews, especially when procurement questions and eng=
-ineering notes are
-            scattered. I want Lukas from IT involved early because he will as=
-k about EU hosting,
-            audit logs, and whether any inference leaves Germany. If you can =
-keep the first demo
-            practical and tied to one line, I think we can get a useful conve=
-rsation going.
-            Please suggest two times next week and include a short descriptio=
-n I can forward to
-            Hanna, our COO.
+Daniel, this is timely. We lose too much time rebuilding context before weekl=
+y production reviews, especially when procurement questions and engineering n=
+otes are scattered. I want Lukas from IT involved early because he will ask a=
+bout EU hosting, audit logs, and whether any inference leaves Germany. If you=
+ can keep the first demo practical and tied to one line, I think we can get a=
+ useful conversation going. Please suggest two times next week and include a =
+short description I can forward to Hanna, our COO.
 
 From stefan.moeller@brannfeld-industrial.de Fri, 10 Apr 2026 08:45:00 +0000
 Message-ID: <brannfeld-003@synthetic.danielpanea.com>
@@ -59,21 +48,15 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Forwarding Daniel's note. My read is that this could reduce the manual prepar=
-ation
-            we do before production exception meetings. I am not asking for a=
- purchase decision;
-            I want us to understand whether the architecture is credible and =
-whether IT can live
-            with the deployment model. Lukas, please pressure-test the data r=
-esidency claims.
-            Hanna, the practical angle is that shift handovers and supplier i=
-ssues would become
-            searchable with citations, so managers stop relying on someone re=
-membering the right
-            email thread.
+ation we do before production exception meetings. I am not asking for a purch=
+ase decision; I want us to understand whether the architecture is credible an=
+d whether IT can live with the deployment model. Lukas, please pressure-test =
+the data residency claims. Hanna, the practical angle is that shift handovers=
+ and supplier issues would become searchable with citations, so managers stop=
+ relying on someone remembering the right email thread.
 
-            Forwarded message follows with Daniel's proposed agenda and a syn=
-thetic artifact demo.
+Forwarded message follows with Daniel's proposed agenda and a synthetic artif=
+act demo.
 
 From lukas.wagner@brannfeld-industrial.de Wed, 22 Apr 2026 16:10:00 +0000
 Message-ID: <brannfeld-004@synthetic.danielpanea.com>
@@ -86,17 +69,12 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Daniel, before Stefan pushes this further, I need clarity on three points. Fi=
-rst,
-            can inference run inside an EU-controlled environment, and can we=
- disable any generic
-            model training use? Second, what audit evidence exists for retrie=
-val decisions and
-            generated answers? Third, how would secrets and source connectors=
- be isolated if this
-            ever touched production data? The demo was useful, but we cannot =
-evaluate pricing until
-            those questions are answered in writing. Please treat this as an =
-open blocker from IT.
+rst, can inference run inside an EU-controlled environment, and can we disabl=
+e any generic model training use? Second, what audit evidence exists for retr=
+ieval decisions and generated answers? Third, how would secrets and source co=
+nnectors be isolated if this ever touched production data? The demo was usefu=
+l, but we cannot evaluate pricing until those questions are answered in writi=
+ng. Please treat this as an open blocker from IT.
 
 From daniel@danielpanea.com Thu, 23 Apr 2026 10:30:00 +0000
 Message-ID: <brannfeld-005@synthetic.danielpanea.com>
@@ -111,18 +89,13 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Lukas, understood. I will send a short audit posture summary by Friday. The r=
-eference
-            architecture has two deployment modes: a hosted API path for the =
-public demo and a
-            sovereign path where inference is exposed through an OpenAI-compa=
-tible endpoint inside
-            customer-controlled infrastructure. Retrieval logs can capture do=
-cument ids, source
-            citations, and validation failures without logging full prompts a=
-t INFO level. For a
-            Brannfeld pilot, I would recommend starting with approved synthet=
-ic or redacted data
-            until your security review is complete.
+eference architecture has two deployment modes: a hosted API path for the pub=
+lic demo and a sovereign path where inference is exposed through an OpenAI-co=
+mpatible endpoint inside customer-controlled infrastructure. Retrieval logs c=
+an capture document ids, source citations, and validation failures without lo=
+gging full prompts at INFO level. For a Brannfeld pilot, I would recommend st=
+arting with approved synthetic or redacted data until your security review is=
+ complete.
 
 From daniel@danielpanea.com Wed, 29 Apr 2026 12:15:00 +0000
 Message-ID: <brannfeld-006@synthetic.danielpanea.com>
@@ -135,17 +108,12 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Stefan and Hanna, attached is the proposal for a four-week pilot around produ=
-ction-line
-            workflow automation. The commercial scope is EUR 85,000 and assum=
-es one bounded source
-            set, cited answers, and a final architecture review. I have kept =
-the production scope
-            deliberately narrow: no autonomous actions, no direct write-back,=
- and no broad connector
-            rollout. Lukas's security questions remain tracked as a dependenc=
-y, and the proposal
-            separates the public-demo pattern from the deployment posture Bra=
-nnfeld would require.
+ction-line workflow automation. The commercial scope is EUR 85,000 and assume=
+s one bounded source set, cited answers, and a final architecture review. I h=
+ave kept the production scope deliberately narrow: no autonomous actions, no =
+direct write-back, and no broad connector rollout. Lukas's security questions=
+ remain tracked as a dependency, and the proposal separates the public-demo p=
+attern from the deployment posture Brannfeld would require.
 
 From mara.klein@brannfeld-industrial.de Tue, 05 May 2026 09:50:00 +0000
 Message-ID: <brannfeld-007@synthetic.danielpanea.com>
@@ -158,16 +126,11 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Daniel, Procurement has started reviewing the pilot proposal. The price is wi=
-thin the
-            range Stefan mentioned, but I need confirmation on payment milest=
-ones, cancellation
-            terms, and whether travel expenses are included. We also need the=
- signed NDA copy for
-            our supplier folder. Please send a clean commercial summary that =
-separates optional
-            production work from the four-week pilot. Until that is clear, I =
-cannot move the file
-            to final approval.
+thin the range Stefan mentioned, but I need confirmation on payment milestone=
+s, cancellation terms, and whether travel expenses are included. We also need=
+ the signed NDA copy for our supplier folder. Please send a clean commercial =
+summary that separates optional production work from the four-week pilot. Unt=
+il that is clear, I cannot move the file to final approval.
 
 From stefan.moeller@brannfeld-industrial.de Sat, 09 May 2026 15:35:00 +0000
 Message-ID: <brannfeld-008@synthetic.danielpanea.com>
@@ -182,14 +145,9 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Daniel, the proposal reads well and Hanna liked that it stays tied to a concr=
-ete line
-            instead of becoming a broad platform discussion. Lukas still want=
-s the written audit
-            posture note before he is comfortable, and Mara is waiting on pro=
-curement terms. If you
-            can send both early next week, I think we can keep the decision m=
-eeting on the calendar.
-            This looks promising from Operations; the only real blockers are =
-security evidence and
-            procurement packaging.
+ete line instead of becoming a broad platform discussion. Lukas still wants t=
+he written audit posture note before he is comfortable, and Mara is waiting o=
+n procurement terms. If you can send both early next week, I think we can kee=
+p the decision meeting on the calendar. This looks promising from Operations;=
+ the only real blockers are security evidence and procurement packaging.
 

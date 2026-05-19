@@ -9,16 +9,12 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Niels, following up on your note about cross-border shipment exceptions. A pr=
-ivate
-            memory layer can help your planners see why a route changed, whic=
-h customer exceptions
-            apply, and what finance has already approved. The useful first sl=
-ice is not a route
-            optimizer by itself; it is a cited briefing layer over the messy =
-operational context
-            that planners currently reconstruct manually. I can show this wit=
-h synthetic freight
-            artifacts before any Rynvoss data is involved.
+ivate memory layer can help your planners see why a route changed, which cust=
+omer exceptions apply, and what finance has already approved. The useful firs=
+t slice is not a route optimizer by itself; it is a cited briefing layer over=
+ the messy operational context that planners currently reconstruct manually. =
+I can show this with synthetic freight artifacts before any Rynvoss data is i=
+nvolved.
 
 From niels.koster@rynvoss-logistics.nl Fri, 27 Mar 2026 13:15:00 +0000
 Message-ID: <rynvoss-002@synthetic.danielpanea.com>
@@ -33,16 +29,11 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Daniel, yes, let's explore it. We have too many exceptions living in mailboxe=
-s and
-            spreadsheets, especially for Germany-Benelux lanes. Joris will wa=
-nt to understand the
-            integration surface, and I want Finance involved because accessor=
-ial charges are a
-            constant source of rework. Please keep the first call practical. =
-If the system can
-            explain why a shipment should take a different route and cite the=
- underlying notes,
-            it will get attention here.
+s and spreadsheets, especially for Germany-Benelux lanes. Joris will want to =
+understand the integration surface, and I want Finance involved because acces=
+sorial charges are a constant source of rework. Please keep the first call pr=
+actical. If the system can explain why a shipment should take a different rou=
+te and cite the underlying notes, it will get attention here.
 
 From niels.koster@rynvoss-logistics.nl Wed, 01 Apr 2026 08:20:00 +0000
 Message-ID: <rynvoss-003@synthetic.danielpanea.com>
@@ -55,16 +46,11 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Femke, forwarding this because the finance angle matters. Daniel is not pitch=
-ing a
-            black-box optimizer; the first version would summarize routing co=
-ntext and cite the
-            underlying notes. That might reduce disputes over detention, fuel=
- adjustments, and
-            manual exception approvals. I would like you on the procurement c=
-all if we reach that
-            point. The main question for you is whether the EUR 52,000 pilot =
-can be justified
-            against avoided rework in the Rotterdam desk.
+ing a black-box optimizer; the first version would summarize routing context =
+and cite the underlying notes. That might reduce disputes over detention, fue=
+l adjustments, and manual exception approvals. I would like you on the procur=
+ement call if we reach that point. The main question for you is whether the E=
+UR 52,000 pilot can be justified against avoided rework in the Rotterdam desk.
 
 From daniel@danielpanea.com Wed, 08 Apr 2026 17:40:00 +0000
 Message-ID: <rynvoss-004@synthetic.danielpanea.com>
@@ -77,16 +63,12 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Niels and Femke, attached is the four-week proposal for a cited routing-conte=
-xt pilot.
-            The scope covers CRM exports, planner notes, meeting transcripts,=
- and selected PDF
-            policies. It does not include a production-grade optimizer, auton=
-omous dispatching, or
-            customer-facing workflow changes. The commercial amount is EUR 52=
-,000. The strongest
-            success metric would be reduced planner preparation time and fewe=
-r finance escalations
-            for exceptions on cross-border lanes.
+xt pilot. The scope covers CRM exports, planner notes, meeting transcripts, a=
+nd selected PDF policies. It does not include a production-grade optimizer, a=
+utonomous dispatching, or customer-facing workflow changes. The commercial am=
+ount is EUR 52,000. The strongest success metric would be reduced planner pre=
+paration time and fewer finance escalations for exceptions on cross-border la=
+nes.
 
 From femke.devries@rynvoss-logistics.nl Fri, 17 Apr 2026 11:25:00 +0000
 Message-ID: <rynvoss-005@synthetic.danielpanea.com>
@@ -99,16 +81,12 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Daniel, I am reviewing the proposal with Procurement. Can you confirm whether=
- the pilot
-            fee includes the connector work for our exported shipment spreads=
-heets, and whether
-            the second payment milestone depends on a measurable reduction in=
- planner preparation
-            time? The document mentions success criteria, but not a commercia=
-l consequence if the
-            pilot misses them. Please clarify this before next Wednesday, oth=
-erwise we may need to
-            push the close date. This is currently the open item on our side.
+ the pilot fee includes the connector work for our exported shipment spreadsh=
+eets, and whether the second payment milestone depends on a measurable reduct=
+ion in planner preparation time? The document mentions success criteria, but =
+not a commercial consequence if the pilot misses them. Please clarify this be=
+fore next Wednesday, otherwise we may need to push the close date. This is cu=
+rrently the open item on our side.
 
 From joris.bakker@rynvoss-logistics.nl Tue, 21 Apr 2026 15:05:00 +0000
 Message-ID: <rynvoss-006@synthetic.danielpanea.com>
@@ -123,13 +101,9 @@ Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
 
 Niels and Femke, I do not see a response to Femke's procurement question. Fro=
-m IT's
-            side the pilot is still feasible, but the timeline is getting unr=
-ealistic if the close
-            date remains next week. I suggest we wait for Daniel's answer bef=
-ore scheduling another
-            technical review. The use case is interesting, but I do not want =
-the team to rush into
-            a pilot with unclear acceptance terms or spreadsheet connector as=
-sumptions.
+m IT's side the pilot is still feasible, but the timeline is getting unrealis=
+tic if the close date remains next week. I suggest we wait for Daniel's answe=
+r before scheduling another technical review. The use case is interesting, bu=
+t I do not want the team to rush into a pilot with unclear acceptance terms o=
+r spreadsheet connector assumptions.
 

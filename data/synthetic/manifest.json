@@ -134,11 +134,35 @@
   ],
   "crm": {
     "accounts": "crm/accounts.csv",
-    "activities": "crm/activities.csv",
-    "contacts": "crm/contacts.csv",
-    "contracts": "crm/contracts.csv",
-    "opportunities": "crm/opportunities.csv",
     "users": "crm/users.csv"
+  },
+  "internal_knowledge": {
+    "account_id": "SYN_ACC_INTERNAL",
+    "account_name": "Internal company knowledge",
+    "account_slug": "internal_company_knowledge",
+    "artifacts": [
+      {
+        "format": "docx",
+        "path": "accounts/internal_company_knowledge/onboarding_handbook.docx",
+        "type": "docx"
+      },
+      {
+        "format": "pdf",
+        "has_text_layer": true,
+        "path": "accounts/internal_company_knowledge/vendor_contract_summary.pdf",
+        "type": "pdf"
+      },
+      {
+        "format": "markdown",
+        "path": "accounts/internal_company_knowledge/all_hands_strategy_recap.md",
+        "type": "meeting_transcript"
+      },
+      {
+        "format": "markdown",
+        "path": "accounts/internal_company_knowledge/engineering_decision_record_postgres_pgvector.md",
+        "type": "meeting_transcript"
+      }
+    ]
   },
   "reference_date": "2026-05-13"
 }
