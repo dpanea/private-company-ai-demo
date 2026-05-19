@@ -50,20 +50,17 @@ def test_render_structured_answer_handles_markdown_fenced_json(fence: str) -> No
     )
     raw = f"{fence}{payload}\n```"
 
-    rendered, validation, _ = render_structured_answer(raw, pack)
+    rendered, blocks, validation, _ = render_structured_answer(raw, pack)
 
-    assert "Body." in rendered
+    assert rendered == "Body."
+    assert blocks == [{"text": "Body.", "citations": ["PDF mutual_nda"]}]
     assert validation["valid"]
 
 
-def test_render_structured_answer_appends_inline_citation_labels() -> None:
+def test_render_structured_answer_returns_blocks_without_inline_markers() -> None:
     pack = {
         "retrieved_documents": [
-            {
-                "citations": [
-                    {"source_object": "PDF", "source_record_id": "mutual_nda"},
-                ]
-            }
+            {"citations": [{"source_object": "PDF", "source_record_id": "mutual_nda"}]}
         ]
     }
     raw = (
@@ -72,11 +69,33 @@ def test_render_structured_answer_appends_inline_citation_labels() -> None:
         '"blocks": [{"type": "paragraph", "text": "The NDA is mutual.", "citations": ["PDF mutual_nda"]}]}'
     )
 
-    rendered, validation, _ = render_structured_answer(raw, pack)
+    rendered, blocks, validation, _ = render_structured_answer(raw, pack)
 
-    assert rendered == "The NDA is mutual. [Source: PDF mutual_nda]"
+    assert rendered == "The NDA is mutual."
+    assert blocks == [{"text": "The NDA is mutual.", "citations": ["PDF mutual_nda"]}]
+    assert "[Source:" not in rendered
     assert validation["valid"]
     assert validation["cited"] == ["PDF mutual_nda"]
+
+
+def test_render_structured_answer_drops_unknown_citation_labels_from_blocks() -> None:
+    pack = {
+        "retrieved_documents": [
+            {"citations": [{"source_object": "PDF", "source_record_id": "mutual_nda"}]}
+        ]
+    }
+    raw = (
+        '{"status": "answered", "account": {"account_id": null, "account_name": null}, '
+        '"clarification": {"message": "", "candidates": []}, '
+        '"blocks": [{"type": "paragraph", "text": "Body.", '
+        '"citations": ["PDF mutual_nda", "PDF made_up"]}]}'
+    )
+
+    _, blocks, validation, _ = render_structured_answer(raw, pack)
+
+    assert blocks == [{"text": "Body.", "citations": ["PDF mutual_nda"]}]
+    assert validation["unknown_citations"] == ["PDF made_up"]
+    assert not validation["valid"]
 
 
 def test_insufficient_evidence_does_not_invent_citations() -> None:
@@ -86,9 +105,10 @@ def test_insufficient_evidence_does_not_invent_citations() -> None:
         '"clarification": {"message": "", "candidates": []}, "blocks": []}'
     )
 
-    rendered, validation, _ = render_structured_answer(raw, pack)
+    rendered, blocks, validation, _ = render_structured_answer(raw, pack)
 
     assert rendered.startswith("I do not have enough evidence")
+    assert blocks == [{"text": rendered, "citations": []}]
     assert validation["cited"] == []
     assert validation["status"] == "insufficient_evidence"
 
@@ -100,9 +120,10 @@ def test_account_clarification_state_uses_clarification_message() -> None:
         '"clarification": {"message": "Which client do you mean?", "candidates": []}, "blocks": []}'
     )
 
-    rendered, validation, payload = render_structured_answer(raw, pack)
+    rendered, blocks, validation, payload = render_structured_answer(raw, pack)
 
     assert rendered == "Which client do you mean?"
+    assert blocks == [{"text": "Which client do you mean?", "citations": []}]
     assert validation["status"] == "needs_account_clarification"
     assert payload["status"] == "needs_account_clarification"
 

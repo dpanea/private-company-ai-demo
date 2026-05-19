@@ -11,7 +11,6 @@ const initialState = {
   isStreaming: false,
   streamingThreadId: null,
   streamingTokens: "",
-  streamingCitations: [],
   lastError: null,
   rateLimitedUntil: null,
   route: { name: "accounts", params: {} },

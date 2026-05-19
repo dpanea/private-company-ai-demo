@@ -43,56 +43,75 @@ def insufficient_evidence_validation(pack: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def render_structured_answer(raw: str, pack: dict[str, Any]) -> tuple[str, dict[str, Any], dict[str, Any]]:
-    """Validate the structured JSON answer and render the final user-facing text.
+_INSUFFICIENT_EVIDENCE_TEXT = "I do not have enough evidence in the visible source artifacts to answer that."
 
-    Returns a tuple `(rendered_text, validation, payload)` where `rendered_text`
-    contains the answer with inline `[Source: ...]` citation labels appended
-    after each block (or the clarification message / insufficiency notice).
+
+def render_structured_answer(
+    raw: str, pack: dict[str, Any]
+) -> tuple[str, list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
+    """Validate the structured JSON answer and project it for the UI.
+
+    Returns `(rendered_text, blocks, validation, payload)`:
+
+    - `rendered_text`: plain text of all block bodies joined with blank lines
+      (no `[Source: ...]` markers). Used as the SQL `content` column and for
+      the streaming-bubble fallback.
+    - `blocks`: validated, ordered list of `{"text": str, "citations": list[str]}`.
+      Citation labels are guaranteed to be in the Allowed citations set. This is
+      the structured payload the frontend renders into text + clickable chips.
+    - `validation`: status / cited / unknown_citations / valid metadata.
+    - `payload`: the raw parsed JSON object (for debug logging).
     """
     payload = _extract_json_object(raw)
     status = _answer_status(payload.get("status"))
     allowed = allowed_citation_labels(pack)
-    blocks = payload.get("blocks") if isinstance(payload.get("blocks"), list) else []
+    raw_blocks = payload.get("blocks") if isinstance(payload.get("blocks"), list) else []
     cited: list[str] = []
-    rendered_blocks: list[str] = []
     unknown: set[str] = set()
+    rendered_blocks: list[dict[str, Any]] = []
 
-    for block in blocks:
+    for block in raw_blocks:
         if not isinstance(block, dict):
             continue
         text = str(block.get("text") or "").strip()
         if not text:
             continue
-        labels = [str(label).strip() for label in block.get("citations") or [] if str(label).strip()]
-        labels = list(dict.fromkeys(labels))
+        labels = list(dict.fromkeys(
+            str(label).strip() for label in block.get("citations") or [] if str(label).strip()
+        ))
+        valid_labels: list[str] = []
         for label in labels:
-            if label not in allowed:
-                unknown.add(label)
-            else:
+            if label in allowed:
+                valid_labels.append(label)
                 cited.append(label)
-        if labels and status == "answered":
-            text = text.rstrip() + " " + " ".join(f"[Source: {label}]" for label in labels if label in allowed)
-        rendered_blocks.append(text)
+            else:
+                unknown.add(label)
+        rendered_blocks.append({"text": text, "citations": valid_labels})
 
     if status == "insufficient_evidence":
-        rendered = "\n\n".join(rendered_blocks).strip() or "I do not have enough evidence in the visible source artifacts to answer that."
+        blocks = [{"text": _INSUFFICIENT_EVIDENCE_TEXT, "citations": []}]
         cited = []
         unknown = set()
         valid = True
     elif status == "needs_account_clarification":
         clarification = payload.get("clarification") if isinstance(payload.get("clarification"), dict) else {}
-        rendered = str(clarification.get("message") or "").strip() or "Which client do you mean?"
+        message = str(clarification.get("message") or "").strip() or "Which client do you mean?"
+        blocks = [{"text": message, "citations": []}]
         cited = []
         unknown = set()
         valid = True
     else:
-        rendered = "\n\n".join(rendered_blocks).strip()
-        valid = bool(rendered and cited) and not unknown
-        if not rendered:
-            rendered = "I do not have enough evidence in the visible source artifacts to answer that."
+        if not rendered_blocks:
+            blocks = [{"text": _INSUFFICIENT_EVIDENCE_TEXT, "citations": []}]
             status = "insufficient_evidence"
             valid = True
+            cited = []
+            unknown = set()
+        else:
+            blocks = rendered_blocks
+            valid = bool(cited) and not unknown
+
+    rendered = "\n\n".join(block["text"] for block in blocks).strip()
 
     validation = {
         "allowed_citations": sorted(allowed),
@@ -102,7 +121,7 @@ def render_structured_answer(raw: str, pack: dict[str, Any]) -> tuple[str, dict[
         "status": status,
         "valid": valid,
     }
-    return rendered, validation, payload
+    return rendered, blocks, validation, payload
 
 
 def _answer_status(value: Any) -> str:
@@ -124,14 +143,13 @@ def _extract_json_object(text: str) -> dict[str, Any]:
     try:
         parsed = json.loads(cleaned)
     except json.JSONDecodeError:
-        decoder = json.JSONDecoder()
-        for index, char in enumerate(cleaned):
-            if char != "{":
-                continue
+        # Recover from a single leading-prose prefix by scanning to the first `{`.
+        first_brace = cleaned.find("{")
+        if first_brace >= 0:
             try:
-                parsed, _ = decoder.raw_decode(cleaned[index:])
+                parsed, _ = json.JSONDecoder().raw_decode(cleaned[first_brace:])
             except json.JSONDecodeError:
-                continue
+                parsed = None
             if isinstance(parsed, dict):
                 return parsed
         snippet = cleaned[:200].replace("\n", " ")

@@ -9,7 +9,7 @@ The test makes a real streaming call with `response_format` to verify that:
   - the request is accepted and the stream emits content,
   - only `blocks[].text` (or `clarification.message`) reaches the user,
   - the raw payload is valid JSON matching `ANSWER_RESPONSE_FORMAT`,
-  - `render_structured_answer` validates and emits inline `[Source: ...]` labels.
+  - `render_structured_answer` validates citation labels and returns structured blocks.
 """
 from __future__ import annotations
 
@@ -99,14 +99,15 @@ def test_live_llm_streams_structured_answer_with_citation(client: OpenAICompatib
     assert '"status"' not in visible_text and '"text"' not in visible_text
 
     # The raw response is valid JSON we can validate.
-    answer, validation, payload = render_structured_answer(streamer.raw, pack)
+    answer, blocks, validation, payload = render_structured_answer(streamer.raw, pack)
     assert payload.get("status") in {"answered", "insufficient_evidence", "needs_account_clarification"}
     assert validation["valid"], f"validation failed: {validation} raw={streamer.raw[:300]!r}"
+    assert "[Source:" not in answer
 
     if validation["status"] == "answered":
         assert validation["cited"], "answered status must cite at least one source"
         assert all(label in validation["allowed_citations"] for label in validation["cited"])
-        assert "[Source:" in answer  # inline citation appended
+        assert any(block["citations"] for block in blocks), "answered status must attach citations to a block"
 
 
 def test_live_llm_returns_insufficient_evidence_without_inventing_citations(
@@ -120,7 +121,7 @@ def test_live_llm_returns_insufficient_evidence_without_inventing_citations(
     )
 
     _visible, streamer = _stream(client, pack)
-    answer, validation, _ = render_structured_answer(streamer.raw, pack)
+    answer, _blocks, validation, _ = render_structured_answer(streamer.raw, pack)
 
     assert validation["valid"]
     assert validation["status"] == "insufficient_evidence"

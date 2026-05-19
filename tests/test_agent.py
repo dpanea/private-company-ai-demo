@@ -141,14 +141,16 @@ def test_send_message_stream_end_to_end(migrated_db: str) -> None:
     assert "{" not in streamed_text and "}" not in streamed_text
     assert '"text"' not in streamed_text and '"status"' not in streamed_text
 
-    # The final replace event includes the appended inline citation.
-    final_text = next(data["content"] for event, data in events if event == "replace")
-    assert "[Source: Email msg_1]" in final_text
+    # The final replace event carries structured blocks (no inline markers).
+    replace_event = next(data for event, data in events if event == "replace")
+    assert "[Source:" not in replace_event["content"]
+    assert any("Email msg_1" in block["citations"] for block in replace_event["blocks"])
 
     messages = service.get_messages(session_id, thread.thread_id)
     assert [m.role for m in messages] == ["user", "assistant"]
     assistant = messages[-1]
-    assert "[Source: Email msg_1]" in assistant.content
+    assert "[Source:" not in assistant.content
+    assert any("Email msg_1" in block["citations"] for block in assistant.metadata["blocks"])
     assert assistant.account_id == account_id
     assert assistant.metadata["response_type"] == "answer"
     assert assistant.metadata["citation_validation"]["valid"] is True

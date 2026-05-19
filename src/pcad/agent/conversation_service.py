@@ -20,7 +20,7 @@ from pcad.llm.prompts import ANSWER_RESPONSE_FORMAT, DEFAULT_CONTEXT_TOKEN_BUDGE
 from pcad.llm.streaming import StructuredAnswerStreamer
 from pcad.models import ConversationMessage, ConversationThread
 from pcad.retrieval.intent import IntentResolver, IntentResult
-from pcad.retrieval.retriever import AccountResolutionError, PostgresHybridRetriever
+from pcad.retrieval.retriever import AccountResolutionError, PostgresHybridRetriever, _normalize_for_match
 from pcad.util import safe_id
 
 
@@ -48,10 +48,10 @@ class ClarificationResult:
     error: AccountResolutionError
 
 
-# Maps the LLM-facing source_object (used in citation labels) to the artifact-id
-# prefix the API uses when opening an artifact, and the sidebar label prefix.
+# Maps the LLM-facing source_object to (artifact_id_prefix, sidebar_label_prefix,
+# scope_to_account). scope_to_account=True means the artifact lives under one
+# account's namespace; TestNote is session-scoped so the id has no account segment.
 SOURCE_OBJECT_SPECS: dict[str, tuple[str, str, bool]] = {
-    # source_object: (artifact_id_prefix, sidebar_label_prefix, scope_to_account)
     "Email": ("email", "Email", True),
     "PDF": ("pdf", "PDF", True),
     "WordDocument": ("docx", "Word", True),
@@ -205,6 +205,7 @@ class ConversationService:
         budget = self.settings.context_token_budget or DEFAULT_CONTEXT_TOKEN_BUDGET
         context_prompt = render_context_prompt(prepared.pack, token_budget=budget)
         messages = build_answer_messages(context_prompt)
+        _log_llm_prompt(thread_id, messages)
         streamer = StructuredAnswerStreamer()
         try:
             for token in self.llm_client.complete_stream(
@@ -217,24 +218,27 @@ class ConversationService:
                 if visible:
                     yield _sse("token", {"content": visible})
         except RuntimeError as exc:
-            logger.error("conversation.stream.llm_failed error=%s", exc)
+            logger.error("conversation.stream.llm_failed thread=%s error=%s", thread_id, exc)
             yield _sse("error", {"detail": "The model failed while generating the answer."})
             return
 
         raw = streamer.raw
+        _log_llm_raw_response(thread_id, raw)
         try:
-            answer, validation, _ = render_structured_answer(raw, prepared.pack)
+            answer, blocks, validation, payload = render_structured_answer(raw, prepared.pack)
+            _log_llm_parsed(thread_id, answer, validation, payload)
         except ValueError as exc:
-            logger.warning("conversation.structured_answer.invalid error=%s raw=%r", exc, raw[:500])
+            logger.warning("conversation.structured_answer.invalid thread=%s error=%s raw=%r", thread_id, exc, raw[:500])
             answer = "I do not have enough evidence in the visible source artifacts to answer that."
+            blocks = [{"text": answer, "citations": []}]
             validation = insufficient_evidence_validation(prepared.pack)
 
-        yield _sse("replace", {"content": answer})
+        yield _sse("replace", {"content": answer, "blocks": blocks})
 
         usage = getattr(self.llm_client, "last_usage", None)
         if usage and (usage.prompt_tokens or usage.completion_tokens):
             record_token_usage(self.settings, tokens_in=usage.prompt_tokens, tokens_out=usage.completion_tokens)
-        yield from self._finalize_answer(thread_id, clean, prepared, answer, validation, session_id)
+        yield from self._finalize_answer(thread_id, clean, prepared, answer, blocks, validation, session_id)
 
     def _prepare_pipeline(
         self,
@@ -269,6 +273,7 @@ class ConversationService:
         user_message: str,
         prepared: PreparedPipeline,
         answer: str,
+        blocks: list[dict[str, Any]],
         validation: dict[str, Any],
         session_id: str,
     ) -> Generator[str, None, None]:
@@ -280,7 +285,7 @@ class ConversationService:
             account_id=prepared.account_id,
             account_name=prepared.account_name,
             citations=citations,
-            metadata={"response_type": "answer", "citation_validation": validation},
+            metadata={"response_type": "answer", "blocks": blocks, "citation_validation": validation},
         )
         thread = self._update_thread_after_message(thread_id, user_message, prepared.account_id, prepared.account_name)
         yield _sse("done", {"assistant_message": _model_dump(assistant), "thread": _serialize_row(thread)})
@@ -475,17 +480,45 @@ def _sidebar_citation_label(citation: dict[str, Any]) -> str:
 
 
 def _candidate_id_from_text(text: str, candidates: list[dict[str, Any]]) -> str | None:
-    normalized = text.strip().casefold()
+    normalized = _normalize_for_match(text)
     for candidate in candidates:
         account_id = str(candidate.get("account_id", ""))
         account_name = str(candidate.get("account_name", ""))
-        if normalized == account_id.casefold() or normalized == account_name.casefold():
+        if normalized == _normalize_for_match(account_id) or normalized == _normalize_for_match(account_name):
             return account_id
     return None
 
 
 def as_candidate(candidate: Any) -> dict[str, Any]:
     return {"account_id": candidate.account_id, "account_name": candidate.account_name, "score": candidate.score, "method": candidate.method}
+
+
+def _log_llm_prompt(thread_id: str, messages: list[dict[str, str]]) -> None:
+    if not logger.isEnabledFor(logging.DEBUG):
+        return
+    rendered = "\n".join(f"--- {m.get('role', '?')} ---\n{m.get('content', '')}" for m in messages)
+    logger.debug("conversation.llm.prompt thread=%s messages=%d\n%s", thread_id, len(messages), rendered)
+
+
+def _log_llm_raw_response(thread_id: str, raw: str) -> None:
+    if not logger.isEnabledFor(logging.DEBUG):
+        return
+    logger.debug("conversation.llm.raw_response thread=%s chars=%d\n%s", thread_id, len(raw), raw)
+
+
+def _log_llm_parsed(thread_id: str, answer: str, validation: dict[str, Any], payload: dict[str, Any]) -> None:
+    if not logger.isEnabledFor(logging.DEBUG):
+        return
+    logger.debug(
+        "conversation.llm.parsed thread=%s status=%s cited=%s unknown=%s valid=%s\nanswer:\n%s\npayload:\n%s",
+        thread_id,
+        validation.get("status"),
+        validation.get("cited"),
+        validation.get("unknown_citations"),
+        validation.get("valid"),
+        answer,
+        json.dumps(payload, ensure_ascii=False, indent=2, default=str),
+    )
 
 
 def _sse(event: str, data: Any) -> str:

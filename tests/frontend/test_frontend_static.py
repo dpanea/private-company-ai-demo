@@ -63,5 +63,5 @@ def test_demo_layout_uses_inline_citations_and_grouped_sources() -> None:
     assert 'aria-label="Source artifacts"' in account_detail
     assert "<details" in account_detail
     assert "data-pcad-account-select" in account_detail
-    assert "sourceLinks: true" in conversation_panel
+    assert "renderAssistantBlocks" in conversation_panel
     assert "reflowParagraph" in artifact_modal

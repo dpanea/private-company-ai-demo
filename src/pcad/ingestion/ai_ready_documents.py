@@ -9,6 +9,11 @@ from pcad.models import Account, RagDocument, RawArtifact, SourceCitation, Synth
 from pcad.util import safe_id
 
 
+_MARKDOWN_HEADING_RE = re.compile(r"^(#{1,3})\s+(.+)$")
+_PARAGRAPH_SPLIT_RE = re.compile(r"\n{2,}")
+_TRANSCRIPT_TURN_SPLIT_RE = re.compile(r"\n(?=[A-Z][^:\n]{1,50}:)")
+
+
 ARTIFACT_SOURCE_OBJECTS = {
     "email": "Email",
     "email_thread": "Email",
@@ -60,8 +65,7 @@ class DocumentBuilder:
                 f"## Artifact metadata\n"
                 f"- Account: {account.account_name}\n"
                 f"- Artifact type: {artifact.artifact_type}\n"
-                f"- Segment: {chunk_label}\n"
-                f"- Citation label: [Source: {source_object} {record_id}]\n\n"
+                f"- Segment: {chunk_label}\n\n"
                 f"## Extracted text\n{chunk_text.strip()}\n"
             )
             citation = SourceCitation(
@@ -72,7 +76,7 @@ class DocumentBuilder:
                 title=title,
                 source_date=artifact.created_at.date() if artifact.created_at else None,
                 owner_id=account.owner_id,
-                excerpt=_excerpt(chunk_text),
+                excerpt=excerpt(chunk_text),
             )
             metadata = {
                 "doc_type": "source_artifact_chunk",
@@ -94,7 +98,7 @@ class DocumentBuilder:
                     content_markdown=content,
                     metadata_json=metadata,
                     source_record_ids=[artifact.artifact_id],
-                    source_record_hashes=[stable_hash([artifact.artifact_id])],
+                    source_record_hashes=[stable_hash([artifact.artifact_id, chunk_text])],
                     account_id=account.account_id,
                     owner_id=account.owner_id,
                     last_source_updated_at=artifact.created_at,
@@ -124,11 +128,11 @@ def _markdown_sections(text: str) -> list[tuple[str, str]]:
     sections: list[tuple[str, list[str]]] = []
     current_title = "document"
     current_lines: list[str] = []
-    for block in re.split(r"\n{2,}", text.strip()):
+    for block in _PARAGRAPH_SPLIT_RE.split(text.strip()):
         stripped = block.strip()
         if not stripped:
             continue
-        heading = re.match(r"^(#{1,3})\s+(.+)$", stripped)
+        heading = _MARKDOWN_HEADING_RE.match(stripped)
         if heading and current_lines:
             sections.append((current_title, current_lines))
             current_title = heading.group(2).strip()
@@ -143,7 +147,7 @@ def _markdown_sections(text: str) -> list[tuple[str, str]]:
 
 
 def _turn_groups(text: str, group_size: int = 6) -> list[tuple[str, str]]:
-    turns = re.split(r"\n(?=[A-Z][^:\n]{1,50}:)", text.strip())
+    turns = _TRANSCRIPT_TURN_SPLIT_RE.split(text.strip())
     turns = [turn.strip() for turn in turns if turn.strip()]
     if len(turns) <= group_size:
         return [("transcript", text.strip())]
@@ -154,6 +158,6 @@ def _turn_groups(text: str, group_size: int = 6) -> list[tuple[str, str]]:
     return groups
 
 
-def _excerpt(text: str, limit: int = 300) -> str:
+def excerpt(text: str, limit: int = 300) -> str:
     compact = " ".join(text.split())
     return compact if len(compact) <= limit else compact[: limit - 3].rstrip() + "..."

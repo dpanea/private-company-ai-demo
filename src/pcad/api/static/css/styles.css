@@ -2330,6 +2330,17 @@ body {
   color: var(--d-text-3);
 }
 
+.answer-block + .answer-block {
+  margin-top: 12px;
+}
+
+.answer-block-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
 .composer {
   padding: 12px 32px 16px;
   border-top: 0;

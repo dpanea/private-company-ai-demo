@@ -204,7 +204,9 @@ def test_create_thread_then_send_message_via_sse_stream(migrated_db: str) -> Non
 
     roles = [m["role"] for m in messages_after]
     assert roles == ["user", "assistant"]
-    assert "[Source: Email msg_1]" in messages_after[-1]["content"]
+    assistant = messages_after[-1]
+    assert "[Source:" not in assistant["content"]
+    assert any("Email msg_1" in block["citations"] for block in assistant["metadata"]["blocks"])
 
 
 # ---------------------------------------------------------------------------

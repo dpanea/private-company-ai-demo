@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +13,7 @@ from psycopg.types.json import Jsonb
 from pcad.agent.conversation_service import ConversationService
 from pcad.config import Settings
 from pcad.db import connect_dict
+from pcad.ingestion.ai_ready_documents import excerpt, stable_hash
 from pcad.ingestion.embeddings import index_pending_embeddings
 from pcad.models import FakeNote
 
@@ -217,7 +217,6 @@ def create_fake_note(
         _insert_fake_note_doc(conn, note, account["account_name"])
         conn.commit()
     # Embedding the new doc can take seconds, so defer it to a background task.
-    # The note is durable in fake_notes by now.
     background_tasks.add_task(_finalize_fake_note, settings, account_id)
     return {"note": note.model_dump(mode="json")}
 
@@ -255,7 +254,7 @@ def delete_fake_note(note_id: str, request: Request) -> dict[str, bool]:
 
 def _insert_fake_note_doc(conn: Any, note: FakeNote, account_name: str) -> None:
     doc_id = _fake_doc_id(note.note_id)
-    source_hash = "sha256:" + hashlib.sha256(f"{note.note_id}\n{note.body}".encode("utf-8")).hexdigest()
+    source_hash = stable_hash([note.note_id, note.body])
     doc_type = "source_artifact_chunk"
     source_object = "TestNote"
     content = (
@@ -263,7 +262,7 @@ def _insert_fake_note_doc(conn: Any, note: FakeNote, account_name: str) -> None:
         f"- Account: {account_name}\n"
         f"- Note date: {note.note_date}\n"
         f"- Note type: {note.note_type}\n"
-        f"- Details: {note.body} [Source: {source_object} {note.note_id}]\n"
+        f"- Details: {note.body}\n"
     )
     conn.execute(
         """
@@ -299,7 +298,7 @@ def _insert_fake_note_doc(conn: Any, note: FakeNote, account_name: str) -> None:
         VALUES (%s, %s, 'visitor_test_note', %s, %s, %s, %s, %s)
         ON CONFLICT (citation_id) DO UPDATE SET excerpt = EXCLUDED.excerpt
         """,
-        (f"{doc_id}:TestNote:{note.note_id}", doc_id, source_object, note.note_id, note.title, note.note_date, note.body[:300]),
+        (f"{doc_id}:TestNote:{note.note_id}", doc_id, source_object, note.note_id, note.title, note.note_date, excerpt(note.body)),
     )
 
 

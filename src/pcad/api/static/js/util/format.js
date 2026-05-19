@@ -59,30 +59,40 @@ export function accountCountry(account) {
   return account?.billing_country || account?.country || "Unknown country";
 }
 
-export function renderMarkdown(value, options = {}) {
-  const { stripSources = true, sourceLinks = false, citations = [] } = options;
-  let text = String(value ?? "");
-  let citationPlaceholders = [];
-  if (sourceLinks) {
-    const linked = placeholderSourceCitations(text, citations);
-    text = linked.text;
-    citationPlaceholders = linked.placeholders;
-  } else if (stripSources) {
-    text = stripSourceCitations(text);
-  }
+export function renderMarkdown(value) {
+  const text = String(value ?? "");
   const rawHtml = window.marked?.parse ? window.marked.parse(text) : escapeHtml(text).replaceAll("\n", "<br>");
-  return restoreCitationPlaceholders(sanitizeHtml(rawHtml), citationPlaceholders);
+  return sanitizeHtml(rawHtml);
 }
 
-export function stripSourceCitations(value) {
-  return String(value ?? "")
-    .replace(/\s*\[Source:\s[^\]]+\]/g, "")
-    .replace(/\s*\[Source:[^\]]*$/g, "")
-    .replace(/\s*Source:\s[A-Za-z][A-Za-z0-9_ -]*\s+[^\s.,;)\]]+/g, "")
-    .replace(/\s*Source:\s[^\n]*$/g, "")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+// Render a structured assistant answer: each block becomes a markdown paragraph
+// followed by clickable citation chips for the labels in block.citations[].
+// Falls back to a plain markdown render of `fallbackText` when no blocks exist
+// (legacy messages without metadata.blocks, or clarification messages).
+export function renderAssistantBlocks(blocks, citations = [], fallbackText = "") {
+  if (!Array.isArray(blocks) || blocks.length === 0) {
+    return renderMarkdown(fallbackText);
+  }
+  return blocks.map((block) => renderBlock(block, citations)).join("");
+}
+
+function renderBlock(block, citations) {
+  const body = renderMarkdown(String(block?.text ?? ""));
+  const chips = Array.isArray(block?.citations)
+    ? block.citations.map((label) => renderCitationChip(label, citations)).filter(Boolean).join("")
+    : "";
+  return chips ? `<div class="answer-block">${body}<div class="answer-block-citations">${chips}</div></div>` : `<div class="answer-block">${body}</div>`;
+}
+
+function renderCitationChip(label, citations) {
+  if (!label) return "";
+  const citation = citations.find((c) => (c?.source_label || c?.label || "") === label) || null;
+  const display = citation ? citationLabel(citation) : `Source: ${label}`;
+  const artifactId = citation ? citationArtifactId(citation) : null;
+  if (!artifactId) {
+    return `<span class="inline-citation muted">${escapeHtml(display)}</span>`;
+  }
+  return `<a class="inline-citation" href="#" data-pcad-open-artifact="${escapeHtml(artifactId)}">${escapeHtml(display)}</a>`;
 }
 
 export function sanitizeHtml(rawHtml) {
@@ -123,74 +133,11 @@ export function citationLabel(citation) {
     || (citation?.source_object && citation?.source_record_id ? `Source: ${citation.source_object} ${citation.source_record_id}` : "Source");
 }
 
-export function citationSourceLabel(citation) {
-  return citation?.source_label
-    || citation?.raw_label
-    || (citation?.source_object && citation?.source_record_id ? `${citation.source_object} ${citation.source_record_id}` : citationLabel(citation));
-}
-
 export function citationArtifactId(citation) {
   return citation?.artifact_id
     || citation?.metadata?.artifact_id
     || citation?.source_artifact_id
     || null;
-}
-
-function placeholderSourceCitations(value, citations) {
-  const placeholders = [];
-  const text = String(value ?? "").replace(/\[Source:\s*([^\]]+)\]/g, (match, rawLabel) => {
-    const citation = findCitation(rawLabel, citations);
-    const index = citation ? citations.indexOf(citation) : -1;
-    const label = citation ? citationLabel(citation) : `Source: ${rawLabel.trim()}`;
-    const artifactId = citation ? citationArtifactId(citation) : null;
-    const token = `PCAD_CITATION_${placeholders.length}_TOKEN`;
-    placeholders.push({ token, html: citationAnchor(label, index, artifactId) });
-    return token;
-  });
-  return { text, placeholders };
-}
-
-function restoreCitationPlaceholders(html, placeholders) {
-  return placeholders.reduce((current, placeholder) => current.replaceAll(placeholder.token, placeholder.html), html);
-}
-
-function findCitation(rawLabel, citations) {
-  const normalized = normalizeCitationLabel(rawLabel);
-  return citations.find((citation) => citationLabelCandidates(citation).some((candidate) => normalizeCitationLabel(candidate) === normalized)) || null;
-}
-
-function citationLabelCandidates(citation) {
-  return [
-    citationSourceLabel(citation),
-    citationLabel(citation),
-    citation?.citation_label,
-    citation?.source_label,
-    citation?.raw_label,
-    citation?.source_object && citation?.source_record_id ? `${citation.source_object} ${citation.source_record_id}` : "",
-    citation?.source_object && citation?.source_record_id ? `Source: ${citation.source_object} ${citation.source_record_id}` : "",
-  ].filter(Boolean);
-}
-
-function normalizeCitationLabel(value) {
-  return String(value || "")
-    .replace(/^Source:\s*/i, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
-
-function citationAnchor(label, index, artifactId) {
-  if (index < 0) {
-    return `<span class="inline-citation muted">${escapeHtml(label)}</span>`;
-  }
-  const href = index >= 0 ? `#citation-${index}` : "#";
-  const attrs = [
-    'class="inline-citation"',
-    `href="${escapeHtml(href)}"`,
-    index >= 0 ? `data-pcad-citation-ref="${index}"` : "",
-    artifactId ? `data-pcad-open-artifact="${escapeHtml(artifactId)}"` : "",
-  ].filter(Boolean).join(" ");
-  return `<a ${attrs}>${escapeHtml(label)}</a>`;
 }
 
 export function artifactMeta(artifact) {

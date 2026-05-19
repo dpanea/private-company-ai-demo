@@ -3,14 +3,13 @@ import { state } from "../state.js";
 import { navigate, threadPath } from "../router.js";
 import { streamMessage } from "../sse.js";
 import { emptyState, escapeHtml, showToast } from "../util/dom.js";
-import { renderMarkdown, workflowLabel } from "../util/format.js";
+import { renderAssistantBlocks, workflowLabel } from "../util/format.js";
 
 export function renderConversationPanel(account, threads, currentThreadId, messages) {
   const currentThread = threads.find((thread) => thread.thread_id === currentThreadId);
-  const isStreaming = state.get("isStreaming");
+  const isStreaming = state.get("isStreaming") && state.get("streamingThreadId") === currentThreadId;
   const streamingTokens = state.get("streamingTokens");
-  const streamingCitations = state.get("streamingThreadId") === currentThreadId ? state.get("streamingCitations") : [];
-  const budgetReached = messages.some((message) => /daily budget|daily budget for this account/i.test(message.content || ""));
+  const budgetReached = messages.some((message) => message.metadata?.response_type === "budget_exceeded");
   return `
     <section class="conversation" data-pcad-conversation>
       <div class="middle-top">
@@ -25,7 +24,7 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
       </div>
       <div class="message-list" data-pcad-message-list data-pcad-scroll-key="messages:${escapeHtml(currentThreadId || account?.account_id || "new")}">
         ${messages.length ? messages.map(renderMessage).join("") : emptyState("Start with a workflow button or ask a free-text question.")}
-        ${isStreaming ? renderStreamingBubble(streamingTokens, streamingCitations) : ""}
+        ${isStreaming ? renderStreamingBubble(streamingTokens) : ""}
       </div>
       <form class="composer" data-pcad-composer>
         <div class="composer-row">
@@ -70,7 +69,6 @@ export async function startThread(accountId, workflowSeed, options = { streamSee
     state.set("threads", [thread, ...state.get("threads").filter((item) => item.thread_id !== thread.thread_id)]);
     state.set("currentThreadId", thread.thread_id);
     state.update("messagesByThread", (messagesByThread) => ({ ...messagesByThread, [thread.thread_id]: [] }));
-    state.set("streamingCitations", []);
     navigate(threadPath(accountId, thread.thread_id));
     if (workflowSeed && options.streamSeed) {
       await sendCurrentMessage({ account_id: accountId }, workflowLabel(workflowSeed), options);
@@ -93,24 +91,20 @@ async function sendCurrentMessage(account, text, options = {}) {
   state.set("isStreaming", true);
   state.set("streamingThreadId", threadId);
   state.set("streamingTokens", "");
-  state.set("streamingCitations", []);
 
   streamMessage(threadId, text, {
     onUserMessage(message) {
       appendMessage(threadId, message);
     },
     onStatus(status) {
-      if (status.status === "thinking") state.set("streamingTokens", "Searching company memory...");
-      if (status.status === "generating") state.set("streamingTokens", "");
+      if (status.status === "thinking") setStreamingTokens("Searching company memory...");
+      if (status.status === "generating") setStreamingTokens("");
     },
     onToken(token) {
-      state.set("streamingTokens", `${state.get("streamingTokens")}${token.content || ""}`);
-    },
-    onCitations(payload) {
-      state.set("streamingCitations", payload.citations || []);
+      appendStreamingToken(token.content || "");
     },
     onReplace(payload) {
-      state.set("streamingTokens", payload.content || "");
+      setStreamingTokens(payload.content || "");
     },
     onDone(payload) {
       appendMessage(threadId, payload.assistant_message);
@@ -125,12 +119,49 @@ async function sendCurrentMessage(account, text, options = {}) {
       }
       state.set("isStreaming", false);
       state.set("streamingThreadId", null);
-      state.set("streamingTokens", "");
-      state.set("streamingCitations", []);
+      setStreamingTokens("");
     },
     onError(error) {
       handleStreamError(error);
     },
+  });
+}
+
+let streamingTokenBuffer = "";
+let streamingRafHandle = null;
+
+function appendStreamingToken(chunk) {
+  if (!chunk) return;
+  streamingTokenBuffer += chunk;
+  scheduleStreamingFlush();
+}
+
+function setStreamingTokens(value) {
+  streamingTokenBuffer = "";
+  if (streamingRafHandle !== null) {
+    cancelAnimationFrame(streamingRafHandle);
+    streamingRafHandle = null;
+  }
+  state.set("streamingTokens", value);
+}
+
+function scheduleStreamingFlush() {
+  if (streamingRafHandle !== null) return;
+  streamingRafHandle = requestAnimationFrame(() => {
+    streamingRafHandle = null;
+    if (!streamingTokenBuffer) return;
+    const next = `${state.get("streamingTokens")}${streamingTokenBuffer}`;
+    streamingTokenBuffer = "";
+    const node = document.querySelector("[data-pcad-streaming] [data-pcad-streaming-body]");
+    if (node) {
+      // Direct DOM mutation avoids triggering a full app re-render per frame.
+      // The state.data slot stays in sync so any subsequent full render uses
+      // the same string we just wrote to the DOM.
+      state.data = { ...state.data, streamingTokens: next };
+      node.textContent = next;
+    } else {
+      state.set("streamingTokens", next);
+    }
   });
 }
 
@@ -145,8 +176,7 @@ function appendMessage(threadId, message) {
 function handleStreamError(error) {
   state.set("isStreaming", false);
   state.set("streamingThreadId", null);
-  state.set("streamingTokens", "");
-  state.set("streamingCitations", []);
+  setStreamingTokens("");
   if (error.status === 429) {
     state.set("rateLimitedUntil", Date.now() + 60000);
     showToast("Slow down — too many requests. Try again in a minute.", "warning");
@@ -156,11 +186,9 @@ function handleStreamError(error) {
 }
 
 function renderMessage(message) {
-  const body = message.role === "assistant" ? renderMarkdown(message.content, {
-    stripSources: false,
-    sourceLinks: true,
-    citations: message.citations || [],
-  }) : escapeHtml(message.content);
+  const body = message.role === "assistant"
+    ? renderAssistantBlocks(message.metadata?.blocks, message.citations || [], message.content)
+    : escapeHtml(message.content);
   const candidateButtons = message.role === "assistant" ? renderCandidateButtons(message.metadata?.account_candidates) : "";
   return `
     <article class="message ${escapeHtml(message.role)}" data-pcad-message="${escapeHtml(message.message_id)}">
@@ -183,14 +211,13 @@ function renderCandidateButtons(candidates) {
   `;
 }
 
-function renderStreamingBubble(text, citations = []) {
+function renderStreamingBubble(text) {
+  const body = text || "Searching company memory...";
   return `
     <article class="message assistant" data-pcad-streaming>
-      <div class="markdown stream-cursor">${renderMarkdown(text || "Searching company memory...", {
-        stripSources: !citations.length,
-        sourceLinks: Boolean(citations.length),
-        citations,
-      })}</div>
+      <div class="markdown stream-cursor">
+        <div data-pcad-streaming-body>${escapeHtml(body)}</div>
+      </div>
     </article>
   `;
 }

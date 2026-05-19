@@ -157,7 +157,12 @@ function renderArtifactGroups(artifacts, accountId) {
   const groups = new Map();
   for (const artifact of artifacts) {
     const label = artifact.metadata?.test_note ? "Test notes" : formatArtifactType(artifact.artifact_type);
-    groups.set(label, [...(groups.get(label) || []), artifact]);
+    let bucket = groups.get(label);
+    if (!bucket) {
+      bucket = [];
+      groups.set(label, bucket);
+    }
+    bucket.push(artifact);
   }
   return Array.from(groups.entries())
     .sort(([a], [b]) => groupRank(a) - groupRank(b))
