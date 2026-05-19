@@ -51,6 +51,7 @@ services:
       CONTEXT_TOKEN_BUDGET: ${CONTEXT_TOKEN_BUDGET:-6000}
       AGENT_GENERATION_MAX_ATTEMPTS: ${AGENT_GENERATION_MAX_ATTEMPTS:-3}
     volumes:
+      - ./src:/app/src
       - rendered_data:/app/data/rendered
     ports:
       - "127.0.0.1:8000:8000"
