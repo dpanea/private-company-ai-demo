@@ -2582,18 +2582,23 @@ dialog {
   margin-top: auto;
 }
 
+.source-panel .panel-header {
+  padding: 0 18px;
+}
+
 .source-panel .artifact-group {
   border-bottom: 1px solid var(--d-divider);
-  padding: 4px 0;
+  padding: 0;
 }
 
 .source-panel .artifact-group summary {
-  display: flex;
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   cursor: pointer;
   list-style: none;
-  padding: 9px 0;
+  padding: 10px 18px;
 }
 
 .source-panel .artifact-group summary::-webkit-details-marker {
@@ -2602,16 +2607,122 @@ dialog {
 
 .source-panel .artifact-group summary::before {
   content: "+";
-  margin-right: 8px;
+  display: inline-flex;
+  justify-content: center;
+  width: 14px;
   color: var(--d-text-3);
+  font-weight: 500;
+  line-height: 1;
 }
 
 .source-panel .artifact-group[open] summary::before {
-  content: "-";
+  content: "−";
+}
+
+.source-panel .artifact-group summary > span:first-of-type {
+  color: var(--d-text-3);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.source-panel .artifact-group summary > span:last-of-type {
+  color: var(--d-text-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .source-panel .artifact-row {
   margin: 0 0 6px 0;
+}
+
+.thread-history-group {
+  border-top: 1px solid var(--d-divider);
+  margin-top: 4px;
+}
+
+.thread-history-group > summary {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 0 8px;
+  color: var(--d-text-3);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.thread-history-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.thread-history-group > summary::before {
+  content: "+";
+  display: inline-flex;
+  justify-content: center;
+  width: 14px;
+  color: var(--d-text-3);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.thread-history-group[open] > summary::before {
+  content: "−";
+}
+
+.thread-history-group > summary > span:last-of-type {
+  color: var(--d-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.thread-history-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 2px 0 8px;
+  gap: 0;
+}
+
+.thread-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 10px 7px 22px;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: var(--d-text-2);
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.thread-row:hover {
+  background: rgba(251, 249, 244, 0.72);
+  color: var(--d-text);
+}
+
+.thread-row.active {
+  border-left-color: var(--d-text);
+  background: rgba(251, 249, 244, 0.86);
+  color: var(--d-text);
+  font-weight: 500;
+}
+
+.thread-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread-history-empty {
+  display: block;
+  padding: 8px 22px;
+  color: var(--d-text-3);
+  font-size: 12.5px;
 }
 
 @media (max-width: 1180px) {

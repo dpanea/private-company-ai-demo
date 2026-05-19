@@ -398,9 +398,16 @@ class ConversationService:
 
 def _account_resolution_error_answer(error: AccountResolutionError) -> str:
     if error.code == "account_ambiguous":
-        candidates = "; ".join(f"{c.account_name} ({c.account_id})" for c in error.candidates[:5])
-        return f"I couldn't choose a single account safely. Possible candidates: {candidates}. Please reply with the exact account name or account_id."
-    return "I couldn't determine which account you mean. Please include the exact account name or account_id."
+        candidates = "; ".join(f"{c.account_name}" for c in error.candidates[:5])
+        return (
+            "Happy to help — I just need to know which client you're asking about. "
+            f"A few accounts could match: {candidates}. "
+            "Pick one from the client menu on the left, or mention the client name in your message."
+        )
+    return (
+        "Happy to help — I just need to know which client you're asking about. "
+        "Pick a client from the menu on the left, or include the client name in your message and I'll take it from there."
+    )
 
 
 def _citations_from_pack(pack: dict[str, Any], validation: dict[str, Any]) -> list[dict[str, Any]]:
