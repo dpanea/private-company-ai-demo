@@ -34,6 +34,8 @@ The point is to show the shape of a serious private AI deployment without publis
 
 ## Demo
 
+<video src="src/company_ai/api/static/landing/assets/example_workflow-h264.mp4" controls muted playsinline width="100%" aria-label="Source-backed workflow screen recording"></video>
+
 <table>
   <tr>
     <td width="50%">
@@ -50,6 +52,11 @@ The point is to show the shape of a serious private AI deployment without publis
 </table>
 
 The intended public deployment is [demo.danielpanea.com](https://demo.danielpanea.com). Locally, `/` serves the landing page and `/demo` serves the working synthetic demo.
+
+### Demo Recordings
+
+- [Source-backed internal knowledge workflow](src/company_ai/api/static/landing/assets/example_workflow-h264.mp4): choose a scope, ask a workflow question, and inspect the cited artifacts.
+- [Live demo note workflow](src/company_ai/api/static/landing/assets/demo_note-h264.mp4): add a brief visitor-scoped note and ask about it immediately.
 
 ## What It Proves
 
@@ -161,7 +168,6 @@ Those are paid implementation concerns, not public-demo features.
 
 ## Media To Add Later
 
-- A short walkthrough GIF or MP4 of the hosted demo.
 - A screenshot of a streamed answer with visible citations.
 - A scanned-PDF artifact preview.
 

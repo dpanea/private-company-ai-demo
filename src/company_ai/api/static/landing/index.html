@@ -34,7 +34,12 @@
         <h1>Ask your company what it knows, and get <strong>the sources back.</strong></h1>
         <p class="lede">Your team already wrote down most of what the AI needs: emails, meeting notes, PDFs, policies, decisions, contracts, project history. It is scattered across six tools and a few people's heads. This demo turns it into a private assistant that synthesizes an answer in plain language and cites every artifact it used.</p>
         <div class="cta-row">
-          <a class="button button-primary" href="/demo">Try the synthetic demo <span aria-hidden="true">-&gt;</span></a>
+          <a class="button button-primary" href="/demo">
+            Try the synthetic demo
+            <svg class="button-arrow" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h13M13 6l6 6-6 6"/>
+            </svg>
+          </a>
           <a class="button button-secondary" href="https://calendly.com/daniel-panea/discovery-call">Discuss your use case</a>
         </div>
       </div>
@@ -120,6 +125,28 @@
       </div>
     </section>
 
+    <section class="video-band" aria-label="Demo walkthrough">
+      <div class="video-band-inner">
+        <div class="video-band-copy">
+          <p class="eyebrow">Demo walkthrough</p>
+          <h2>One question. <strong>Every source visible.</strong></h2>
+        </div>
+        <figure class="demo-video-card">
+          <div class="video-chrome">
+            <span></span><span></span><span></span>
+            <strong>Source-backed workflow</strong>
+          </div>
+          <video class="demo-video"
+                 autoplay muted loop playsinline controls controlslist="nodownload noplaybackrate noremoteplayback" disablepictureinpicture preload="metadata"
+                 poster="/static/landing/assets/example_workflow-poster.jpg"
+                 aria-label="Screen recording of a source-backed workflow in the synthetic demo">
+            <source src="/static/landing/assets/example_workflow.mp4" type="video/mp4; codecs=av01.0.05M.08">
+            <source src="/static/landing/assets/example_workflow-h264.mp4" type="video/mp4">
+          </video>
+        </figure>
+      </div>
+    </section>
+
     <section class="strip" aria-label="Demo boundaries">
       <span>This public demo uses synthetic data only.</span>
       <span>No login. No email gate.</span>
@@ -176,19 +203,24 @@
         <p class="eyebrow">Try the live moment</p>
         <h2>One question. One synthesized answer. <strong>Every source visible.</strong></h2>
       </div>
-      <div class="demo-moment-grid">
-        <div class="demo-video-card" aria-label="Demo walkthrough preview">
+      <div class="live-note-showcase">
+        <div class="live-note-copy">
+          <p class="eyebrow">Live demo notes</p>
+          <h3>Fresh notes join the same citation-backed memory.</h3>
+          <p>The public demo also accepts brief visitor-scoped notes. Add one during a session, ask about it immediately, and the assistant treats it like another source it can cite.</p>
+        </div>
+        <div class="demo-video-card demo-video-card--compact" aria-label="Live demo note preview">
           <div class="video-chrome">
             <span></span><span></span><span></span>
-            <strong>20-30 second walkthrough</strong>
+            <strong>Live-note workflow</strong>
           </div>
-          <div class="video-placeholder">
-            <p>A topic, decision, or client question goes in.</p>
-            <span class="flow-arrow" aria-hidden="true">↓</span>
-            <p>A synthesized answer comes out, with every source cited.</p>
-          </div>
-          <p class="video-note">Watch the core loop: pick a scope, ask a real workflow question, and open the exact artifacts behind the answer.</p>
+          <video class="demo-video" autoplay muted loop playsinline controls controlslist="nodownload noplaybackrate noremoteplayback" disablepictureinpicture preload="metadata" poster="/static/landing/assets/demo_note-poster.jpg" aria-label="Screen recording showing a live demo note being added and queried">
+            <source src="/static/landing/assets/demo_note.mp4" type="video/mp4; codecs=av01.0.05M.08">
+            <source src="/static/landing/assets/demo_note-h264.mp4" type="video/mp4">
+          </video>
         </div>
+      </div>
+      <div class="demo-moment-grid no-video">
         <div class="demo-script">
           <div class="three-step compact-steps">
             <article>
@@ -423,6 +455,19 @@
       };
       window.addEventListener('scroll', update, { passive: true });
       update();
+    })();
+  </script>
+  <script>
+    (function () {
+      var videos = document.querySelectorAll('video[autoplay]');
+      if (!('IntersectionObserver' in window) || !videos.length) return;
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) entry.target.play().catch(function () {});
+          else entry.target.pause();
+        });
+      }, { threshold: 0.25 });
+      videos.forEach(function (video) { observer.observe(video); });
     })();
   </script>
 
