@@ -1,11 +1,11 @@
-# Private Company Memory Layer
+# The Company Knowledge AI
 
 <p align="center">
-  <img src="src/pcad/api/static/assets/logo.svg" width="72" alt="Private Company Memory Layer logo">
+  <img src="src/pcad/api/static/assets/logo.svg" width="72" alt="The Company Knowledge AI logo">
 </p>
 
 <p align="center">
-  <strong>Open-source reference architecture for turning messy company artifacts into source-backed company knowledge.</strong>
+  <strong>Open-source reference architecture for a private, source-backed AI assistant over company knowledge.</strong>
 </p>
 
 <p align="center">
@@ -26,42 +26,43 @@
   <img alt="Vanilla frontend" src="https://img.shields.io/badge/frontend-vanilla%20HTML%2FCSS%2FJS-172126">
 </p>
 
-![Private Company Memory Copilot landing page](docs/assets/readme/landing-hero.png)
+![The Company Knowledge AI landing page](docs/assets/readme/landing-hero.png)
 
-This repo is a public, synthetic demo of a private company memory layer. It ingests messy account and internal company artifacts, normalizes them into AI-ready documents, indexes them in Postgres with hybrid retrieval, and answers company knowledge questions through guided workflows with citations.
+This repo is a public, synthetic demo of a private company knowledge assistant. It ingests messy internal and account-related artifacts, normalizes them into AI-ready documents, indexes them in Postgres with hybrid retrieval, and answers questions through guided workflows with citations.
 
-It is designed to show the shape of a serious private AI deployment without publishing client data, auth systems, or production SaaS machinery.
+It is designed to show the shape of a serious private AI deployment without publishing client data, auth systems, or production SaaS machinery. The demo is deliberately broader than CRM: it covers internal policies, onboarding, vendor context, engineering decisions, strategy notes, and fictional client history.
 
 ## Demo
 
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/assets/readme/demo-app.png" alt="Synthetic account selector">
+      <img src="docs/assets/readme/demo-app.png" alt="Synthetic company knowledge assistant">
     </td>
     <td width="50%">
-      <img src="docs/assets/readme/account-detail.png" alt="Account memory workspace with artifacts, workflows, alerts, and citations">
+      <img src="docs/assets/readme/account-detail.png" alt="Knowledge context workspace with artifacts, workflows, and citations">
     </td>
   </tr>
   <tr>
-    <td><strong>Pick a knowledge context.</strong><br>All company knowledge, internal company knowledge, and three fictional client accounts are available.</td>
-    <td><strong>Ask from the memory layer.</strong><br>Artifacts, guided workflows, chat, and citations stay tied to the selected context.</td>
+    <td><strong>Choose the scope.</strong><br>Start with all company knowledge, internal company knowledge, or a fictional client account.</td>
+    <td><strong>Ask from the selected context.</strong><br>Topic catch-up, decision archaeology, client briefings, risks, and citations stay tied to the knowledge scope.</td>
   </tr>
 </table>
 
 The intended public deployment is [demo.danielpanea.com](https://demo.danielpanea.com). Locally, `/` serves the landing page and `/demo` serves the working synthetic demo.
 
-Video slot for a future walkthrough:
+Video slot for the walkthrough:
 
 ![Video walkthrough placeholder](docs/assets/readme/video-placeholder.svg)
 
 ## What It Proves
 
-- Multi-format ingestion: synthetic emails, PDFs, Word docs, meeting transcripts, and CRM-style CSV exports.
-- AI-ready company memory: parsed artifacts become normalized documents with metadata, source references, and embeddings.
+- Multi-format ingestion: synthetic emails, PDFs, Word docs, meeting transcripts, Markdown memos, and CRM-style CSV exports.
+- AI-ready company memory: internal and account-related artifacts become normalized documents with metadata, source references, and embeddings.
 - Hybrid retrieval: Postgres full-text search, vector search through pgvector, and reranking-ready retrieval plumbing.
 - Source-backed answers: the conversation service validates citations and keeps evidence visible.
 - Guided workflows: topic catch-up, decision archaeology, call briefing, open risks, and follow-up drafting run with optional knowledge context.
+- Optional context scoping: ask across all company knowledge, only internal company knowledge, or a specific fictional client account.
 - Visitor-safe demo behavior: anonymous session cookies, visitor-scoped synthetic notes, and no user accounts.
 - Public reference boundary: enough architecture to learn from, without pretending to be a turnkey production product.
 
@@ -71,12 +72,12 @@ Video slot for a future walkthrough:
 
 ```mermaid
 flowchart LR
-    A["Synthetic company artifacts"] --> B["Parsers and normalization"]
+    A["Synthetic internal and account artifacts"] --> B["Parsers and normalization"]
     B --> C["AI-ready documents"]
     C --> D["Postgres + pgvector + pg_trgm"]
     D --> E["Hybrid retrieval"]
     E --> F["Conversation service"]
-    F --> G["Source-backed workflows"]
+    F --> G["Source-backed company assistant"]
     H["Visitor synthetic notes"] --> C
 ```
 
@@ -88,7 +89,7 @@ The detailed package plan lives in [`docs/`](docs/), starting with [`docs/00-ove
 | --- | --- |
 | [`src/pcad/api/`](src/pcad/api/) | FastAPI app, routes, sessions, rate limiting, static frontend serving. |
 | [`src/pcad/ingestion/`](src/pcad/ingestion/) | Parsers, normalization, OCR path, AI-ready document construction, embedding indexing. |
-| [`src/pcad/retrieval/`](src/pcad/retrieval/) | Hybrid retrieval, intent handling, proactive alerts. |
+| [`src/pcad/retrieval/`](src/pcad/retrieval/) | Hybrid retrieval and intent handling. |
 | [`src/pcad/agent/`](src/pcad/agent/) | Conversation orchestration and workflow-backed chat behavior. |
 | [`src/pcad/api/static/`](src/pcad/api/static/) | Vanilla HTML/CSS/JS demo UI and landing page. |
 | [`sql/migrations/`](sql/migrations/) | Versioned Postgres migrations. |
@@ -111,7 +112,7 @@ Open:
 - Landing page: `http://127.0.0.1:8000/`
 - Synthetic demo: `http://127.0.0.1:8000/demo`
 
-To regenerate the synthetic corpus:
+To regenerate the synthetic corpus, including the internal company knowledge artifacts:
 
 ```bash
 uv run python scripts/generate_synthetic.py --output data/synthetic --reference-date 2026-05-13 --clean
@@ -149,13 +150,14 @@ The app container runs migrations and bootstraps the demo corpus on first boot w
 
 This repository is a reference architecture, not a turnkey product. It intentionally does not include:
 
+- Production connectors.
 - Incremental and event-driven ingestion sync.
 - Format detection and content-type sniffing.
 - Production OCR for arbitrary scanned documents.
 - Deduplication and attachment recovery from email threads.
 - Mail thread reconstruction beyond `In-Reply-To` and `References` headers.
 - Schema evolution and migrations against live production data.
-- Per-user permissions, auth, row-level security, or multi-tenant isolation.
+- Per-user permissions, auth, and row-level security.
 - Multi-tenant isolation.
 - Audit logging, retention controls, dead-letter queues, and production observability.
 - Evaluation methodology, gold-question test sets, and hallucination measurement.

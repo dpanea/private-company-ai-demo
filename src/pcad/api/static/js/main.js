@@ -42,6 +42,10 @@ async function loadRoute(route) {
     const threads = await listThreads();
     state.set("threads", threads);
 
+    if (route.name === "memory") {
+      state.set("currentAccountId", null);
+    }
+
     if (route.name === "account" || route.name === "account_thread" || route.name === "account_artifact") {
       state.set("currentAccountId", route.params.accountId);
       await loadArtifactsForAccount(route.params.accountId);

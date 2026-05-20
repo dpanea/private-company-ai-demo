@@ -50,6 +50,25 @@ def test_source_artifact_chunks_are_generated_for_visible_artifact_types() -> No
     )
 
 
+def test_markdown_meeting_turns_are_chunked() -> None:
+    account = Account(account_id="ACC_1", account_name="Example Client")
+    now = datetime(2026, 5, 15, tzinfo=timezone.utc)
+    turns = "\n".join(f"**Speaker {index}:** Turn {index}." for index in range(1, 9))
+    meeting = _artifact(
+        "meeting:ACC_1:long_review",
+        "meeting_transcript",
+        "Long review",
+        turns,
+        now,
+    )
+    dataset = SyntheticDataset(accounts=[account], raw_artifacts=[meeting])
+
+    docs = DocumentBuilder(dataset, raw_artifacts=[meeting]).build_all()
+
+    assert len(docs) == 2
+    assert {doc.metadata_json["chunk_label"] for doc in docs} == {"turn group 1", "turn group 2"}
+
+
 def _artifact(
     artifact_id: str,
     artifact_type: str,

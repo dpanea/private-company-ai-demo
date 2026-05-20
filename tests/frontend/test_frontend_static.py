@@ -38,7 +38,7 @@ def test_required_microcopy_is_present() -> None:
     # Strip inline HTML so emphasis tags inside microcopy (added by the
     # landing-page redesign) don't break literal substring checks.
     text = re.sub(r"<[^>]+>", "", raw)
-    assert "Never prepare for a client call from scratch again." in text
+    assert "Ask your company what it knows, and get the sources back." in text
     assert "Try the synthetic demo" in text
     assert "This public demo uses synthetic data only." in text
     assert "The public demo has reached its daily budget." in text

@@ -22,6 +22,7 @@ from .schemas import AccountOut, FakeNoteCreateIn, SendMessageIn, ThreadCreateIn
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+RENDERED_ROOT = Path("data/rendered").resolve()
 
 
 def get_settings(request: Request) -> Settings:
@@ -121,9 +122,9 @@ def artifact(artifact_id: str, request: Request) -> dict[str, Any]:
         if virtual:
             return virtual
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Artifact not found")
-    data = dict(row)
-    data = _serialize_artifact_row(data)
-    rendered_paths = data.get("metadata", {}).get("rendered_image_paths") or []
+    row_data = dict(row)
+    rendered_paths = row_data.get("metadata", {}).get("rendered_image_paths") or []
+    data = _serialize_artifact_row(row_data)
     data["page_urls"] = [f"/api/artifacts/{artifact_id}/page/{index}" for index, _ in enumerate(rendered_paths)]
     return data
 
@@ -137,7 +138,7 @@ def artifact_page(artifact_id: str, page_number: int, request: Request) -> FileR
     rendered_paths = row["metadata"].get("rendered_image_paths") or []
     if page_number < 0 or page_number >= len(rendered_paths):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rendered page not found")
-    path = Path(rendered_paths[page_number])
+    path = _resolve_rendered_page_path(rendered_paths[page_number])
     if not path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rendered page file not found")
     return FileResponse(path)
@@ -152,7 +153,14 @@ def threads(request: Request) -> list[dict[str, Any]]:
 @router.post("/threads")
 def create_thread(payload: ThreadCreateIn, request: Request) -> dict[str, Any]:
     service: ConversationService = request.app.state.conversation_service
-    thread = service.create_thread(get_session_id(request), account_id=payload.account_id, workflow_seed=payload.workflow_seed)
+    try:
+        thread = service.create_thread(
+            get_session_id(request),
+            account_id=payload.account_id,
+            workflow_seed=payload.workflow_seed,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return thread.model_dump(mode="json")
 
 
@@ -304,9 +312,13 @@ def _insert_fake_note_doc(conn: Any, note: FakeNote, account_name: str) -> None:
 
 def _serialize_artifact_row(row: dict[str, Any]) -> dict[str, Any]:
     # Legacy `email_thread` rows from older ingestions are surfaced as `email` for the UI.
-    if row.get("artifact_type") == "email_thread":
-        return {**row, "artifact_type": "email"}
-    return dict(row)
+    artifact = {**row, "artifact_type": "email"} if row.get("artifact_type") == "email_thread" else dict(row)
+    artifact["rendered_path"] = None
+    metadata = dict(artifact.get("metadata") or {})
+    if "rendered_image_paths" in metadata:
+        metadata["rendered_page_count"] = len(metadata.pop("rendered_image_paths") or [])
+    artifact["metadata"] = metadata
+    return artifact
 
 
 def _fake_note_artifact(note: dict[str, Any]) -> dict[str, Any]:
@@ -393,3 +405,14 @@ def _fake_note_markdown(note: dict[str, Any]) -> str:
 
 def _fake_doc_id(note_id: str) -> str:
     return f"fake_note:{note_id}"
+
+
+def _resolve_rendered_page_path(value: Any) -> Path:
+    path = Path(str(value))
+    resolved = path.resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
+    try:
+        resolved.relative_to(RENDERED_ROOT)
+    except ValueError as exc:
+        logger.warning("artifact.page.rejected path=%s reason=outside_rendered_root", value)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rendered page not found") from exc
+    return resolved

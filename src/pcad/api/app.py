@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 RENDERED_DIR = Path("data/rendered")
+TRUSTED_PROXY_HOSTS = {"127.0.0.1", "::1", "localhost"}
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -57,8 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.middleware("http")
     async def rate_limit_api(request: Request, call_next: Any) -> Response:
         if request.url.path.startswith("/api/") and request.method not in {"GET", "HEAD", "OPTIONS"}:
-            forwarded_for = request.headers.get("x-forwarded-for", "")
-            client_ip = forwarded_for.split(",")[0].strip() or (request.client.host if request.client else "unknown")
+            client_ip = _client_ip(request)
             if not ip_rate_limiter.allow(
                 f"ip:{client_ip}",
                 limit=settings.rate_limit_per_ip_per_minute,
@@ -118,6 +118,16 @@ def _parse_vector_dimensions(column_type: str) -> int | None:
         return int(column_type.split("(", 1)[1].rstrip(")"))
     except ValueError:
         return None
+
+
+def _client_ip(request: Request) -> str:
+    peer_host = request.client.host if request.client else "unknown"
+    if peer_host in TRUSTED_PROXY_HOSTS:
+        forwarded_for = request.headers.get("x-forwarded-for", "")
+        forwarded_host = forwarded_for.split(",", 1)[0].strip()
+        if forwarded_host:
+            return forwarded_host
+    return peer_host
 
 
 app = create_app()

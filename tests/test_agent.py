@@ -242,3 +242,31 @@ def test_insufficient_evidence_when_only_internal_context_available(migrated_db:
     assert assistant.content == "I do not have enough evidence in the visible source artifacts to answer that."
     assert assistant.metadata["citation_validation"]["status"] == "insufficient_evidence"
     assert assistant.citations == []
+
+
+def test_uncited_answer_falls_back_to_insufficient_evidence(migrated_db: str) -> None:
+    settings = make_settings(migrated_db)
+    account_id = _seed_account_with_artifact_chunk(settings)
+    session_id = seed_session(settings)
+    payload = {
+        "status": "answered",
+        "account": {"account_id": account_id, "account_name": "Brannfeld Industrial"},
+        "clarification": {"message": "", "candidates": []},
+        "blocks": [
+            {
+                "type": "paragraph",
+                "text": "This answer names a fact but does not cite evidence.",
+                "citations": [],
+            }
+        ],
+    }
+    service = ConversationService(settings, llm_client=FixedStructuredLlm(payload))
+
+    thread = service.create_thread(session_id, account_id=account_id, workflow_seed=None)
+    events = _parse_sse(list(service.send_message_stream(session_id, thread.thread_id, "What is the blocker?")))
+
+    replace_event = next(data for event, data in events if event == "replace")
+    assert replace_event["content"].startswith("I do not have enough evidence")
+    assistant = service.get_messages(session_id, thread.thread_id)[-1]
+    assert assistant.metadata["citation_validation"]["status"] == "insufficient_evidence"
+    assert assistant.citations == []
