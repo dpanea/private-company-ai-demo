@@ -1,7 +1,7 @@
 # The Company Knowledge AI
 
 <p align="center">
-  <img src="src/pcad/api/static/assets/logo.svg" width="72" alt="The Company Knowledge AI logo">
+  <img src="src/company_ai/api/static/assets/logo.svg" width="72" alt="The Company Knowledge AI logo">
 </p>
 
 <p align="center">

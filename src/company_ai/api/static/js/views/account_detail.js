@@ -123,7 +123,7 @@ export function bindAccountDetail(root, account, accounts = [], options = {}) {
   });
 
   root.querySelector("[data-app-open-demo-note]")?.addEventListener("click", () => {
-    openDemoNoteModal(selectedAccountId);
+    openDemoNoteModal(selectedAccountId, accounts);
   });
 
   root.querySelector("[data-app-reset-demo-session]")?.addEventListener("click", async () => {

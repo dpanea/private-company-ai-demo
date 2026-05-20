@@ -28,7 +28,7 @@ LEGACY_CRM_TABLES = ["activities", "contracts", "opportunities", "contacts"]
 @pytest.fixture(scope="session")
 def db_url() -> str:
     return os.environ.get(
-        "PCAD_TEST_DATABASE_URL",
+        "COMPANY_AI_TEST_DATABASE_URL",
         os.environ.get("DATABASE_URL", "postgresql://company_ai:company_ai@localhost:5432/company_ai"),
     )
 

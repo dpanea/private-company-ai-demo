@@ -26,8 +26,8 @@ def test_docker_entrypoint_bootstraps_once() -> None:
     entrypoint = (ROOT / "scripts" / "docker_entrypoint.sh").read_text(encoding="utf-8")
 
     assert 'ENTRYPOINT ["scripts/docker_entrypoint.sh"]' in dockerfile
-    assert "uv run company_ai migrate" in entrypoint
-    assert "uv run company_ai bootstrap-demo" in entrypoint
+    assert "uv run company-ai migrate" in entrypoint
+    assert "uv run company-ai bootstrap-demo" in entrypoint
 
 
 def test_readme_documents_production_boundaries() -> None:

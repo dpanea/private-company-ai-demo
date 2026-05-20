@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import unicodedata
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Iterable
 
 from company_ai.config import Settings
 from company_ai.db import connect_dict
@@ -205,7 +205,7 @@ class PostgresHybridRetriever:
         fts = self.full_text_search(plan)
         vec = self.vector_search(plan)
         merged = _rrf_merge(base, fts, vec)
-        results = sorted(merged.values(), key=lambda r: float(r["rrf_score"]), reverse=True)[: plan.limit]
+        results = _rank_hybrid_results(merged.values(), limit=plan.limit)
         for row in results:
             row["score"] = row["rrf_score"]
         logger.info("retrieval.hybrid raw=%s deduped=%s returned=%s", len(base) + len(fts) + len(vec), len(merged), len(results))
@@ -281,6 +281,10 @@ def _rrf_merge(*rankers: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
                 if reason not in entry["reasons"]:
                     entry["reasons"].append(reason)
     return merged
+
+
+def _rank_hybrid_results(rows: Iterable[dict[str, Any]], *, limit: int) -> list[dict[str, Any]]:
+    return sorted(rows, key=lambda row: float(row["rrf_score"]), reverse=True)[:limit]
 
 
 def _select_account_candidate(candidates: list[AccountCandidate]) -> AccountCandidate:

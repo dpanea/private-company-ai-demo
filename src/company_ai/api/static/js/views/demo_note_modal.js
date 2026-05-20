@@ -5,7 +5,7 @@ import { accountName } from "../util/format.js";
 
 const INTERNAL_ACCOUNT_ID = "SYN_ACC_INTERNAL";
 
-export function openDemoNoteModal(accountId) {
+export function openDemoNoteModal(selectedAccountId, accounts = []) {
   const root = qs("#modal-root");
   const targetAccounts = accounts.length ? accounts : state.get("accounts");
   const defaultAccountId = defaultDemoNoteAccountId(selectedAccountId, targetAccounts);
@@ -23,14 +23,14 @@ export function openDemoNoteModal(accountId) {
   dialog.querySelector("[data-app-close-modal]")?.addEventListener("click", () => dialog.close());
   dialog.querySelector("form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    await submitDemoNote(dialog, accountId);
+    await submitDemoNote(dialog);
   });
 
   dialog.showModal();
   dialog.querySelector("input[name='title']")?.focus();
 }
 
-async function submitDemoNote(dialog, accountId) {
+async function submitDemoNote(dialog) {
   const form = dialog.querySelector("form");
   const data = new FormData(form);
   const accountId = String(data.get("account_id") || "").trim();
@@ -77,7 +77,7 @@ function setDemoNoteSubmitting(dialog, isSubmitting) {
   dialog.querySelector("[data-app-close-modal]")?.toggleAttribute("disabled", isSubmitting);
 }
 
-function renderDemoNoteDialog() {
+function renderDemoNoteDialog(accounts, defaultAccountId) {
   const today = new Date().toISOString().slice(0, 10);
   const noteTypes = [
     ["meeting_transcript", "Meeting"],
