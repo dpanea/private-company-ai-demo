@@ -92,6 +92,8 @@ class ConversationService:
         return [ConversationThread.model_validate(dict(row)) for row in rows]
 
     def create_thread(self, session_id: str, *, account_id: str | None, workflow_seed: str | None) -> ConversationThread:
+        if workflow_seed and workflow_seed not in WORKFLOW_SEEDS:
+            raise ValueError(f"Unknown workflow_seed {workflow_seed!r}")
         account_name = self._account_name(account_id) if account_id else None
         thread_id = str(uuid4())
         title = "New conversation"
@@ -239,9 +241,16 @@ class ConversationService:
             _log_llm_parsed(thread_id, answer, validation, payload)
         except ValueError as exc:
             logger.warning("conversation.structured_answer.invalid thread=%s error=%s raw=%r", thread_id, exc, raw[:500])
-            answer = "I do not have enough evidence in the visible source artifacts to answer that."
-            blocks = [{"text": answer, "citations": []}]
-            validation = insufficient_evidence_validation(prepared.pack)
+            answer, blocks, validation = _insufficient_evidence_answer(prepared.pack)
+        else:
+            if validation.get("status") == "answered" and not validation.get("valid", False):
+                logger.warning(
+                    "conversation.structured_answer.uncited thread=%s unknown=%s cited=%s",
+                    thread_id,
+                    validation.get("unknown_citations"),
+                    validation.get("cited"),
+                )
+                answer, blocks, validation = _insufficient_evidence_answer(prepared.pack)
 
         yield _sse("replace", {"content": answer, "blocks": blocks})
 
@@ -429,6 +438,11 @@ def _account_resolution_error_answer(error: AccountResolutionError) -> str:
         "Happy to help — I just need to know which client you're asking about. "
         "Pick a client from the knowledge context menu on the left, or include the client name in your message and I'll take it from there."
     )
+
+
+def _insufficient_evidence_answer(pack: dict[str, Any]) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
+    answer = "I do not have enough evidence in the visible source artifacts to answer that."
+    return answer, [{"text": answer, "citations": []}], insufficient_evidence_validation(pack)
 
 
 def _citations_from_pack(pack: dict[str, Any], validation: dict[str, Any]) -> list[dict[str, Any]]:

@@ -11,7 +11,7 @@ from pcad.util import safe_id
 
 _MARKDOWN_HEADING_RE = re.compile(r"^(#{1,3})\s+(.+)$")
 _PARAGRAPH_SPLIT_RE = re.compile(r"\n{2,}")
-_TRANSCRIPT_TURN_SPLIT_RE = re.compile(r"\n(?=[A-Z][^:\n]{1,50}:)")
+_TRANSCRIPT_TURN_SPLIT_RE = re.compile(r"\n(?=(?:\*\*)?[A-Z][^:\n]{1,50}:(?:\*\*)?)")
 
 
 ARTIFACT_SOURCE_OBJECTS = {

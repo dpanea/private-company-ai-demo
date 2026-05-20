@@ -76,6 +76,7 @@ def test_health_endpoint(migrated_db: str) -> None:
         response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json() == {"ok": "true"}
+    assert settings.session_cookie_name not in response.cookies
 
 
 def test_session_cookie_is_issued_and_reused(migrated_db: str) -> None:
@@ -209,6 +210,21 @@ def test_create_thread_then_send_message_via_sse_stream(migrated_db: str) -> Non
     assert any("Email msg_1" in block["citations"] for block in assistant["metadata"]["blocks"])
 
 
+def test_unknown_workflow_seed_returns_400(migrated_db: str) -> None:
+    settings = make_settings(migrated_db)
+    _seed_minimal_account(settings)
+    app, _ = _app_with_deterministic_llm(settings)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/threads",
+            json={"account_id": "ACC_R1", "workflow_seed": "not_a_workflow"},
+        )
+
+    assert response.status_code == 400
+    assert "Unknown workflow_seed" in response.json()["detail"]
+
+
 def test_all_company_thread_searches_without_account_clarification(migrated_db: str) -> None:
     settings = make_settings(migrated_db)
     seed_user(settings, user_id="USR_INTERNAL")
@@ -338,6 +354,27 @@ def test_per_ip_rate_limit_returns_429_after_quota(migrated_db: str) -> None:
     assert first.status_code == 200
     assert second.status_code == 429
     assert second.json()["detail"] == "Rate limit exceeded"
+
+
+def test_untrusted_x_forwarded_for_does_not_bypass_ip_rate_limit(migrated_db: str) -> None:
+    settings = make_settings(migrated_db, rate_limit_per_ip_per_minute=1)
+    _seed_minimal_account(settings)
+    app, _ = _app_with_deterministic_llm(settings)
+
+    with TestClient(app) as client:
+        first = client.post(
+            "/api/threads",
+            json={"account_id": "ACC_R1", "workflow_seed": None},
+            headers={"x-forwarded-for": "203.0.113.10"},
+        )
+        second = client.post(
+            "/api/threads",
+            json={"account_id": "ACC_R1", "workflow_seed": None},
+            headers={"x-forwarded-for": "203.0.113.11"},
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 429
 
 
 # ---------------------------------------------------------------------------

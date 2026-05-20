@@ -29,6 +29,8 @@ class SessionMiddleware(BaseHTTPMiddleware):
         self.serializer = URLSafeTimedSerializer(settings.session_secret, salt="pcad-session")
 
     async def dispatch(self, request: Request, call_next: Any) -> Response:
+        if not _requires_session(request.url.path):
+            return await call_next(request)
         # Run sync DB work in a threadpool so we do not block the event loop.
         session = await run_in_threadpool(self._load_or_create, request)
         request.state.session = session
@@ -124,3 +126,7 @@ def _session_ttl_seconds(settings: Settings) -> int:
     if ttl_hours > 0:
         return ttl_hours * 3600
     return int(settings.session_ttl_days) * 86400
+
+
+def _requires_session(path: str) -> bool:
+    return path.startswith("/api/") and path != "/api/health"

@@ -7,7 +7,8 @@ import { renderAssistantBlocks, workflowLabel } from "../util/format.js";
 
 export function renderConversationPanel(account, threads, currentThreadId, messages) {
   const currentThread = threads.find((thread) => thread.thread_id === currentThreadId);
-  const isStreaming = state.get("isStreaming") && state.get("streamingThreadId") === currentThreadId;
+  const isAnyStreaming = state.get("isStreaming");
+  const isStreaming = isAnyStreaming && state.get("streamingThreadId") === currentThreadId;
   const streamingTokens = state.get("streamingTokens");
   const budgetReached = messages.some((message) => message.metadata?.response_type === "budget_exceeded");
   return `
@@ -28,8 +29,8 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
       </div>
       <form class="composer" data-pcad-composer>
         <div class="composer-row">
-          <textarea name="message" rows="2" placeholder="Ask about a client, policy, decision, artifact, or risk" ${isStreaming ? "disabled" : ""}></textarea>
-          <button class="primary-action" type="submit" ${isStreaming ? "disabled" : ""}>Send</button>
+          <textarea name="message" rows="2" placeholder="Ask about a client, policy, decision, artifact, or risk" ${isAnyStreaming ? "disabled" : ""}></textarea>
+          <button class="primary-action" type="submit" ${isAnyStreaming ? "disabled" : ""}>Send</button>
         </div>
         <span class="affordance">Enter to send, Shift+Enter for newline</span>
       </form>
@@ -157,7 +158,7 @@ function scheduleStreamingFlush() {
       // Direct DOM mutation avoids triggering a full app re-render per frame.
       // The state.data slot stays in sync so any subsequent full render uses
       // the same string we just wrote to the DOM.
-      state.data = { ...state.data, streamingTokens: next };
+      state.setSilent("streamingTokens", next);
       node.textContent = next;
     } else {
       state.set("streamingTokens", next);

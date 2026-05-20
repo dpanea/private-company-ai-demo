@@ -1,6 +1,6 @@
 import { resetSession } from "../api.js";
 import { state } from "../state.js";
-import { artifactPath, threadPath } from "../router.js";
+import { accountPath, artifactPath, threadPath, navigate } from "../router.js";
 import { accountName, artifactIconSvg, artifactMeta, formatArtifactType, workflowLabel } from "../util/format.js";
 import { emptyState, escapeHtml, showToast } from "../util/dom.js";
 import { bindConversationPanel, renderConversationPanel, startThread } from "./conversation_panel.js";
@@ -90,6 +90,7 @@ export function bindAccountDetail(root, account, accounts = [], options = {}) {
         showToast(error.detail || "Could not load source artifacts.", "error");
       }
     }
+    navigate(accountPath(accountId));
   });
 
   root.querySelectorAll("[data-pcad-workflow]").forEach((button) => {
@@ -116,7 +117,8 @@ export function bindAccountDetail(root, account, accounts = [], options = {}) {
 
   root.querySelectorAll("[data-pcad-thread-chip]").forEach((button) => {
     button.addEventListener("click", () => {
-      window.location.hash = threadPath(null, button.dataset.pcadThreadChip).slice(1);
+      const thread = (state.get("threads") || []).find((item) => item.thread_id === button.dataset.pcadThreadChip);
+      navigate(threadPath(thread?.account_id || null, button.dataset.pcadThreadChip));
     });
   });
 

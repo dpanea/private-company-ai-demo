@@ -35,6 +35,10 @@ export const state = {
     this.set(key, updater(this.get(key)));
   },
 
+  setSilent(key, value) {
+    this.data = { ...this.data, [key]: value };
+  },
+
   subscribe(key, callback) {
     const bucket = subscribers.get(key) || new Set();
     bucket.add(callback);

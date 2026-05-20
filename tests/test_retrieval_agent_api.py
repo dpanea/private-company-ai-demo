@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from pcad.api.routes import _fake_note_artifact
+from pcad.api.routes import _fake_note_artifact, _serialize_artifact_row
 from pcad.agent.conversation_service import _citations_from_pack
 from pcad.llm.citations import allowed_citation_labels, render_structured_answer
 from pcad.retrieval.intent import IntentResolver
@@ -230,3 +230,23 @@ def test_fake_note_surfaces_as_source_artifact() -> None:
     assert artifact["mime_type"] == "application/pdf"
     assert artifact["metadata"]["source_object"] == "TestNote"
     assert "EU hosting is required." in artifact["extracted_text"]
+
+
+def test_artifact_serialization_hides_rendered_filesystem_paths() -> None:
+    artifact = _serialize_artifact_row(
+        {
+            "artifact_id": "pdf:ACC_1:nda",
+            "account_id": "ACC_1",
+            "artifact_type": "pdf",
+            "title": "NDA",
+            "rendered_path": "data/rendered/pdf_ACC_1_nda/page_1.png",
+            "metadata": {
+                "page_count": 1,
+                "rendered_image_paths": ["data/rendered/pdf_ACC_1_nda/page_1.png"],
+            },
+        }
+    )
+
+    assert artifact["rendered_path"] is None
+    assert "rendered_image_paths" not in artifact["metadata"]
+    assert artifact["metadata"]["rendered_page_count"] == 1

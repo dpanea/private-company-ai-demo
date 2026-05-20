@@ -117,12 +117,12 @@ function renderEmailArtifact(artifact) {
 }
 
 function renderTranscriptArtifact(artifact) {
-  const turns = String(artifact.extracted_text || "").split(/\n(?=[A-Z][^:\n]{1,40}:)/).filter(Boolean);
+  const turns = String(artifact.extracted_text || "").split(/\n(?=(?:\*\*)?[A-Z][^:\n]{1,40}:(?:\*\*)?)/).filter(Boolean);
   if (!turns.length || turns.length === 1) {
     return `<article class="document-page meeting-page markdown">${renderMarkdown(withMarkdownLineBreaks(artifact.extracted_text || ""))}</article>`;
   }
   return turns.map((turn) => {
-    const [speaker, ...rest] = turn.split(":");
+    const [speaker, ...rest] = turn.replaceAll("**", "").split(":");
     return `
       <div class="transcript-turn">
         <p class="kicker">${escapeHtml(speaker.trim())}</p>
