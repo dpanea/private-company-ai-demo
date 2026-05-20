@@ -103,6 +103,16 @@ def seed_rag_document(
         "[" + ",".join(f"{value:.8f}" for value in embedding) + "]" if embedding else None
     )
     with psycopg.connect(settings.database_url) as conn:
+        if session_id:
+            now = datetime.now(timezone.utc)
+            conn.execute(
+                """
+                INSERT INTO sessions (session_id, created_at, last_seen_at, expires_at)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (session_id) DO NOTHING
+                """,
+                (session_id, now, now, now + timedelta(days=7)),
+            )
         conn.execute(
             """
             INSERT INTO rag_documents (
@@ -165,4 +175,3 @@ def seed_session(settings: Settings, *, session_id: str | None = None) -> str:
         )
         conn.commit()
     return sid
-

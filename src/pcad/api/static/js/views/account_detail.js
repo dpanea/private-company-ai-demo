@@ -20,7 +20,7 @@ const workflows = [
   { seed: "open_risks", scope: "client" },
   { seed: "follow_up_draft", scope: "client" },
 ];
-const artifactOrder = ["Email", "PDF", "Word document", "Meeting", "Test notes"];
+const artifactOrder = ["Email", "PDF", "Word document", "Meeting", "Demo notes"];
 
 export function renderAccountDetail(account, accounts = []) {
   const accountId = account?.account_id || null;
@@ -44,7 +44,7 @@ export function renderAccountDetail(account, accounts = []) {
               <select data-pcad-account-select>
                 <option value="">All company knowledge</option>
                 ${internalAccount ? `<option value="${escapeHtml(internalAccount.account_id)}" ${internalAccount.account_id === accountId ? "selected" : ""}>Internal company knowledge</option>` : ""}
-                ${clientAccounts.length ? `<option value="" disabled>Clients</option>${clientAccounts.map((item) => `<option value="${escapeHtml(item.account_id)}" ${item.account_id === accountId ? "selected" : ""}>${escapeHtml(accountName(item))}</option>`).join("")}` : ""}
+                ${clientAccounts.length ? `<option value="" disabled> --- Clients --- </option>${clientAccounts.map((item) => `<option value="${escapeHtml(item.account_id)}" ${item.account_id === accountId ? "selected" : ""}>${escapeHtml(accountName(item))}</option>`).join("")}` : ""}
               </select>
             </label>
             <div class="workflow-stack" data-pcad-workflows>
@@ -52,7 +52,7 @@ export function renderAccountDetail(account, accounts = []) {
             </div>
             ${renderThreadHistory(threads, currentThreadId)}
             <div class="thread-actions sidebar-actions">
-              <button class="secondary-action memory-note-action" type="button" data-pcad-open-fake-note title="${accountId && accountId !== INTERNAL_ACCOUNT_ID ? "Add a test note for this client" : "Pick a client first to add a test note"}">Add test note</button>
+              <button class="secondary-action memory-note-action" type="button" data-pcad-open-fake-note title="Add a demo note to internal knowledge or a client context">Add demo note</button>
               <button class="secondary-action session-reset-action" type="button" data-pcad-reset-demo-session>Reset demo</button>
             </div>
           </div>
@@ -123,13 +123,7 @@ export function bindAccountDetail(root, account, accounts = [], options = {}) {
   });
 
   root.querySelector("[data-pcad-open-fake-note]")?.addEventListener("click", () => {
-    if (!selectedAccountId || selectedAccountId === INTERNAL_ACCOUNT_ID) {
-      const select = root.querySelector("[data-pcad-account-select]");
-      select?.focus();
-      showToast("Pick a client first — the test note attaches to one client.", "warning");
-      return;
-    }
-    openFakeNoteModal(selectedAccountId);
+    openFakeNoteModal({ selectedAccountId, accounts });
   });
 
   root.querySelector("[data-pcad-reset-demo-session]")?.addEventListener("click", async () => {
@@ -184,7 +178,7 @@ function renderArtifactGroups(artifacts, accountId) {
   if (!artifacts.length) return emptyState("No source artifacts have loaded for this context.");
   const groups = new Map();
   for (const artifact of artifacts) {
-    const label = artifact.metadata?.test_note ? "Test notes" : formatArtifactType(artifact.artifact_type);
+    const label = artifact.metadata?.test_note ? "Demo notes" : formatArtifactType(artifact.artifact_type);
     let bucket = groups.get(label);
     if (!bucket) {
       bucket = [];
@@ -200,19 +194,28 @@ function renderArtifactGroups(artifacts, accountId) {
 
 function renderArtifactGroupsByAccount(accounts, artifactsByAccount) {
   if (!accounts.length) return emptyState("No knowledge contexts available.");
+  const demoNotes = accounts.flatMap((account) => (
+    (artifactsByAccount[account.account_id] || [])
+      .filter((artifact) => artifact.metadata?.test_note)
+  ));
   const orderedAccounts = [
     ...accounts.filter(isInternalAccount),
     ...accounts.filter((account) => !isInternalAccount(account)),
   ];
   const sections = orderedAccounts
     .map((account) => {
-      const items = artifactsByAccount[account.account_id] || [];
+      const items = (artifactsByAccount[account.account_id] || [])
+        .filter((artifact) => !artifact.metadata?.test_note);
       if (!items.length) return "";
       const label = isInternalAccount(account) ? "Internal company knowledge" : account.account_name;
       return renderArtifactGroup(label, items, account.account_id, isInternalAccount(account));
     })
     .filter(Boolean);
-  return sections.length ? sections.join("") : emptyState("No source artifacts have loaded yet.");
+  const demoSection = demoNotes.length
+    ? renderArtifactGroup("Demo notes", demoNotes, null, true)
+    : "";
+  const rendered = [demoSection, ...sections].filter(Boolean);
+  return rendered.length ? rendered.join("") : emptyState("No source artifacts have loaded yet.");
 }
 
 function renderArtifactGroup(label, items, accountId, open) {
@@ -230,7 +233,8 @@ function groupRank(label) {
 }
 
 function renderArtifactRow(artifact, accountId) {
-  const href = artifactPath(accountId, artifact.artifact_id);
+  const artifactAccountId = accountId || artifact.account_id || null;
+  const href = artifactPath(artifactAccountId, artifact.artifact_id);
   return `
     <a class="artifact-row" href="${href}" data-pcad-artifact="${escapeHtml(artifact.artifact_id)}">
       <span class="icon-tile">${artifactIconSvg(artifact.artifact_type)}</span>

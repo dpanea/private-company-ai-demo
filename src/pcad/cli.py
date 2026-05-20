@@ -12,6 +12,8 @@ from pcad.ingestion.runner import run_demo_ingestion
 from pcad.logging_utils import configure_logging
 from pcad.migrations import apply_migrations
 
+RENDERED_ROOT = Path("data/rendered")
+
 
 def main() -> None:
     try:
@@ -64,8 +66,19 @@ def _main() -> None:
         return
     if args.command == "bootstrap-demo":
         document_count = _rag_document_count(settings)
-        if document_count > 0:
-            print(json.dumps({"ingested": False, "rag_documents": document_count}, indent=2, sort_keys=True))
+        missing_rendered_pages = _missing_rendered_page_count(settings, RENDERED_ROOT)
+        if document_count > 0 and missing_rendered_pages == 0:
+            print(
+                json.dumps(
+                    {
+                        "ingested": False,
+                        "missing_rendered_pages": missing_rendered_pages,
+                        "rag_documents": document_count,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
             return
         report = run_demo_ingestion(
             settings,
@@ -73,7 +86,17 @@ def _main() -> None:
             clean=True,
             skip_embeddings=args.skip_embeddings,
         )
-        print(json.dumps({"ingested": True, "report": report.as_dict()}, indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                {
+                    "ingested": True,
+                    "missing_rendered_pages": missing_rendered_pages,
+                    "report": report.as_dict(),
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
         return
     parser.error(f"Unknown command {args.command}")
 
@@ -84,3 +107,36 @@ def _rag_document_count(settings: Settings) -> int:
     if row is None:
         return 0
     return int(row[0])
+
+
+def _missing_rendered_page_count(settings: Settings, rendered_root: Path) -> int:
+    with connect(settings) as conn:
+        rows = conn.execute(
+            """
+            SELECT metadata->'rendered_image_paths'
+            FROM raw_artifacts
+            WHERE artifact_type = 'pdf'
+              AND metadata ? 'rendered_image_paths'
+            """
+        ).fetchall()
+    root = rendered_root.resolve()
+    missing = 0
+    for row in rows:
+        paths = row[0] or []
+        if not isinstance(paths, list):
+            missing += 1
+            continue
+        for value in paths:
+            if not _rendered_page_exists(value, root):
+                missing += 1
+    return missing
+
+
+def _rendered_page_exists(value: object, rendered_root: Path) -> bool:
+    path = Path(str(value))
+    resolved = path.resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
+    try:
+        resolved.relative_to(rendered_root)
+    except ValueError:
+        return False
+    return resolved.exists()

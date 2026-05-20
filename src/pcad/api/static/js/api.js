@@ -292,7 +292,7 @@ function addMockNote(accountId, payload) {
     payload.note_type === "docx" ? "docx_xml" : "plain_text",
     { source_object: "TestNote", source_record_id: noteId, date: payload.note_date, synthetic: true, test_note: true },
   );
-  newArtifact.extracted_text = `# Test ${payload.note_type.replaceAll("_", " ")}: ${payload.title}\n\n${payload.body}`;
+  newArtifact.extracted_text = `# Demo ${payload.note_type.replaceAll("_", " ")}: ${payload.title}\n\n${payload.body}`;
   newArtifact.created_at = note.created_at;
   newArtifact.ingested_at = note.created_at;
   mockArtifacts[accountId] = [newArtifact, ...(mockArtifacts[accountId] || [])];

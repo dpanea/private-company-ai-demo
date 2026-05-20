@@ -253,7 +253,7 @@ def delete_fake_note(note_id: str, request: Request) -> dict[str, bool]:
     with connect_dict(settings) as conn:
         note = conn.execute("SELECT account_id FROM fake_notes WHERE note_id = %s AND session_id = %s", (note_id, session_id)).fetchone()
         if not note:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Fake note not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demo note not found")
         conn.execute("DELETE FROM fake_notes WHERE note_id = %s AND session_id = %s", (note_id, session_id))
         conn.execute("DELETE FROM rag_documents WHERE doc_id = %s AND session_id = %s", (_fake_doc_id(note_id), session_id))
         conn.commit()
@@ -266,7 +266,7 @@ def _insert_fake_note_doc(conn: Any, note: FakeNote, account_name: str) -> None:
     doc_type = "source_artifact_chunk"
     source_object = "TestNote"
     content = (
-        f"# Test note: {note.title}\n\n"
+        f"# Demo note: {note.title}\n\n"
         f"- Account: {account_name}\n"
         f"- Note date: {note.note_date}\n"
         f"- Note type: {note.note_type}\n"
@@ -396,9 +396,9 @@ def _fake_note_markdown(note: dict[str, Any]) -> str:
         "meeting_transcript": "Meeting",
     }.get(note_type, "Document")
     return (
-        f"# Test {label}: {note.get('title')}\n\n"
+        f"# Demo {label}: {note.get('title')}\n\n"
         f"- Date: {note.get('note_date')}\n"
-        f"- Source: Session-scoped test note\n\n"
+        f"- Source: Session-scoped demo note\n\n"
         f"{note.get('body')}\n"
     )
 

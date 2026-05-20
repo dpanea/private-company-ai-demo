@@ -1,10 +1,15 @@
 import { addFakeNote, listAccountArtifacts, listFakeNotes } from "../api.js";
 import { state } from "../state.js";
 import { escapeHtml, qs, showToast, trapDialogFocus } from "../util/dom.js";
+import { accountName } from "../util/format.js";
 
-export function openFakeNoteModal(accountId) {
+const INTERNAL_ACCOUNT_ID = "SYN_ACC_INTERNAL";
+
+export function openFakeNoteModal({ selectedAccountId = null, accounts = [] } = {}) {
   const root = qs("#modal-root");
-  root.innerHTML = renderFakeNoteDialog();
+  const targetAccounts = accounts.length ? accounts : state.get("accounts");
+  const defaultAccountId = defaultDemoNoteAccountId(selectedAccountId, targetAccounts);
+  root.innerHTML = renderFakeNoteDialog(targetAccounts, defaultAccountId);
   const dialog = root.querySelector("dialog");
   const releaseTrap = trapDialogFocus(dialog);
 
@@ -18,24 +23,29 @@ export function openFakeNoteModal(accountId) {
   dialog.querySelector("[data-pcad-close-modal]")?.addEventListener("click", () => dialog.close());
   dialog.querySelector("form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    await submitFakeNote(dialog, accountId);
+    await submitFakeNote(dialog);
   });
 
   dialog.showModal();
   dialog.querySelector("input[name='title']")?.focus();
 }
 
-async function submitFakeNote(dialog, accountId) {
+async function submitFakeNote(dialog) {
   const form = dialog.querySelector("form");
   const data = new FormData(form);
+  const accountId = String(data.get("account_id") || "").trim();
   const payload = {
     note_type: data.get("note_type"),
     title: String(data.get("title") || "").trim(),
     body: String(data.get("body") || "").trim(),
     note_date: data.get("note_date"),
   };
+  if (!accountId) {
+    showToast("Choose a knowledge context for this demo note.", "warning");
+    return;
+  }
   if (!payload.title || !payload.body || !payload.note_date) {
-    showToast("Fill in the title, body, and date before adding the note.", "warning");
+    showToast("Fill in the title, body, and date before adding the demo note.", "warning");
     return;
   }
 
@@ -46,10 +56,10 @@ async function submitFakeNote(dialog, accountId) {
     state.update("fakeNotesByAccount", (notesByAccount) => ({ ...notesByAccount, [accountId]: notes }));
     state.update("artifactsByAccount", (artifactsByAccount) => ({ ...artifactsByAccount, [accountId]: artifacts }));
     dialog.close();
-    showToast("Test note added. The system has updated this demo session's company memory.", "success");
+    showToast("Demo note added. The system has updated this demo session's company memory.", "success");
   } catch (error) {
     setFakeNoteSubmitting(dialog, false);
-    showToast(error.detail || "The test note could not be added.", "error");
+    showToast(error.detail || "The demo note could not be added.", "error");
   }
 }
 
@@ -62,12 +72,12 @@ function setFakeNoteSubmitting(dialog, isSubmitting) {
   if (submit) {
     submit.innerHTML = isSubmitting
       ? '<span class="button-spinner" aria-hidden="true"></span><span>Adding...</span>'
-      : "Add test note";
+      : "Add demo note";
   }
   dialog.querySelector("[data-pcad-close-modal]")?.toggleAttribute("disabled", isSubmitting);
 }
 
-function renderFakeNoteDialog() {
+function renderFakeNoteDialog(accounts, defaultAccountId) {
   const today = new Date().toISOString().slice(0, 10);
   const noteTypes = [
     ["meeting_transcript", "Meeting"],
@@ -80,13 +90,19 @@ function renderFakeNoteDialog() {
       <div class="modal-head">
         <div>
           <p class="kicker">Session-scoped demo input</p>
-          <h2 id="fake-note-title">Add a test note</h2>
+          <h2 id="fake-note-title">Add a demo note</h2>
         </div>
         <button class="icon-button" type="button" data-pcad-close-modal aria-label="Close note form">×</button>
       </div>
       <div class="modal-body">
-        <div class="callout warning">This public demo uses synthetic data only. Do not enter real or confidential client information. Test notes are kept only for this temporary demo session.</div>
+        <div class="callout warning">This public demo uses synthetic data only. Do not enter real or confidential client information. Demo notes are kept only for this temporary demo session.</div>
         <form class="field-grid">
+          <div class="form-field">
+            <label for="demo-note-context">Knowledge context</label>
+            <select id="demo-note-context" name="account_id" required>
+              ${renderKnowledgeContextOptions(accounts, defaultAccountId)}
+            </select>
+          </div>
           <div class="form-field">
             <label for="note-type">Type</label>
             <select id="note-type" name="note_type">
@@ -107,10 +123,40 @@ function renderFakeNoteDialog() {
           </div>
           <div class="modal-actions">
             <button class="secondary-action" type="button" data-pcad-close-modal>Cancel</button>
-            <button class="primary-action" type="submit">Add test note</button>
+            <button class="primary-action" type="submit">Add demo note</button>
           </div>
         </form>
       </div>
     </dialog>
   `;
+}
+
+function renderKnowledgeContextOptions(accounts, selectedAccountId) {
+  const internalAccount = accounts.find(isInternalAccount) || null;
+  const clientAccounts = accounts.filter((account) => !isInternalAccount(account));
+  const options = [];
+  if (internalAccount) {
+    options.push(
+      `<option value="${escapeHtml(internalAccount.account_id)}" ${internalAccount.account_id === selectedAccountId ? "selected" : ""}>Internal company knowledge</option>`,
+    );
+  }
+  if (clientAccounts.length) {
+    options.push('<option value="" disabled> --- Clients --- </option>');
+    options.push(...clientAccounts.map((account) => (
+      `<option value="${escapeHtml(account.account_id)}" ${account.account_id === selectedAccountId ? "selected" : ""}>${escapeHtml(accountName(account))}</option>`
+    )));
+  }
+  return options.length ? options.join("") : '<option value="">No knowledge contexts available</option>';
+}
+
+function defaultDemoNoteAccountId(selectedAccountId, accounts) {
+  if (selectedAccountId && accounts.some((account) => account.account_id === selectedAccountId)) {
+    return selectedAccountId;
+  }
+  const internalAccount = accounts.find(isInternalAccount);
+  return internalAccount?.account_id || accounts[0]?.account_id || "";
+}
+
+function isInternalAccount(account) {
+  return account?.account_id === INTERNAL_ACCOUNT_ID || account?.account_type === "internal_knowledge";
 }

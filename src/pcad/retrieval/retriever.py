@@ -202,7 +202,7 @@ class PostgresHybridRetriever:
             ).fetchall()
 
     def hybrid_search(self, plan: RetrievalPlan, base_context: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
-        base = base_context or []
+        base = self.fetch_base_context(plan) if base_context is None else base_context
         fts = self.full_text_search(plan)
         vec = self.vector_search(plan)
         merged = _rrf_merge(base, fts, vec)

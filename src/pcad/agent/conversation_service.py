@@ -66,7 +66,7 @@ SOURCE_OBJECT_SPECS: dict[str, tuple[str, str, bool]] = {
     "PDF": ("pdf", "PDF", True),
     "WordDocument": ("docx", "Word", True),
     "Meeting": ("meeting", "Meeting", True),
-    "TestNote": ("test-note", "Test note", False),
+    "TestNote": ("test-note", "Demo note", False),
 }
 
 
@@ -447,8 +447,10 @@ def _insufficient_evidence_answer(pack: dict[str, Any]) -> tuple[str, list[dict[
 
 def _citations_from_pack(pack: dict[str, Any], validation: dict[str, Any]) -> list[dict[str, Any]]:
     cited = set(validation.get("cited") or [])
+    if not cited:
+        return []
     citations = _collect_citations_from_pack(pack, cited)
-    if not citations and cited:
+    if not citations:
         citations = _collect_citations_from_pack(pack, set())
     return citations[:8]
 

@@ -29,7 +29,7 @@ LEGACY_CRM_TABLES = ["activities", "contracts", "opportunities", "contacts"]
 def db_url() -> str:
     return os.environ.get(
         "PCAD_TEST_DATABASE_URL",
-        os.environ.get("DATABASE_URL", "postgresql://pcad:pcad@localhost:5432/pcad"),
+        os.environ.get("DATABASE_URL", "postgresql://pcad_test:pcad_test@localhost:5432/pcad_test"),
     )
 
 

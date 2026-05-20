@@ -9,7 +9,9 @@ from pathlib import Path
 
 import psycopg
 import pytest
+from psycopg.types.json import Jsonb
 
+from pcad.cli import _missing_rendered_page_count
 from pcad.config import Settings
 from pcad.ingestion.runner import run_demo_ingestion
 from pcad.migrations import apply_migrations
@@ -59,6 +61,29 @@ def test_run_demo_ingestion_clean_rerun_is_stable_and_unclean_fails(empty_db: st
     assert first.raw_artifacts == second.raw_artifacts
     assert first.rag_documents == second.rag_documents
     assert first_hashes == _document_hashes(empty_db)
+
+
+def test_missing_rendered_page_count_detects_absent_pdf_images(migrated_db: str, tmp_path: Path) -> None:
+    settings = _settings(migrated_db)
+    root = tmp_path / "data" / "rendered"
+    existing = root / "pdf_ACC_1_contract" / "page_1.png"
+    missing = root / "pdf_ACC_1_contract" / "page_2.png"
+    existing.parent.mkdir(parents=True)
+    existing.write_bytes(b"png")
+    _seed_pdf_artifact(settings, [str(existing), str(missing)])
+
+    assert _missing_rendered_page_count(settings, root) == 1
+
+
+def test_missing_rendered_page_count_rejects_paths_outside_rendered_root(migrated_db: str, tmp_path: Path) -> None:
+    settings = _settings(migrated_db)
+    root = tmp_path / "data" / "rendered"
+    outside = tmp_path / "elsewhere" / "page_1.png"
+    outside.parent.mkdir(parents=True)
+    outside.write_bytes(b"png")
+    _seed_pdf_artifact(settings, [str(outside)])
+
+    assert _missing_rendered_page_count(settings, root) == 1
 
 
 def _settings(db_url: str) -> Settings:
@@ -207,6 +232,40 @@ def _message(
         message["References"] = " ".join(f"<{item}>" for item in references)
     message.set_content(body)
     return message
+
+
+def _seed_pdf_artifact(settings: Settings, rendered_paths: list[str]) -> None:
+    with psycopg.connect(settings.database_url) as conn:
+        conn.execute(
+            """
+            INSERT INTO users_or_owners (user_id, name, is_active)
+            VALUES ('USR_PDF', 'PDF Owner', true)
+            ON CONFLICT (user_id) DO NOTHING
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO accounts (account_id, account_name, owner_id)
+            VALUES ('ACC_PDF', 'PDF Account', 'USR_PDF')
+            ON CONFLICT (account_id) DO NOTHING
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO raw_artifacts (
+                artifact_id, account_id, artifact_type, title, mime_type, source_path,
+                rendered_path, extracted_text, metadata, extraction_method, created_at
+            )
+            VALUES (%s, 'ACC_PDF', 'pdf', 'Contract', 'application/pdf', 'synthetic/contract.pdf',
+                %s, 'Extracted text', %s, 'plain_text', now())
+            """,
+            (
+                "pdf:ACC_PDF:contract",
+                rendered_paths[0] if rendered_paths else None,
+                Jsonb({"rendered_image_paths": rendered_paths}),
+            ),
+        )
+        conn.commit()
 
 
 def _document_hashes(db_url: str) -> list[tuple[str, str]]:

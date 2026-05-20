@@ -229,6 +229,7 @@ def test_fake_note_surfaces_as_source_artifact() -> None:
     assert artifact["artifact_type"] == "pdf"
     assert artifact["mime_type"] == "application/pdf"
     assert artifact["metadata"]["source_object"] == "TestNote"
+    assert "Session-scoped demo note" in artifact["extracted_text"]
     assert "EU hosting is required." in artifact["extracted_text"]
 
 

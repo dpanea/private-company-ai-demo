@@ -38,9 +38,12 @@ def test_required_microcopy_is_present() -> None:
     # Strip inline HTML so emphasis tags inside microcopy (added by the
     # landing-page redesign) don't break literal substring checks.
     text = re.sub(r"<[^>]+>", "", raw)
+    assert "demo-note-context" in raw
     assert "Ask your company what it knows, and get the sources back." in text
     assert "Try the synthetic demo" in text
     assert "This public demo uses synthetic data only." in text
+    assert "Add a demo note" in text
+    assert "Demo notes are kept only for this temporary demo session." in text
     assert "The public demo has reached its daily budget." in text
 
 
@@ -66,7 +69,10 @@ def test_demo_layout_uses_inline_citations_and_grouped_sources() -> None:
     assert "Knowledge context" in account_detail
     assert "All company knowledge" in account_detail
     assert "Internal company knowledge" in account_detail
-    assert "disabled>Clients</option>" in account_detail
+    assert "disabled> --- Clients --- </option>" in account_detail
+    assert "Add demo note" in account_detail
+    assert "Demo notes" in account_detail
+    assert "openFakeNoteModal({ selectedAccountId, accounts })" in account_detail
     assert "catch_me_up" in account_detail
     assert "decision_archaeology" in account_detail
     assert "what_changed" not in account_detail
