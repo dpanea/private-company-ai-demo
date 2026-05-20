@@ -93,7 +93,7 @@ See [`docs/architecture.md`](docs/architecture.md) for the full walkthrough.
 | [`src/company_ai/retrieval/`](src/company_ai/retrieval/) | Hybrid retrieval and intent handling. |
 | [`src/company_ai/agent/`](src/company_ai/agent/) | Conversation orchestration and workflow-backed chat behavior. |
 | [`src/company_ai/api/static/`](src/company_ai/api/static/) | Vanilla HTML/CSS/JS demo UI and landing page. |
-| [`sql/init.sql`](sql/migrations/) | Single-file Postgres schema applied by `company-ai migrate`. |
+| [`sql/init.sql`](sql/init.sql) | Single-file Postgres schema applied by `company-ai migrate`. |
 | [`deploy/`](deploy/) | Caddy, Docker, and sovereign vLLM deployment notes. |
 
 ## Quickstart
@@ -127,7 +127,7 @@ Create a real `.env` from `.env.example`. Keep secrets out of git.
 | --- | --- |
 | `DATABASE_URL` | Postgres connection string. |
 | `LLM_API_KEY` | Hosted LLM and embedding provider key. |
-| `LLM_BASE_URL` | OpenAI-compatible endpoint, any OpenAI-compatible endpoint (OpenRouter, OpenAI, vLLM, etc.). |
+| `LLM_BASE_URL` | OpenAI-compatible endpoint (OpenRouter, OpenAI, vLLM, etc.). |
 | `LLM_MODEL` | Chat model. |
 | `EMBEDDING_MODEL` | Embedding model. |
 | `DAILY_TOKEN_BUDGET` | Public-demo spend guardrail. |

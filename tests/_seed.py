@@ -30,6 +30,7 @@ def make_settings(database_url: str, **overrides: Any) -> Settings:
         log_level="WARNING",
         log_color=False,
         session_cookie_name="company_ai_session",
+        session_cookie_secure=False,
         session_ttl_days=7,
         session_secret="test-secret",
         rate_limit_per_ip_per_minute=1000,

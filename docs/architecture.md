@@ -9,7 +9,7 @@ intentional limits of the demo.
 synthetic artifacts ──► parsers ──► AI-ready documents ──► Postgres + pgvector
                                                               │
                                                               ▼
-                              hybrid retrieval (BM25 + vector, RRF-merged)
+                              hybrid retrieval (FTS + vector, RRF-merged)
                                                               │
                                                               ▼
                           conversation service (intent → context pack → LLM)

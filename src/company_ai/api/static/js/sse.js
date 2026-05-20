@@ -1,8 +1,6 @@
-import { ApiError, appendMockMessage, isMockMode, mockThread } from "./api.js";
+import { ApiError } from "./api.js";
 
 export function streamMessage(threadId, message, handlers = {}) {
-  if (isMockMode()) return streamMockMessage(threadId, message, handlers);
-
   const controller = new AbortController();
   fetch(`/api/threads/${encodeURIComponent(threadId)}/messages/stream`, {
     method: "POST",
@@ -71,94 +69,4 @@ function dispatchSseEvent(rawEvent, handlers) {
   if (eventName === "replace") handlers.onReplace?.(data);
   if (eventName === "done") handlers.onDone?.(data);
   if (eventName === "error") handlers.onError?.(data);
-}
-
-function streamMockMessage(threadId, message, handlers) {
-  const controller = new AbortController();
-  const thread = mockThread(threadId);
-  const accountName = thread?.account_name || "this account";
-  const createdAt = new Date().toISOString();
-  const userMessage = {
-    message_id: `mock-user-${Date.now()}`,
-    thread_id: threadId,
-    role: "user",
-    content: message,
-    account_id: thread?.account_id || null,
-    account_name: accountName,
-    citations: [],
-    metadata: {},
-    created_at: createdAt,
-  };
-  const assistantBlocks = [
-    {
-      text: `Here is the source-backed readout for ${accountName}.`,
-      citations: [],
-    },
-    {
-      text: "The account is moving, but the next step should resolve the explicit blocker before expanding scope. The strongest evidence is in the recent email thread and meeting notes.",
-      citations: ["Email mock-thread"],
-    },
-    {
-      text: "Recommended next action: send a concise follow-up that confirms the deployment boundary, names the owner for the blocker, and asks for a date to review the answer.",
-      citations: ["Meeting mock-review"],
-    },
-  ];
-  const assistantText = assistantBlocks.map((block) => block.text).join("\n\n");
-  const assistantMessage = {
-    message_id: `mock-assistant-${Date.now()}`,
-    thread_id: threadId,
-    role: "assistant",
-    content: assistantText,
-    account_id: thread?.account_id || null,
-    account_name: accountName,
-    citations: [
-      {
-        label: "Email mock-thread",
-        source_label: "Email mock-thread",
-        source_object: "Email",
-        source_record_id: "mock-thread",
-        title: "Recent email thread",
-        source_date: "2026-05-04",
-        excerpt: "Procurement confirmed the data boundary but asked for a written deployment note.",
-        artifact_id: thread?.account_id === "SYN_ACC_BRANNFELD" ? "art-brann-email-1" : null,
-      },
-      {
-        label: "Meeting mock-review",
-        source_label: "Meeting mock-review",
-        source_object: "Meeting",
-        source_record_id: "mock-review",
-        title: "Review meeting notes",
-        source_date: "2026-04-28",
-        excerpt: "The technical sponsor needs confidence before the next procurement checkpoint.",
-        artifact_id: thread?.account_id === "SYN_ACC_BRANNFELD" ? "art-brann-meeting" : null,
-      },
-    ],
-    metadata: { response_type: "answer", blocks: assistantBlocks },
-    created_at: createdAt,
-  };
-
-  window.setTimeout(() => {
-    if (controller.signal.aborted) return;
-    appendMockMessage(threadId, userMessage);
-    handlers.onUserMessage?.(userMessage);
-    handlers.onStatus?.({ status: "thinking" });
-  }, 120);
-
-  window.setTimeout(() => {
-    if (controller.signal.aborted) return;
-    handlers.onStatus?.({ status: "generating" });
-    const tokens = assistantText.match(/.{1,34}(\s|$)/g) || [assistantText];
-    tokens.forEach((token, index) => {
-      window.setTimeout(() => {
-        if (controller.signal.aborted) return;
-        handlers.onToken?.({ content: token });
-        if (index === tokens.length - 1) {
-          appendMockMessage(threadId, assistantMessage);
-          handlers.onDone?.({ assistant_message: assistantMessage, thread });
-        }
-      }, index * 38);
-    });
-  }, 520);
-
-  return controller;
 }
