@@ -32,7 +32,7 @@ async function bootstrap() {
     await Promise.all(accounts.map((account) => loadArtifactsForAccount(account.account_id)));
   } catch (error) {
     state.set("lastError", error);
-    showToast(error.detail || "The demo API is not reachable. Add ?mock=1 to use the local mock UI.", "error");
+    showToast(error.detail || "The demo API is not reachable.", "error");
   }
 }
 
@@ -84,7 +84,7 @@ function renderApp() {
       <section class="page page-narrow">
         <div class="inline-error">
           <strong>The frontend loaded, but the API did not respond.</strong>
-          <p>Run the FastAPI app when Package 4 is available, or open this page with <code>?mock=1</code> for a local smoke test.</p>
+          <p>Start the backend with <code>uv run company-ai serve</code>, then refresh.</p>
         </div>
       </section>
     `;
