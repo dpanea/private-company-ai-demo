@@ -18,7 +18,7 @@ from company_ai.retrieval.retriever import (
     _query_instruction,
 )
 
-from tests._seed import make_settings, seed_account, seed_rag_document, seed_user
+from tests._seed import make_settings, seed_account, seed_rag_document, seed_session, seed_user
 
 
 def _intent(query: str) -> IntentResult:
@@ -179,6 +179,7 @@ def test_hybrid_search_scopes_to_account_and_session(migrated_db: str) -> None:
         content="Security review approved for the pilot.",
         citations=[{"source_object": "Email", "source_record_id": "theirs_msg_1"}],
     )
+    seed_session(settings, session_id="some_other_session")
     seed_rag_document(
         settings,
         doc_id="demo_note:ours:other_session",
@@ -252,7 +253,7 @@ def test_source_artifact_questions_retrieve_pdf_and_word_chunks(
     retriever = PostgresHybridRetriever(settings)
     plan = retriever.build_retrieval_plan(query, "ACC_RYNVOSS", "Rynvoss Logistics BV", _intent(query))
 
-    rows = retriever.hybrid_search(plan)
+    rows = retriever.hybrid_search(plan, retriever.fetch_base_context(plan))
     pack = retriever.build_context_pack(query, plan, rows)
 
     assert rows[0]["doc_id"] == doc_id

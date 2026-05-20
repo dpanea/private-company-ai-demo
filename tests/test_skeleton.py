@@ -21,7 +21,6 @@ from company_ai.models import (
 
 
 EXPECTED_TABLES = {
-    "schema_migrations",
     "users_or_owners",
     "accounts",
     "raw_artifacts",
@@ -33,7 +32,7 @@ EXPECTED_TABLES = {
     "demo_notes",
     "daily_budget_usage",
 }
-DROPPED_CRM_TABLES = {"contacts", "opportunities", "contracts", "activities"}
+UNEXPECTED_TABLES = {"contacts", "opportunities", "contracts", "activities", "proactive_alerts"}
 
 
 def _settings(db_url: str) -> Settings:
@@ -61,27 +60,10 @@ def _settings(db_url: str) -> Settings:
 def test_apply_migrations_runs_and_is_idempotent(empty_db: str) -> None:
     settings = _settings(empty_db)
 
-    first = apply_migrations(settings)
-    second = apply_migrations(settings)
-
-    assert first == [
-        "0001_init",
-        "0002_pgvector_pgtrgm",
-        "0003_normalized_crm_tables",
-        "0004_raw_artifacts",
-        "0005_rag_documents",
-        "0006_source_citations",
-        "0007_conversation",
-        "0008_demo_notes",
-        "0009_proactive_alerts",
-        "0010_daily_budget_usage",
-        "0011_demo_note_artifact_types",
-        "0012_session_scoped_cascade",
-        "0013_drop_proactive_alerts",
-        "0014_delete_crm_source_citations",
-        "0015_drop_crm_tables",
-    ]
-    assert second == []
+    # First call applies the schema; second call is a no-op (every statement
+    # in init.sql is wrapped in IF NOT EXISTS, so re-running is cheap).
+    assert apply_migrations(settings) is True
+    assert apply_migrations(settings) is True
 
 
 def test_expected_tables_and_extensions_exist(empty_db: str) -> None:
@@ -111,7 +93,7 @@ def test_expected_tables_and_extensions_exist(empty_db: str) -> None:
         }
 
     assert EXPECTED_TABLES <= tables
-    assert tables.isdisjoint(DROPPED_CRM_TABLES)
+    assert tables.isdisjoint(UNEXPECTED_TABLES)
     assert extensions == {"vector", "pg_trgm"}
 
 

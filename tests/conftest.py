@@ -19,16 +19,14 @@ APPLICATION_TABLES = [
     "raw_artifacts",
     "accounts",
     "users_or_owners",
+    "daily_budget_usage",
 ]
-# Legacy CRM tables removed by migration 0015. Listed so `empty_db` can also
-# clear them on a database that pre-dates the drop.
-LEGACY_CRM_TABLES = ["activities", "contracts", "opportunities", "contacts"]
 
 
 @pytest.fixture(scope="session")
 def db_url() -> str:
     return os.environ.get(
-        "PCAD_TEST_DATABASE_URL",
+        "COMPANY_AI_TEST_DATABASE_URL",
         os.environ.get("DATABASE_URL", "postgresql://company_ai:company_ai@localhost:5432/company_ai"),
     )
 
@@ -46,10 +44,8 @@ def postgres_available(db_url: str) -> str:
 @pytest.fixture()
 def empty_db(postgres_available: str) -> str:
     with psycopg.connect(postgres_available) as conn:
-        for table in [*APPLICATION_TABLES, *LEGACY_CRM_TABLES]:
+        for table in APPLICATION_TABLES:
             conn.execute(f"DROP TABLE IF EXISTS {table} CASCADE")
-        conn.execute("DROP TABLE IF EXISTS schema_migrations CASCADE")
-        conn.execute("DROP TABLE IF EXISTS daily_budget_usage CASCADE")
     return postgres_available
 
 

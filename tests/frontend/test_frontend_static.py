@@ -62,7 +62,7 @@ def test_demo_layout_uses_inline_citations_and_grouped_sources() -> None:
     assert "renderAlertsPanel" not in account_detail
     assert 'aria-label="Source artifacts"' in account_detail
     assert "<details" in account_detail
-    assert "data-company_ai-account-select" in account_detail
+    assert "data-app-account-select" in account_detail
     assert "Knowledge context" in account_detail
     assert "All company knowledge" in account_detail
     assert "Internal company knowledge" in account_detail

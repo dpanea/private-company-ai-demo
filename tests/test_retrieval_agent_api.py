@@ -8,7 +8,7 @@ from company_ai.api.routes import _demo_note_artifact, _serialize_artifact_row
 from company_ai.agent.conversation_service import _citations_from_pack
 from company_ai.llm.citations import allowed_citation_labels, render_structured_answer
 from company_ai.retrieval.intent import IntentResolver
-from company_ai.retrieval.retriever import _rank_hybrid_results, _rrf_merge
+from company_ai.retrieval.retriever import _rrf_merge
 
 
 def test_intent_resolver_new_workflow_intents() -> None:
@@ -188,9 +188,8 @@ def test_unscoped_source_artifact_citation_uses_doc_metadata_artifact_id() -> No
 
 
 def test_rrf_merge_aggregates_reasons_and_picks_top_rank_doc() -> None:
-    """All chunks share the same doc_type boost now, so the merged order is
-    decided by RRF alone. Doc `a` wins because it appears at rank 1 in two
-    rankers (base_context and full_text), whereas `b` only ever shows at rank 2."""
+    """Doc `a` wins because it appears at rank 1 in two rankers (base_context
+    and full_text), whereas `b` only ever shows at rank 2."""
     base = [{"doc_id": "a", "doc_type": "source_artifact_chunk", "reasons": ["base_context"]}]
     full_text = [
         {"doc_id": "a", "doc_type": "source_artifact_chunk", "reasons": ["full_text"]},
@@ -202,7 +201,7 @@ def test_rrf_merge_aggregates_reasons_and_picks_top_rank_doc() -> None:
     ]
 
     merged = _rrf_merge(base, full_text, vector)
-    ranked = _rank_hybrid_results(merged.values(), limit=2)
+    ranked = sorted(merged.values(), key=lambda r: float(r["rrf_score"]), reverse=True)
 
     assert ranked[0]["doc_id"] == "a"
     assert {"base_context", "full_text", "vector"} <= set(ranked[0]["reasons"])

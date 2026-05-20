@@ -447,10 +447,9 @@ def _insufficient_evidence_answer(pack: dict[str, Any]) -> tuple[str, list[dict[
 
 def _citations_from_pack(pack: dict[str, Any], validation: dict[str, Any]) -> list[dict[str, Any]]:
     cited = set(validation.get("cited") or [])
-    citations = _collect_citations_from_pack(pack, cited)
-    if not citations and cited:
-        citations = _collect_citations_from_pack(pack, set())
-    return citations[:8]
+    if not cited:
+        return []
+    return _collect_citations_from_pack(pack, cited)[:8]
 
 
 def _collect_citations_from_pack(pack: dict[str, Any], cited: set[str]) -> list[dict[str, Any]]:
