@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Open-source reference architecture for a private, source-backed AI assistant over company knowledge.</strong>
+  <strong>Open-source reference architecture for a private AI assistant that synthesizes answers from your own company knowledge, with a citation for every claim.</strong>
 </p>
 
 <p align="center">
@@ -28,9 +28,9 @@
 
 ![The Company Knowledge AI landing page](docs/assets/readme/landing-hero.png)
 
-This repo is a public, synthetic demo of a private company knowledge assistant. It ingests messy internal and account-related artifacts, normalizes them into AI-ready documents, indexes them in Postgres with hybrid retrieval, and answers questions through guided workflows with citations.
+This repo is a public, synthetic demo of a private company knowledge assistant. It ingests the messy formats real companies actually use (emails, scanned PDFs, Word documents, Markdown memos, meeting transcripts), normalizes them into AI-ready documents, indexes them in Postgres with hybrid retrieval, and synthesizes answers backed by visible citations.
 
-It is designed to show the shape of a serious private AI deployment without publishing client data, auth systems, or production SaaS machinery. The demo is deliberately broader than CRM: it covers internal policies, onboarding, vendor context, engineering decisions, strategy notes, and fictional client history.
+The point is to show the shape of a serious private AI deployment without publishing real client data, auth systems, or production SaaS machinery. The corpus is deliberately broad: onboarding handbooks, internal policies, vendor contract summaries, engineering decision records, strategy recaps, and a few fictional client accounts. The assistant works across all of it, scoped to all company knowledge, internal-only knowledge, or a single account.
 
 ## Demo
 
@@ -44,8 +44,8 @@ It is designed to show the shape of a serious private AI deployment without publ
     </td>
   </tr>
   <tr>
-    <td><strong>Choose the scope.</strong><br>Start with all company knowledge, internal company knowledge, or a fictional client account.</td>
-    <td><strong>Ask from the selected context.</strong><br>Topic catch-up, decision archaeology, client briefings, risks, and citations stay tied to the knowledge scope.</td>
+    <td><strong>Choose the scope.</strong><br>Ask across all company knowledge, only internal knowledge, or a single fictional client account.</td>
+    <td><strong>Synthesize, do not just search.</strong><br>Topic catch-ups, decision archaeology, meeting prep, and risk reviews all stay grounded in the selected scope, with every claim cited back to its source artifact.</td>
   </tr>
 </table>
 
@@ -53,20 +53,20 @@ The intended public deployment is [demo.danielpanea.com](https://demo.danielpane
 
 ## What It Proves
 
-- Multi-format ingestion: synthetic emails, PDFs, Word docs, meeting transcripts, Markdown memos, and CRM-style CSV exports.
-- AI-ready company memory: internal and account-related artifacts become normalized documents with metadata, source references, and embeddings.
-- Hybrid retrieval: Postgres full-text search, vector search through pgvector, and reranking-ready retrieval plumbing.
-- Source-backed answers: the conversation service validates citations and keeps evidence visible.
-- Guided workflows: topic catch-up, decision archaeology, call briefing, open risks, and follow-up drafting run with optional knowledge context.
-- Optional context scoping: ask across all company knowledge, only internal company knowledge, or a specific fictional client account.
-- Visitor-safe demo behavior: anonymous session cookies, visitor-scoped synthetic notes, and no user accounts.
-- Public reference boundary: enough architecture to learn from, without pretending to be a turnkey production product.
+- **Multi-format ingestion:** synthetic emails (mbox), text-layer and scanned PDFs (OCR path), Word documents, Markdown memos, meeting transcripts, and structured CSV exports.
+- **One AI-ready knowledge layer:** internal and account artifacts become normalized documents with stable IDs, metadata, source references, and embeddings, all in the same store.
+- **Hybrid retrieval in Postgres:** full-text search through `pg_trgm`, vector search through `pgvector`, and reranking-ready plumbing, no separate vector database to operate.
+- **Synthesis with verifiable citations:** the conversation service builds a context pack, the assistant writes a structured answer against it, and a citation check refuses claims that have no supporting source.
+- **Guided workflows over a blank chat box:** topic catch-up, decision archaeology, meeting prep, open risks, and follow-up drafting, all aware of the selected knowledge scope.
+- **Scope control:** the same assistant can answer across all company knowledge, only internal company knowledge, or one specific account, with retrieval and citations staying inside the selected boundary.
+- **Visitor-safe public demo:** anonymous session cookies, visitor-scoped synthetic notes, no user accounts, and a daily token budget guardrail on the public deployment.
+- **Honest scope boundary:** enough architecture to learn from and clone, without pretending to be a turnkey production product.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    A["Synthetic internal and account artifacts"] --> B["Parsers and normalization"]
+    A["Synthetic internal and account artifacts"] --> B["Parsers and normalization (incl. OCR)"]
     B --> C["AI-ready documents"]
     C --> D["Postgres + pgvector + pg_trgm"]
     D --> E["Hybrid retrieval"]
