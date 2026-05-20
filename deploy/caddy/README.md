@@ -14,7 +14,7 @@ The official Caddy docs recommend `xcaddy build --with ...` for custom plugin bu
 
 ## Install outline
 
-1. Point `demo.danielpanea.com` at the Hetzner VPS.
+1. Point your domain at the Hetzner VPS (or whichever host you're using).
 2. Install Caddy or replace the packaged binary with the custom `xcaddy` build.
 3. Copy `Caddyfile.example` into the active Caddy config path and adjust the domain if needed.
 4. Run the app with `docker compose up -d --build`.

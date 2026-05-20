@@ -49,6 +49,7 @@ def _settings(db_url: str) -> Settings:
         log_level="INFO",
         log_color=False,
         session_cookie_name="company_ai_session",
+        session_cookie_secure=False,
         session_ttl_days=7,
         session_secret="test-secret",
         rate_limit_per_ip_per_minute=20,

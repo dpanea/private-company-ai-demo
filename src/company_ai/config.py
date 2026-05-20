@@ -63,6 +63,7 @@ class Settings:
     log_level: str
     log_color: bool
     session_cookie_name: str
+    session_cookie_secure: bool
     session_ttl_days: int
     session_secret: str
     rate_limit_per_ip_per_minute: int
@@ -91,6 +92,7 @@ class Settings:
             log_level=os.environ.get("LOG_LEVEL", "INFO"),
             log_color=_env_bool("LOG_COLOR", False),
             session_cookie_name=os.environ.get("SESSION_COOKIE_NAME", "company_ai_session"),
+            session_cookie_secure=_env_bool("SESSION_COOKIE_SECURE", False),
             session_ttl_days=_env_int("SESSION_TTL_DAYS", 7),
             session_secret=os.environ.get("SESSION_SECRET", "change-me-to-a-long-random-string"),
             rate_limit_per_ip_per_minute=_env_int("RATE_LIMIT_PER_IP_PER_MINUTE", 20),

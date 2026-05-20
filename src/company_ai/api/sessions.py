@@ -45,7 +45,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
                 max_age=_session_ttl_seconds(self.settings),
                 httponly=True,
                 samesite="lax",
-                secure=getattr(self.settings, "session_cookie_secure", False),
+                secure=self.settings.session_cookie_secure,
             )
         return response
 
