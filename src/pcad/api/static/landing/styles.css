@@ -322,6 +322,68 @@ h3 {
   white-space: nowrap;
 }
 
+.source-column {
+  padding-bottom: 8px;
+}
+
+.source-constellation {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  margin-top: 6px;
+}
+
+.source-connector {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.source-card {
+  position: absolute;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-50);
+  box-shadow: 0 6px 18px -12px rgba(10, 26, 47, 0.35);
+  font-size: 12.5px;
+  white-space: nowrap;
+  color: var(--ink);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.source-card:hover {
+  box-shadow: 0 10px 24px -14px rgba(10, 26, 47, 0.5);
+}
+
+.source-card svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--ink-700);
+}
+
+.source-card--1 { top: 0;    left: 4%;   transform: rotate(-6deg); }
+.source-card--2 { top: 6%;   right: 2%;  transform: rotate(5deg); }
+.source-card--3 { top: 36%;  left: 14%;  transform: rotate(-2deg); }
+.source-card--4 { top: 32%;  right: 8%;  transform: rotate(7deg); }
+.source-card--5 { top: 66%;  left: 2%;   transform: rotate(3deg); }
+.source-card--6 { top: 70%;  right: 6%;  transform: rotate(-5deg); }
+
+.source-card--1:hover { transform: rotate(-6deg) translateY(-2px); }
+.source-card--2:hover { transform: rotate(5deg)  translateY(-2px); }
+.source-card--3:hover { transform: rotate(-2deg) translateY(-2px); }
+.source-card--4:hover { transform: rotate(7deg)  translateY(-2px); }
+.source-card--5:hover { transform: rotate(3deg)  translateY(-2px); }
+.source-card--6:hover { transform: rotate(-5deg) translateY(-2px); }
+
 .memory-column {
   background: var(--paper-100);
 }
@@ -1100,5 +1162,22 @@ h2 strong {
 
   .button {
     width: 100%;
+  }
+
+  .source-constellation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    height: auto;
+    margin-top: 8px;
+  }
+
+  .source-connector {
+    display: none;
+  }
+
+  .source-card {
+    position: static;
+    transform: none !important;
   }
 }

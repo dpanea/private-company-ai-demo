@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>The Company Knowledge AI - Source-backed answers from company memory</title>
-  <meta name="description" content="A synthetic public demo of The Company Knowledge AI: a private, source-backed assistant that turns scattered company emails, meetings, documents, decisions, policies, and client history into usable answers.">
+  <title>The Company Knowledge AI - Private AI that answers from your own company knowledge</title>
+  <meta name="description" content="A synthetic public demo of The Company Knowledge AI: a private assistant that reads your emails, meeting notes, PDFs, policies, decisions, and project history, then answers in plain language with a citation for every claim.">
   <link rel="icon" href="/static/assets/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/landing/styles.css">
 </head>
@@ -15,7 +15,7 @@
       <img src="/static/assets/logo.svg" alt="" width="34" height="34">
       <span>
         <strong>The Company Knowledge AI</strong>
-        <small>Source-backed company memory</small>
+        <small>Private assistant over your own knowledge</small>
       </span>
     </a>
     <nav aria-label="Landing navigation">
@@ -32,7 +32,7 @@
       <div class="hero-copy">
         <p class="eyebrow">The Company Knowledge AI</p>
         <h1>Ask your company what it knows, and get <strong>the sources back.</strong></h1>
-        <p class="lede">Turn scattered emails, meeting notes, PDFs, policies, contracts, engineering decisions, project history, support context, and client records into a private AI assistant that can explain topics, decisions, risks, and next steps with citations.</p>
+        <p class="lede">Your team already wrote down most of what the AI needs: emails, meeting notes, PDFs, policies, decisions, contracts, project history. It is scattered across six tools and a few people's heads. This demo turns it into a private assistant that synthesizes an answer in plain language and cites every artifact it used.</p>
         <div class="cta-row">
           <a class="button button-primary" href="/demo">Try the synthetic demo <span aria-hidden="true">-&gt;</span></a>
           <a class="button button-secondary" href="https://calendly.com/daniel-panea/discovery-call">Discuss your use case</a>
@@ -40,23 +40,82 @@
       </div>
       <div class="hero-board" aria-label="Private memory workflow preview">
         <div class="board-column source-column">
-          <span class="column-label">Buried sources</span>
-          <div class="source-chips">
-            <span>Email threads</span>
-            <span>Scanned PDFs</span>
-            <span>Meeting notes</span>
-            <span>Support tickets</span>
-            <span>Decision memos</span>
+          <span class="column-label">Scattered sources</span>
+          <div class="source-constellation" aria-hidden="true">
+            <div class="source-card source-card--1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="6" width="18" height="13" rx="1.5"/>
+                <path d="M3 8l9 6 9-6"/>
+              </svg>
+              <span>Email threads</span>
+            </div>
+            <div class="source-card source-card--2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 3h9l4 4v14H6z"/>
+                <path d="M15 3v4h4"/>
+                <path d="M9 12h6" stroke-dasharray="2 2"/>
+                <path d="M9 15h6" stroke-dasharray="2 2"/>
+                <path d="M9 18h4" stroke-dasharray="2 2"/>
+              </svg>
+              <span>Scanned PDFs</span>
+            </div>
+            <div class="source-card source-card--3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 4c0-.5.5-1 1-1h12v17H6c-.5 0-1 .4-1 1"/>
+                <path d="M5 4v17"/>
+                <path d="M9 8h6M9 12h6M9 16h4"/>
+              </svg>
+              <span>Handbooks</span>
+            </div>
+            <div class="source-card source-card--4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="8.5" cy="8" r="2.2"/>
+                <circle cx="15.5" cy="8" r="2.2"/>
+                <path d="M3.5 18c0-2.6 2.2-4.5 5-4.5s5 1.9 5 4.5"/>
+                <path d="M10.5 18c0-2.6 2.2-4.5 5-4.5s5 1.9 5 4.5"/>
+              </svg>
+              <span>Meeting notes</span>
+            </div>
+            <div class="source-card source-card--5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/>
+                <path d="M9 10l2 2 4-4"/>
+              </svg>
+              <span>Decision memos</span>
+            </div>
+            <div class="source-card source-card--6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 3h12v18H6z"/>
+                <path d="M9 8h6M9 12h6"/>
+                <path d="M9 17c1.5-1 2-2 3-2s1.5 1 3 1 1.5-1 3-1"/>
+              </svg>
+              <span>Vendor contracts</span>
+            </div>
+            <svg class="source-connector" viewBox="0 0 360 280" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <radialGradient id="hub-glow" cx="50%" cy="100%" r="60%">
+                  <stop offset="0%" stop-color="#0a1a2f" stop-opacity="0.08"/>
+                  <stop offset="100%" stop-color="#0a1a2f" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+              <ellipse cx="180" cy="280" rx="160" ry="80" fill="url(#hub-glow)"/>
+              <path d="M60 60 Q 180 200 180 270" stroke="#0a1a2f" stroke-width="1" stroke-dasharray="2 4" fill="none" opacity="0.22"/>
+              <path d="M300 60 Q 180 200 180 270" stroke="#0a1a2f" stroke-width="1" stroke-dasharray="2 4" fill="none" opacity="0.22"/>
+              <path d="M50 140 Q 180 220 180 270" stroke="#0a1a2f" stroke-width="1" stroke-dasharray="2 4" fill="none" opacity="0.18"/>
+              <path d="M310 140 Q 180 220 180 270" stroke="#0a1a2f" stroke-width="1" stroke-dasharray="2 4" fill="none" opacity="0.18"/>
+              <path d="M70 230 Q 180 250 180 270" stroke="#0a1a2f" stroke-width="1" stroke-dasharray="2 4" fill="none" opacity="0.16"/>
+              <path d="M290 230 Q 180 250 180 270" stroke="#0a1a2f" stroke-width="1" stroke-dasharray="2 4" fill="none" opacity="0.16"/>
+            </svg>
           </div>
         </div>
         <div class="board-column memory-column">
-          <span class="column-label">Private memory layer</span>
-          <strong>Scattered context made usable</strong>
-          <p>Organized into company memory, searchable in plain language, and traced back to the original source.</p>
+          <span class="column-label">Private knowledge layer</span>
+          <strong>Synthesized, not just searched</strong>
+          <p>Normalized into one company memory, searchable in plain language, and traced back to the exact artifact behind every claim.</p>
         </div>
         <div class="board-column answer-column">
-          <span class="column-label">Useful answer</span>
-          <p>"SOC 2 work is blocked on vendor evidence and audit-log ownership. Cite: security policy, all-hands recap, vendor summary."</p>
+          <span class="column-label">Synthesized answer</span>
+          <p>"SOC 2 readiness is blocked on vendor evidence and audit-log ownership. Sources: security policy, all-hands recap, vendor contract summary."</p>
         </div>
       </div>
     </section>
@@ -71,15 +130,42 @@
       <div class="section-num">01 / Recognition</div>
       <div>
         <p class="eyebrow">The operational reason</p>
-        <h2>Your team already wrote down <strong>most of what the AI needs.</strong></h2>
+        <h2>The answer exists. It is just <strong>spread across six tools and four people.</strong></h2>
       </div>
       <div class="copy-stack">
-        <p>It is just scattered across emails, meetings, PDFs, support tickets, project notes, internal policies, vendor files, CRM exports, and people's heads. This demo shows what happens when that material becomes a private, searchable company memory layer.</p>
-        <ul class="proof-list">
-          <li>A new teammate asks how something works, and the answer is split across three old docs and a meeting note.</li>
-          <li>Leadership asks what was decided, why, and who agreed, and someone has to reconstruct the trail manually.</li>
-          <li>A client call is coming up, but the relevant risks are buried across emails, notes, and tickets.</li>
-          <li>Compliance, procurement, and engineering details exist, but nobody knows which source is current.</li>
+        <p>Generic chat tools do not see any of it. Your real context lives in emails, meeting notes, PDFs, internal policies, decision memos, vendor contracts, and project history. This demo shows what happens when that material becomes one private knowledge layer that the assistant can read, synthesize, and cite.</p>
+        <ul class="proof-list icon-list">
+          <li>
+            <svg class="list-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.5"/>
+              <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/>
+              <path d="M17 5c1.5 0 2.5 1 2.5 2.5"/>
+            </svg>
+            <span>A new hire asks how escalation works, and the answer is split between the onboarding handbook, an all-hands recap, and a Slack message from last quarter.</span>
+          </li>
+          <li>
+            <svg class="list-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 12a8 8 0 0 1 13.5-5.8L20 8"/>
+              <path d="M20 4v4h-4"/>
+              <path d="M12 8v4l3 2"/>
+            </svg>
+            <span>Leadership asks why we picked Postgres and pgvector, and someone has to reconstruct the engineering decision from old meetings and a half-written memo.</span>
+          </li>
+          <li>
+            <svg class="list-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="8"/>
+              <path d="M12 7v5l3.5 2"/>
+            </svg>
+            <span>A client call is in 20 minutes, and the open risks are buried across an MSA addendum, a compliance memo, and three meeting notes.</span>
+          </li>
+          <li>
+            <svg class="list-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 6h10v12H5z"/>
+              <path d="M9 3h10v12"/>
+              <path d="M8 10h4M8 13h4"/>
+            </svg>
+            <span>Procurement, compliance, and engineering all wrote something about the same vendor, and nobody knows which version is current.</span>
+          </li>
         </ul>
       </div>
     </section>
@@ -88,7 +174,7 @@
       <div class="section-num">02 / Demo moment</div>
       <div class="section-heading">
         <p class="eyebrow">Try the live moment</p>
-        <h2>Ask across internal knowledge and client history, then <strong>check the evidence.</strong></h2>
+        <h2>One question. One synthesized answer. <strong>Every source visible.</strong></h2>
       </div>
       <div class="demo-moment-grid">
         <div class="demo-video-card" aria-label="Demo walkthrough preview">
@@ -99,36 +185,36 @@
           <div class="video-placeholder">
             <p>A topic, decision, or client question goes in.</p>
             <span class="flow-arrow" aria-hidden="true">↓</span>
-            <p>A sourced company answer comes out.</p>
+            <p>A synthesized answer comes out, with every source cited.</p>
           </div>
-          <p class="video-note">Watch the core loop: choose all company knowledge or a client context, ask a real workflow question, and verify the artifacts behind the answer.</p>
+          <p class="video-note">Watch the core loop: pick a scope, ask a real workflow question, and open the exact artifacts behind the answer.</p>
         </div>
         <div class="demo-script">
           <div class="three-step compact-steps">
             <article>
               <span>01</span>
               <h3>Choose the scope</h3>
-              <p>Start with all company knowledge, internal company knowledge, or one fictional client account.</p>
+              <p>Ask across all company knowledge, only internal company knowledge, or one fictional client account.</p>
             </article>
             <article>
               <span>02</span>
-              <h3>Ask a knowledge question</h3>
-              <p>Catch up on SOC 2, inspect an engineering decision, summarize a vendor contract, or prep for a client call.</p>
+              <h3>Ask in plain language</h3>
+              <p>Catch up on a topic, trace a decision, summarize a vendor contract, or prep for a meeting.</p>
             </article>
             <article>
               <span>03</span>
-              <h3>Inspect the sources</h3>
-              <p>Open the cited email, memo, handbook, contract summary, transcript, or note behind the answer.</p>
+              <h3>Verify every source</h3>
+              <p>Open the cited email, memo, handbook, contract, or transcript and confirm the answer against the original.</p>
             </article>
           </div>
           <div class="prompt-box">
             <p class="eyebrow">Try asking</p>
             <ul>
               <li>Catch me up on SOC 2 readiness.</li>
-              <li>What did we decide about Postgres and pgvector?</li>
+              <li>Why did we pick Postgres and pgvector?</li>
               <li>What does the onboarding handbook say about escalation?</li>
-              <li>Brief me before the Iberia Dental call.</li>
-              <li>What risks should I know about?</li>
+              <li>Brief me before the Caldrisa Dental call.</li>
+              <li>What open risks are flagged across the company right now?</li>
             </ul>
           </div>
         </div>
@@ -139,7 +225,7 @@
       <div class="section-num">03 / Workflows</div>
       <div class="section-heading">
         <p class="eyebrow">Flagship workflows</p>
-        <h2>Built around <strong>repeatable knowledge work</strong>, not another empty chat box.</h2>
+        <h2>Built around <strong>repeatable synthesis work</strong>, not another empty chat box.</h2>
       </div>
       <div class="workflow-grid">
         <article class="workflow-shot">
@@ -148,7 +234,7 @@
             <path d="M7 10h10M7 13h7M7 16h5"/>
           </svg>
           <h3>Topic catch-up</h3>
-          <p>Summarize what the company knows about a topic, separate current facts from stale context, and cite the artifacts used.</p>
+          <p>Get a synthesized brief on what the company knows about a topic: current status, recent updates, open questions, and the artifacts behind each line.</p>
         </article>
         <article class="workflow-shot">
           <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -158,7 +244,7 @@
             <path d="M4 20v-4h4"/>
           </svg>
           <h3>Decision archaeology</h3>
-          <p>Explain what was decided, why it was decided, and which source artifacts support the decision.</p>
+          <p>Reconstruct what was decided, why, who agreed, and which memo, meeting, or email locked it in. No more "I think we discussed this in March".</p>
         </article>
         <article class="workflow-shot">
           <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -166,8 +252,8 @@
             <path d="M14.5 7 17 9.5"/>
             <path d="M4 19l3-1"/>
           </svg>
-          <h3>Client briefing</h3>
-          <p>When the question is account-specific, focus the assistant on one client and brief the current relationship, risks, and next questions.</p>
+          <h3>Meeting prep</h3>
+          <p>Focus the assistant on one account or one topic, then get a one-page brief on the current state, open risks, and the next questions worth asking.</p>
         </article>
       </div>
     </section>
@@ -176,28 +262,28 @@
       <div class="section-num">04 / Privacy</div>
       <div>
         <p class="eyebrow">Why private</p>
-        <h2>If the useful context is sensitive, <strong>the data boundary is not a detail.</strong></h2>
+        <h2>The useful context is the sensitive context. <strong>That changes the architecture.</strong></h2>
       </div>
       <ul class="proof-list icon-list">
         <li>
           <svg class="list-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8.5 7 10 4-1.5 7-5.5 7-10V6z"/><path d="M9 12l2 2 4-5"/></svg>
-          <span><strong>Company context needs control:</strong> policies, contracts, meeting notes, customer records, and internal decisions should not be pasted into generic tools without clear boundaries.</span>
+          <span><strong>The good answers need the sensitive material:</strong> contracts, board notes, customer records, salaries, incident write-ups, legal memos. None of that belongs in a generic SaaS chat tool you do not control.</span>
         </li>
         <li>
           <svg class="list-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"/><path d="M12 12 4 7.5M12 12l8-4.5M12 12v9"/></svg>
-          <span><strong>Private deployment is an architecture choice:</strong> run in a private cloud, EU-controlled environment, or on-prem setup when the workflow requires it.</span>
+          <span><strong>Deployment is an architecture choice:</strong> run on your own servers, in a private cloud, or inside an EU-controlled environment. The reference stack ships with a sovereign vLLM path out of the box.</span>
         </li>
         <li>
           <svg class="list-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
-          <span><strong>Not every step needs a frontier model:</strong> routine extraction, classification, routing, and structured summaries can often use smaller controlled models at lower cost.</span>
+          <span><strong>Not every step needs a frontier model:</strong> extraction, classification, routing, and structured summaries can run on smaller controlled models at a fraction of the cost. Synthesis goes to the larger one only when it earns it.</span>
         </li>
         <li>
           <svg class="list-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 11l3 3 5-6"/></svg>
-          <span><strong>Audit posture matters:</strong> every generated answer is designed to carry citations back to the notes, emails, documents, records, or memos it used.</span>
+          <span><strong>Citations are not a feature, they are the audit trail:</strong> every answer points back to the email, memo, contract, transcript, or handbook it used, so a human can verify before acting.</span>
         </li>
         <li>
           <svg class="list-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v12H4z"/><path d="M8 11h8M8 15h5"/><path d="M9 7V4h6v3"/></svg>
-          <span><strong>You own the system:</strong> database, artifacts, prompts, deployment, and model-routing decisions stay under your control.</span>
+          <span><strong>You own the whole stack:</strong> database, artifacts, prompts, retrieval, deployment, and model routing all stay under your control. No vendor lock-in on the layer that matters most.</span>
         </li>
       </ul>
     </section>
@@ -206,7 +292,7 @@
       <div class="section-num">05 / Architecture</div>
       <div class="section-heading">
         <p class="eyebrow">How it works</p>
-        <h2><strong>Buried sources</strong> become answers your team can verify.</h2>
+        <h2>Three stages between <strong>scattered files</strong> and a verifiable answer.</h2>
       </div>
       <div class="three-step">
         <article>
@@ -215,8 +301,8 @@
             <path d="M9 12l3 3 3-3M12 9v6"/>
           </svg>
           <span>01</span>
-          <h3>Ingest scattered artifacts</h3>
-          <p>Emails, PDFs, Word documents, meeting transcripts, internal policies, decision records, CRM exports, and support records are parsed into normalized records.</p>
+          <h3>Ingest the real formats</h3>
+          <p>Emails, PDFs (including scans through OCR), Word documents, Markdown memos, meeting transcripts, and structured exports are parsed into normalized records with metadata.</p>
         </article>
         <article>
           <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -225,8 +311,8 @@
             <path d="M5 12v6c0 1.66 3.13 3 7 3s7-1.34 7-3v-6"/>
           </svg>
           <span>02</span>
-          <h3>Build AI-ready memory</h3>
-          <p>The system creates source-artifact chunks, embeddings, and citations that point back to visible emails, documents, and meetings.</p>
+          <h3>Index in Postgres</h3>
+          <p>Hybrid retrieval combines full-text search and pgvector embeddings in one database, so every chunk keeps a hard link back to the source artifact.</p>
         </article>
         <article>
           <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -234,8 +320,8 @@
             <path d="M8 10l3 3 5-6"/>
           </svg>
           <span>03</span>
-          <h3>Answer with evidence</h3>
-          <p>Hybrid retrieval builds a context pack, the assistant answers from that pack, and citation checks keep the response grounded.</p>
+          <h3>Synthesize with citations</h3>
+          <p>The assistant builds a context pack from the retrieved chunks, writes a structured answer, and a citation check refuses claims that have no supporting source.</p>
         </article>
       </div>
     </section>
@@ -244,12 +330,12 @@
       <div class="section-num">06 / Open source</div>
       <div>
         <p class="eyebrow">From demo to real deployment</p>
-        <h2>A working blueprint for <strong>private AI on real company knowledge.</strong></h2>
+        <h2>A working blueprint, not a slide deck. <strong>Read the code before you read the contract.</strong></h2>
       </div>
       <div class="copy-stack">
-        <p>The public repository shows the core pattern: ingest scattered sources, turn them into source-backed company memory, retrieve the right context, and answer with citations.</p>
-        <p>You can take the code and adapt it yourself. That is intentional: the open-source demo is a trust anchor for technical teams, partners, and buyers who want to inspect the moving parts before a conversation.</p>
-        <p>The paid work is adapting it properly to real systems: connectors, permissions, privacy rules, evaluation sets, monitoring, review steps, and workflow-specific assistants.</p>
+        <p>The public repository ships the core pattern end to end: ingest the scattered formats, normalize them into an AI-ready knowledge layer, retrieve with hybrid search, and synthesize answers with citations checked against the source pack.</p>
+        <p>You can clone it, read every line, and run it locally in one command. That is the point: an open-source reference is a trust anchor for the technical teams, partners, and buyers who want to inspect the moving parts before a sales conversation, not after.</p>
+        <p>The paid work is everything the public demo deliberately leaves out: real connectors to your systems, per-user permissions, evaluation sets against your domain questions, monitoring, human review steps, and the workflow-specific assistants your team actually needs.</p>
         <a class="github-link" href="https://github.com/dpanea/private-company-ai-demo" target="_blank" rel="noopener noreferrer">
           <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="currentColor" d="M12 .5C5.65.5.5 5.65.5 12.02c0 5.1 3.29 9.42 7.86 10.95.57.1.78-.25.78-.55 0-.27-.01-1.17-.02-2.13-3.2.69-3.87-1.36-3.87-1.36-.53-1.34-1.29-1.7-1.29-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.78 1.21 1.78 1.21 1.04 1.78 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11.04 11.04 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.77.12 3.06.74.8 1.18 1.83 1.18 3.09 0 4.42-2.69 5.4-5.26 5.68.42.36.79 1.07.79 2.17 0 1.57-.01 2.83-.01 3.22 0 .31.21.66.79.55A11.52 11.52 0 0 0 23.5 12.02C23.5 5.65 18.35.5 12 .5z"/>
@@ -266,20 +352,20 @@
       <div class="section-num">07 / Fit</div>
       <div class="section-heading">
         <p class="eyebrow">Who it is for</p>
-        <h2>Best fit: knowledge-heavy teams with <strong>valuable context scattered across tools.</strong></h2>
+        <h2>Best fit: <strong>knowledge-heavy teams</strong> where the company's edge lives in what it has already written.</h2>
       </div>
       <div class="audience-grid">
         <div class="audience-group">
           <p class="audience-label">Teams</p>
-          <p class="audience-item">Founder-led companies where critical context is spread across docs, calls, and inboxes.</p>
-          <p class="audience-item">Customer-facing, delivery, operations, and engineering teams that need shared memory without SaaS lock-in.</p>
-          <p class="audience-item">Consultancies, agencies, and IT service providers that need reusable company and client knowledge.</p>
+          <p class="audience-item">European mid-market and enterprise teams that need EU-controlled deployment, not a US-hosted SaaS chatbot.</p>
+          <p class="audience-item">Operations, engineering, compliance, and delivery groups that share context across functions and cannot afford another silo.</p>
+          <p class="audience-item">Consultancies, agencies, and IT service providers whose intellectual property is the body of documents, decisions, and client history they have accumulated.</p>
         </div>
         <div class="audience-group">
           <p class="audience-label">Triggers</p>
-          <p class="audience-item">People keep asking the same onboarding, policy, vendor, or project-history questions.</p>
-          <p class="audience-item">Decisions are hard to trust because the reasoning is spread across old meetings and documents.</p>
-          <p class="audience-item">Leadership wants private AI, but needs a concrete architecture before investing.</p>
+          <p class="audience-item">The same onboarding, policy, vendor, or "why did we do it this way" question gets asked every other week.</p>
+          <p class="audience-item">A decision needs to be defended to leadership or a regulator, and the trail of reasoning is scattered across old meetings and half-finished memos.</p>
+          <p class="audience-item">Leadership has decided that pasting sensitive context into ChatGPT is not the long-term plan, and wants a concrete private architecture to evaluate.</p>
         </div>
       </div>
     </section>
@@ -288,37 +374,37 @@
       <div class="section-num">08 / FAQ</div>
       <div class="section-heading">
         <p class="eyebrow">Questions buyers usually ask</p>
-        <h2>Private AI is not just a model choice. <strong>It is a workflow and data-boundary decision.</strong></h2>
+        <h2>Private AI is a workflow and data-boundary decision, <strong>not just a model choice.</strong></h2>
       </div>
       <div class="faq-list">
         <details class="faq-item">
-          <summary>Is this just another chatbot?</summary>
-          <p>No. The demo is built around specific knowledge workflows: topic catch-ups, decision archaeology, client briefings, risk checks, and follow-ups. The assistant answers from retrieved source material and shows where the answer came from.</p>
+          <summary>Is this just another chatbot wrapper?</summary>
+          <p>No. The chat box is the easy part. The real work is the layer underneath: parsing your real document formats, indexing them in a way that supports hybrid retrieval, building a context pack that fits the model, and refusing answers that cannot be cited. The demo is built around concrete synthesis workflows (topic catch-up, decision archaeology, meeting prep), not a blank prompt.</p>
         </details>
         <details class="faq-item">
-          <summary>Why not just use Microsoft Copilot, ChatGPT, or another SaaS AI tool?</summary>
-          <p>Use them when the data boundary is acceptable. This architecture is for workflows where sensitive company context needs explicit control over where prompts go, what gets stored, who can access logs, and which model sees the data.</p>
+          <summary>Why not just use Microsoft Copilot, ChatGPT, or Gemini?</summary>
+          <p>Use them when the data boundary is acceptable, the model choice is acceptable, and the workflow is generic enough. This architecture is for the cases where it is not: sensitive context, EU deployment requirements, an evaluation set you can actually own, and workflows that need to be tuned to how your team actually works.</p>
         </details>
         <details class="faq-item">
           <summary>Does this replace our existing tools?</summary>
-          <p>No. It sits above the tools where context already lives: email, documents, notes, tickets, project systems, knowledge bases, and, where relevant, CRM exports. The point is to make scattered context usable without forcing a new source of truth.</p>
+          <p>No. It sits above the systems where the context already lives, like email, documents, notes, ticketing, project systems, and knowledge bases. The goal is to make scattered context usable without forcing a new source of truth on the team.</p>
         </details>
         <details class="faq-item">
-          <summary>What would a real deployment add?</summary>
-          <p>The public demo uses synthetic data. A real deployment adds your connectors, permissions, privacy rules, evaluation set, monitoring, and workflow-specific review steps.</p>
+          <summary>What would a real deployment add beyond the demo?</summary>
+          <p>Real connectors to your systems, per-user permissions and row-level access control, an evaluation set built from your own domain questions, monitoring and observability, human-in-the-loop review for sensitive outputs, and workflow-specific assistants instead of one generic chat.</p>
         </details>
       </div>
     </section>
 
     <section class="final-cta section-dark">
       <p class="eyebrow">Implementation offer</p>
-      <h2>Use the demo to decide where <strong>company knowledge AI should start.</strong></h2>
-      <p class="final-copy">If this looks like a problem inside your onboarding, operations, engineering, support, sales, account, or client-service workflow, the next step is to map the workflow, inspect the data boundary, and define the first safe pilot around your real systems.</p>
+      <h2>Use the demo to decide where <strong>your first private AI workflow should live.</strong></h2>
+      <p class="final-copy">If the pattern fits something inside your onboarding, operations, engineering, compliance, or client-service work, the next step is concrete: map one real workflow, inspect the data boundary, and define a safe pilot scoped to your actual systems and questions. Not a six-month transformation programme, just the first thing worth shipping.</p>
       <div class="cta-row">
         <a class="button button-primary" href="/demo">Try the synthetic demo</a>
         <a class="button button-secondary" href="https://calendly.com/daniel-panea/discovery-call">Map your first private AI workflow</a>
       </div>
-      <p class="contact-alt">Prefer async? <a href="mailto:me@danielpanea.com?subject=The%20Company%20Knowledge%20AI%20inquiry">Email me</a> or connect on <a href="https://www.linkedin.com/in/daniel-panea-lichtig">LinkedIn</a>.</p>
+      <p class="contact-alt">Prefer async? <a href="mailto:me@danielpanea.com?subject=The%20Company%20Knowledge%20AI%20inquiry">Email me</a> or find me on <a href="https://www.linkedin.com/in/daniel-panea-lichtig">LinkedIn</a>.</p>
     </section>
   </main>
 
