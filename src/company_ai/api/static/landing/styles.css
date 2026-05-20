@@ -724,17 +724,11 @@ h2 strong {
 
 .video-band .demo-video-card {
   align-self: center;
-  justify-self: center;
-  width: 100%;
-  max-width: 880px;
   box-shadow: 0 28px 72px -38px rgba(10, 26, 47, 0.44);
 }
 
 .demo-video-card--compact {
   min-width: 0;
-  justify-self: center;
-  width: 100%;
-  max-width: 880px;
   box-shadow: 0 28px 72px -38px rgba(10, 26, 47, 0.44);
 }
 
