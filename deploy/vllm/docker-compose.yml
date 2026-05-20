@@ -47,8 +47,8 @@ services:
       vllm:
         condition: service_healthy
     environment:
-      OPENROUTER_BASE_URL: http://vllm:8080/v1
-      OPENROUTER_API_KEY: ${LLM_API_KEY:-local}
+      LLM_BASE_URL: http://vllm:8080/v1
+      LLM_API_KEY: ${LLM_API_KEY:-local}
       LLM_MODEL: ${LLM_MODEL_VLLM}
 
 volumes:

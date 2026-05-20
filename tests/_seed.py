@@ -12,26 +12,25 @@ from uuid import uuid4
 import psycopg
 from psycopg.types.json import Jsonb
 
-from pcad.config import Settings
+from company_ai.config import Settings
 
 
 def make_settings(database_url: str, **overrides: Any) -> Settings:
     """Build a Settings instance for tests with safe defaults."""
     base = dict(
         database_url=database_url,
-        openrouter_api_key=None,
-        openrouter_base_url="https://openrouter.ai/api/v1",
+        llm_api_key=None,
+        llm_base_url="https://openrouter.ai/api/v1",
         llm_model="qwen/qwen-2.5-7b-instruct",
         llm_reasoning_effort="low",
         embedding_model="qwen/qwen3-embedding-8b",
         embedding_dimensions=1536,
-        app_title="Private Company Memory Demo",
+        app_title="The Company Knowledge AI",
         http_referer=None,
         log_level="WARNING",
         log_color=False,
-        session_cookie_name="pcad_session",
+        session_cookie_name="company_ai_session",
         session_ttl_days=7,
-        session_ttl_hours=4,
         session_secret="test-secret",
         rate_limit_per_ip_per_minute=1000,
         rate_limit_per_session_per_hour=1000,

@@ -10,7 +10,7 @@ from typing import Any
 
 from pypdf import PdfReader
 
-from pcad.models import Account, UserOwner
+from company_ai.models import Account, UserOwner
 
 
 REFERENCE_DATE = "2026-05-13"

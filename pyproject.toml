@@ -1,7 +1,7 @@
 [project]
-name = "private-company-ai-demo"
+name = "company-ai"
 version = "0.1.0"
-description = "Public demo and open-source reference architecture for a private company memory layer."
+description = "The Company Knowledge AI — public demo and reference architecture for a private, source-backed AI assistant over company knowledge."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
@@ -22,12 +22,6 @@ dependencies = [
     "uvicorn>=0.30.0",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0.0",
-    "pytest-asyncio>=0.23.0",
-]
-
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
@@ -35,7 +29,7 @@ dev = [
 ]
 
 [project.scripts]
-pcad = "pcad.cli:main"
+company-ai = "company_ai.cli:main"
 
 [build-system]
 requires = ["setuptools>=69"]
@@ -50,5 +44,5 @@ pythonpath = ["src", "."]
 addopts = "-m 'not live'"
 markers = [
     "requires_tesseract: tests that require local Tesseract and Poppler binaries",
-    "live: hits the real configured LLM endpoint; requires PCAD_LIVE_LLM=1",
+    "live: hits the real configured LLM endpoint; requires COMPANY_AI_LIVE_LLM=1",
 ]

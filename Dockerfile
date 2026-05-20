@@ -23,4 +23,4 @@ RUN uv sync --frozen --no-dev
 EXPOSE 8000
 
 ENTRYPOINT ["scripts/docker_entrypoint.sh"]
-CMD ["uv", "run", "uvicorn", "pcad.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "company_ai.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

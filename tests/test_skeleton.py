@@ -4,13 +4,13 @@ from datetime import date, datetime, timedelta, timezone
 
 import psycopg
 
-from pcad.config import Settings
-from pcad.migrations import apply_migrations
-from pcad.models import (
+from company_ai.config import Settings
+from company_ai.migrations import apply_migrations
+from company_ai.models import (
     Account,
     ConversationMessage,
     ConversationThread,
-    FakeNote,
+    DemoNote,
     RagDocument,
     RawArtifact,
     Session,
@@ -30,7 +30,7 @@ EXPECTED_TABLES = {
     "sessions",
     "conversation_threads",
     "conversation_messages",
-    "fake_notes",
+    "demo_notes",
     "daily_budget_usage",
 }
 DROPPED_CRM_TABLES = {"contacts", "opportunities", "contracts", "activities"}
@@ -39,19 +39,18 @@ DROPPED_CRM_TABLES = {"contacts", "opportunities", "contracts", "activities"}
 def _settings(db_url: str) -> Settings:
     return Settings(
         database_url=db_url,
-        openrouter_api_key=None,
-        openrouter_base_url="https://openrouter.ai/api/v1",
+        llm_api_key=None,
+        llm_base_url="https://openrouter.ai/api/v1",
         llm_model="qwen/qwen-2.5-7b-instruct",
         llm_reasoning_effort="low",
         embedding_model="qwen/qwen3-embedding-8b",
         embedding_dimensions=1536,
-        app_title="Private Company Memory Demo",
+        app_title="The Company Knowledge AI",
         http_referer=None,
         log_level="INFO",
         log_color=False,
-        session_cookie_name="pcad_session",
+        session_cookie_name="company_ai_session",
         session_ttl_days=7,
-        session_ttl_hours=4,
         session_secret="test-secret",
         rate_limit_per_ip_per_minute=20,
         rate_limit_per_session_per_hour=50,
@@ -73,10 +72,10 @@ def test_apply_migrations_runs_and_is_idempotent(empty_db: str) -> None:
         "0005_rag_documents",
         "0006_source_citations",
         "0007_conversation",
-        "0008_fake_notes",
+        "0008_demo_notes",
         "0009_proactive_alerts",
         "0010_daily_budget_usage",
-        "0011_fake_note_artifact_types",
+        "0011_demo_note_artifact_types",
         "0012_session_scoped_cascade",
         "0013_drop_proactive_alerts",
         "0014_delete_crm_source_citations",
@@ -154,7 +153,7 @@ def test_pydantic_models_round_trip_json() -> None:
             created_at=now,
             ingested_at=now,
         ),
-        FakeNote(
+        DemoNote(
             note_id="note_1",
             session_id="session_1",
             account_id="acct_1",

@@ -11,10 +11,10 @@ import pytest
 from docx import Document
 from PIL import Image, ImageDraw
 
-from pcad.ingestion.parsers.docx import parse_docx
-from pcad.ingestion.parsers.mbox import parse_mbox
-from pcad.ingestion.parsers.meeting_md import parse_meeting_md
-from pcad.ingestion.parsers.pdf import parse_pdf
+from company_ai.ingestion.parsers.docx import parse_docx
+from company_ai.ingestion.parsers.mbox import parse_mbox
+from company_ai.ingestion.parsers.meeting_md import parse_meeting_md
+from company_ai.ingestion.parsers.pdf import parse_pdf
 
 
 def test_mbox_parser_produces_messages_with_thread_metadata(tmp_path: Path) -> None:

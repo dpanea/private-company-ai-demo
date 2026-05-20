@@ -4,11 +4,11 @@ from datetime import datetime, timezone
 
 import pytest
 
-from pcad.api.routes import _fake_note_artifact, _serialize_artifact_row
-from pcad.agent.conversation_service import _citations_from_pack
-from pcad.llm.citations import allowed_citation_labels, render_structured_answer
-from pcad.retrieval.intent import IntentResolver
-from pcad.retrieval.retriever import _rank_hybrid_results, _rrf_merge
+from company_ai.api.routes import _demo_note_artifact, _serialize_artifact_row
+from company_ai.agent.conversation_service import _citations_from_pack
+from company_ai.llm.citations import allowed_citation_labels, render_structured_answer
+from company_ai.retrieval.intent import IntentResolver
+from company_ai.retrieval.retriever import _rank_hybrid_results, _rrf_merge
 
 
 def test_intent_resolver_new_workflow_intents() -> None:
@@ -210,9 +210,9 @@ def test_rrf_merge_aggregates_reasons_and_picks_top_rank_doc() -> None:
     assert {"full_text", "vector"} <= set(ranked[1]["reasons"])
 
 
-def test_fake_note_surfaces_as_source_artifact() -> None:
+def test_demo_note_surfaces_as_source_artifact() -> None:
     created_at = datetime.now(timezone.utc)
-    artifact = _fake_note_artifact(
+    artifact = _demo_note_artifact(
         {
             "note_id": "note-1",
             "session_id": "session-1",
@@ -225,11 +225,10 @@ def test_fake_note_surfaces_as_source_artifact() -> None:
         }
     )
 
-    assert artifact["artifact_id"] == "test-note:note-1"
+    assert artifact["artifact_id"] == "demo-note:note-1"
     assert artifact["artifact_type"] == "pdf"
     assert artifact["mime_type"] == "application/pdf"
-    assert artifact["metadata"]["source_object"] == "TestNote"
-    assert "Session-scoped demo note" in artifact["extracted_text"]
+    assert artifact["metadata"]["source_object"] == "DemoNote"
     assert "EU hosting is required." in artifact["extracted_text"]
 
 

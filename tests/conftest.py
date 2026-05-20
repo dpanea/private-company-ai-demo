@@ -6,11 +6,11 @@ from typing import Iterator
 import psycopg
 import pytest
 
-from pcad.db import close_pools
+from company_ai.db import close_pools
 
 
 APPLICATION_TABLES = [
-    "fake_notes",
+    "demo_notes",
     "conversation_messages",
     "conversation_threads",
     "sessions",
@@ -29,7 +29,7 @@ LEGACY_CRM_TABLES = ["activities", "contracts", "opportunities", "contacts"]
 def db_url() -> str:
     return os.environ.get(
         "PCAD_TEST_DATABASE_URL",
-        os.environ.get("DATABASE_URL", "postgresql://pcad_test:pcad_test@localhost:5432/pcad_test"),
+        os.environ.get("DATABASE_URL", "postgresql://company_ai:company_ai@localhost:5432/company_ai"),
     )
 
 
@@ -75,7 +75,7 @@ def clean_db(postgres_available: str) -> str:
 @pytest.fixture()
 def migrated_db(empty_db: str) -> Iterator[str]:
     """An empty database with all migrations applied. Closes pools on teardown."""
-    from pcad.migrations import apply_migrations
+    from company_ai.migrations import apply_migrations
     from tests._seed import make_settings
 
     apply_migrations(make_settings(empty_db))
@@ -88,7 +88,7 @@ def migrated_db(empty_db: str) -> Iterator[str]:
 @pytest.fixture(autouse=True)
 def _reset_rate_limiters() -> Iterator[None]:
     """Wipe in-memory rate limiters between tests so they don't leak state."""
-    from pcad.api.rate_limit import ip_rate_limiter, session_message_limiter
+    from company_ai.api.rate_limit import ip_rate_limiter, session_message_limiter
 
     ip_rate_limiter._buckets.clear()
     session_message_limiter._buckets.clear()

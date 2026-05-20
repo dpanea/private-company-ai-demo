@@ -155,7 +155,7 @@ def _proposal_sections(account_name: str, focus: str, risk: str) -> tuple[tuple[
         (
             "Executive summary",
             (
-                f"{account_name} is evaluating a focused private company memory layer for {focus}. "
+                f"{account_name} is evaluating a focused company knowledge AI for {focus}. "
                 "The proposed pilot turns fragmented operational notes, CRM exports, and team documents into a cited account workspace that internal staff can query in plain language.",
                 "The strategic problem is recurring: relevant context exists somewhere in the company, but the people who need it before a customer-facing decision spend more time hunting for it than acting on it. Sales, operations, and customer-facing roles each rebuild the same context multiple times a week from email threads, attachments, and CRM exports, and the resulting briefings are inconsistent because each person stops at a different point.",
                 "Our recommendation is a bounded pilot with synthetic and approved business data first, followed by a measured expansion only after security review. The pilot is deliberately scoped to validate the architecture in a real environment without depending on production-grade connectors or autonomous actions, so the value can be evaluated against an honest cost.",
@@ -197,7 +197,7 @@ def _nda_sections(account_name: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
         (
             "Parties and purpose",
             (
-                f"This mutual non-disclosure agreement is entered into between Daniel Panea Lichtig (\"the Architect\") and {account_name} (\"the Customer\") for the purpose of evaluating a private company memory layer reference architecture and any related professional services engagement.",
+                f"This mutual non-disclosure agreement is entered into between Daniel Panea Lichtig (\"the Architect\") and {account_name} (\"the Customer\") for the purpose of evaluating a company knowledge AI reference architecture and any related professional services engagement.",
                 "The agreement governs information exchanged between the parties from the effective date until two years after the last exchange, or until superseded by a signed services agreement that includes its own confidentiality terms.",
             ),
         ),
@@ -264,7 +264,7 @@ def build_accounts(reference_date: date) -> list[AccountSpec]:
             "Workflow automation pilot for Brannfeld",
             """
             Stefan, thanks for the short conversation after the Munich operations forum.
-            The pattern you described is exactly where a private company memory layer helps:
+            The pattern you described is exactly where a company knowledge AI helps:
             maintenance notes, shift handovers, supplier emails, and CRM context all exist, but
             no one has a reliable view before a production-line decision. I suggest a narrow
             first discussion around one packaging line and the surrounding vendor workflow.

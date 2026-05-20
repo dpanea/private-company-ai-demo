@@ -24,6 +24,9 @@ ENV/
 *.pem
 *.key
 
+# Local-only agent context (not for public history)
+AGENTS.local.md
+
 # Editor
 .vscode/
 .idea/

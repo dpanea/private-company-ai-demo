@@ -2,7 +2,7 @@
 
 Opt-in to avoid silently spending tokens on routine `pytest` runs:
 
-    PCAD_LIVE_LLM=1 uv run pytest -m live tests/test_llm_live.py -v
+    COMPANY_AI_LIVE_LLM=1 uv run pytest -m live tests/test_llm_live.py -v
 
 The test makes a real streaming call with `response_format` to verify that:
 
@@ -18,22 +18,22 @@ from typing import Any
 
 import pytest
 
-from pcad.config import Settings
-from pcad.llm.citations import render_structured_answer
-from pcad.llm.client import OpenAICompatibleClient
-from pcad.llm.prompts import (
+from company_ai.config import Settings
+from company_ai.llm.citations import render_structured_answer
+from company_ai.llm.client import OpenAICompatibleClient
+from company_ai.llm.prompts import (
     ANSWER_RESPONSE_FORMAT,
     build_answer_messages,
     render_context_prompt,
 )
-from pcad.llm.streaming import StructuredAnswerStreamer
+from company_ai.llm.streaming import StructuredAnswerStreamer
 
 
 pytestmark = [
     pytest.mark.live,
     pytest.mark.skipif(
-        os.environ.get("PCAD_LIVE_LLM") != "1",
-        reason="set PCAD_LIVE_LLM=1 (and run with `-m live`) to opt into real LLM calls",
+        os.environ.get("COMPANY_AI_LIVE_LLM") != "1",
+        reason="set COMPANY_AI_LIVE_LLM=1 (and run with `-m live`) to opt into real LLM calls",
     ),
 ]
 

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from pcad.ingestion.ai_ready_documents import DocumentBuilder
-from pcad.models import Account, RawArtifact, SyntheticDataset
+from company_ai.ingestion.ai_ready_documents import DocumentBuilder
+from company_ai.models import Account, RawArtifact, SyntheticDataset
 
 
 def test_source_artifact_chunks_are_generated_for_visible_artifact_types() -> None:

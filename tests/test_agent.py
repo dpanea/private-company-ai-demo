@@ -11,11 +11,11 @@ import json
 from collections.abc import Iterator
 from typing import Any
 
-from pcad.agent.conversation_service import ConversationService
-from pcad.api.rate_limit import BUDGET_MESSAGE
-from pcad.db import connect_dict
-from pcad.llm.client import TokenUsage
-from pcad.llm.deterministic import DeterministicLlm
+from company_ai.agent.conversation_service import ConversationService
+from company_ai.api.rate_limit import BUDGET_MESSAGE
+from company_ai.db import connect_dict
+from company_ai.llm.client import TokenUsage
+from company_ai.llm.deterministic import DeterministicLlm
 
 from tests._seed import (
     make_settings,
