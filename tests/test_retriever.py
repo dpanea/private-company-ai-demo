@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import pytest
 
-from pcad.llm.deterministic import DeterministicLlm
-from pcad.retrieval.intent import IntentResult
-from pcad.retrieval.retriever import (
+from company_ai.llm.deterministic import DeterministicLlm
+from company_ai.retrieval.intent import IntentResult
+from company_ai.retrieval.retriever import (
     AccountResolutionError,
     PostgresHybridRetriever,
     _query_instruction,
@@ -181,13 +181,13 @@ def test_hybrid_search_scopes_to_account_and_session(migrated_db: str) -> None:
     )
     seed_rag_document(
         settings,
-        doc_id="fake_note:ours:other_session",
+        doc_id="demo_note:ours:other_session",
         account_id="ACC_OURS",
         doc_type="source_artifact_chunk",
         title="Visitor note from another session",
         content="Security review approved for the pilot.",
         session_id="some_other_session",
-        citations=[{"source_object": "TestNote", "source_record_id": "other_note"}],
+        citations=[{"source_object": "DemoNote", "source_record_id": "other_note"}],
     )
 
     retriever = PostgresHybridRetriever(settings)
@@ -200,7 +200,7 @@ def test_hybrid_search_scopes_to_account_and_session(migrated_db: str) -> None:
     ids = {row["doc_id"] for row in base} | {row["doc_id"] for row in fts}
     assert "source_artifact_chunk:email:ACC_OURS:msg_1:message" in ids
     assert "source_artifact_chunk:email:ACC_THEIRS:msg_1:message" not in ids
-    assert "fake_note:ours:other_session" not in ids
+    assert "demo_note:ours:other_session" not in ids
 
 
 @pytest.mark.parametrize(

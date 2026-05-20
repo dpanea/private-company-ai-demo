@@ -12,10 +12,10 @@ from datetime import date
 import pytest
 from fastapi.testclient import TestClient
 
-from pcad.agent.conversation_service import ConversationService
-from pcad.api.app import create_app
-from pcad.db import connect_dict
-from pcad.llm.deterministic import DeterministicLlm
+from company_ai.agent.conversation_service import ConversationService
+from company_ai.api.app import create_app
+from company_ai.db import connect_dict
+from company_ai.llm.deterministic import DeterministicLlm
 
 from tests._seed import (
     make_settings,
@@ -100,7 +100,7 @@ def test_reset_session_deletes_session_scoped_rows(migrated_db: str) -> None:
         first = client.get("/api/session")
         old_session_id = first.json()["session_id"]
         note_response = client.post(
-            "/api/accounts/ACC_R1/fake-notes",
+            "/api/accounts/ACC_R1/demo-notes",
             json={
                 "note_type": "docx",
                 "title": "Visitor note",
@@ -123,15 +123,15 @@ def test_reset_session_deletes_session_scoped_rows(migrated_db: str) -> None:
             """
             SELECT
                 (SELECT count(*) FROM sessions WHERE session_id = %s)::int AS sessions,
-                (SELECT count(*) FROM fake_notes WHERE note_id = %s)::int AS fake_notes,
+                (SELECT count(*) FROM demo_notes WHERE note_id = %s)::int AS demo_notes,
                 (SELECT count(*) FROM rag_documents WHERE doc_id = %s)::int AS rag_documents,
                 (SELECT count(*) FROM source_citations WHERE doc_id = %s)::int AS source_citations
             """,
-            (old_session_id, note_id, f"fake_note:{note_id}", f"fake_note:{note_id}"),
+            (old_session_id, note_id, f"demo_note:{note_id}", f"demo_note:{note_id}"),
         ).fetchone()
     assert dict(counts) == {
         "sessions": 0,
-        "fake_notes": 0,
+        "demo_notes": 0,
         "rag_documents": 0,
         "source_citations": 0,
     }
@@ -283,14 +283,14 @@ def test_all_company_thread_searches_without_account_clarification(migrated_db: 
 # ---------------------------------------------------------------------------
 
 
-def test_fake_note_post_persists_and_triggers_background_task(migrated_db: str) -> None:
+def test_demo_note_post_persists_and_triggers_background_task(migrated_db: str) -> None:
     settings = make_settings(migrated_db)
     _seed_minimal_account(settings)
     app, _ = _app_with_deterministic_llm(settings)
 
     with TestClient(app) as client:
         response = client.post(
-            "/api/accounts/ACC_R1/fake-notes",
+            "/api/accounts/ACC_R1/demo-notes",
             json={
                 "note_type": "docx",
                 "title": "Visitor note",
@@ -304,23 +304,23 @@ def test_fake_note_post_persists_and_triggers_background_task(migrated_db: str) 
         assert "alerts" not in response.json()
 
         # GET returns the note we just posted.
-        list_resp = client.get("/api/accounts/ACC_R1/fake-notes")
+        list_resp = client.get("/api/accounts/ACC_R1/demo-notes")
         assert list_resp.status_code == 200
         listed = list_resp.json()
         assert [item["note_id"] for item in listed] == [note["note_id"]]
 
         artifacts_resp = client.get("/api/accounts/ACC_R1/artifacts")
         assert artifacts_resp.status_code == 200
-        assert any(item["artifact_id"] == f"test-note:{note['note_id']}" for item in artifacts_resp.json())
+        assert any(item["artifact_id"] == f"demo-note:{note['note_id']}" for item in artifacts_resp.json())
 
 
-def test_fake_note_post_on_unknown_account_returns_404(migrated_db: str) -> None:
+def test_demo_note_post_on_unknown_account_returns_404(migrated_db: str) -> None:
     settings = make_settings(migrated_db)
     app, _ = _app_with_deterministic_llm(settings)
 
     with TestClient(app) as client:
         response = client.post(
-            "/api/accounts/NOPE/fake-notes",
+            "/api/accounts/NOPE/demo-notes",
             json={
                 "note_type": "docx",
                 "title": "x",

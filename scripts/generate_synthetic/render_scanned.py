@@ -55,8 +55,8 @@ def _normalize_pdf_metadata(source: Path, output: Path) -> None:
             "/Title": "Scanned synthetic NDA",
             "/Author": "Daniel Panea Lichtig",
             "/Subject": "Synthetic OCR demo artifact",
-            "/Creator": "Private Company Memory Demo",
-            "/Producer": "Private Company Memory Demo",
+            "/Creator": "The Company Knowledge AI",
+            "/Producer": "The Company Knowledge AI",
             "/CreationDate": "D:20260101000000+00'00'",
             "/ModDate": "D:20260101000000+00'00'",
         }

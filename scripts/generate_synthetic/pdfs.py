@@ -98,7 +98,7 @@ def write_pdf(path: Path, account: AccountSpec, spec: PdfSpec) -> None:
         Paragraph("Prepared by: Daniel Panea Lichtig", styles["Normal"]),
         Spacer(1, 0.4 * cm),
         Paragraph(
-            "Synthetic business document generated for the Private Company Memory Demo. "
+            "Synthetic business document generated for the The Company Knowledge AI. "
             "All companies, people, domains, and scenarios are fictional and any resemblance "
             "to a real engagement is unintended.",
             styles["Small"],
@@ -188,7 +188,7 @@ def _footer(title: str) -> Callable[[object, object], None]:
         canvas.setSubject("Synthetic corpus artifact")
         canvas.setFont("Helvetica", 8)
         canvas.setFillColor(colors.HexColor("#6b7280"))
-        canvas.drawString(2 * cm, 1 * cm, "Private Company Memory Demo synthetic artifact")
+        canvas.drawString(2 * cm, 1 * cm, "The Company Knowledge AI synthetic artifact")
         canvas.drawRightString(19 * cm, 1 * cm, f"Page {doc.page}")
         canvas.restoreState()
 

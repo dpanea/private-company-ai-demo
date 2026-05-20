@@ -13,7 +13,7 @@
   |
   <a href="#quickstart"><strong>Run locally</strong></a>
   |
-  <a href="docs/00-overview.md"><strong>Architecture docs</strong></a>
+  <a href="docs/architecture.md"><strong>Architecture</strong></a>
   |
   <a href="#demo-scope-vs-production-scope"><strong>Scope boundaries</strong></a>
 </p>
@@ -51,10 +51,6 @@ It is designed to show the shape of a serious private AI deployment without publ
 
 The intended public deployment is [demo.danielpanea.com](https://demo.danielpanea.com). Locally, `/` serves the landing page and `/demo` serves the working synthetic demo.
 
-Video slot for the walkthrough:
-
-![Video walkthrough placeholder](docs/assets/readme/video-placeholder.svg)
-
 ## What It Proves
 
 - Multi-format ingestion: synthetic emails, PDFs, Word docs, meeting transcripts, Markdown memos, and CRM-style CSV exports.
@@ -68,8 +64,6 @@ Video slot for the walkthrough:
 
 ## Architecture
 
-![Memory layer architecture map](docs/assets/readme/memory-layer-map.svg)
-
 ```mermaid
 flowchart LR
     A["Synthetic internal and account artifacts"] --> B["Parsers and normalization"]
@@ -78,21 +72,21 @@ flowchart LR
     D --> E["Hybrid retrieval"]
     E --> F["Conversation service"]
     F --> G["Source-backed company assistant"]
-    H["Visitor synthetic notes"] --> C
+    H["Visitor demo notes"] --> C
 ```
 
-The detailed package plan lives in [`docs/`](docs/), starting with [`docs/00-overview.md`](docs/00-overview.md).
+See [`docs/architecture.md`](docs/architecture.md) for the full walkthrough.
 
 ## Repository Map
 
 | Path | Purpose |
 | --- | --- |
-| [`src/pcad/api/`](src/pcad/api/) | FastAPI app, routes, sessions, rate limiting, static frontend serving. |
-| [`src/pcad/ingestion/`](src/pcad/ingestion/) | Parsers, normalization, OCR path, AI-ready document construction, embedding indexing. |
-| [`src/pcad/retrieval/`](src/pcad/retrieval/) | Hybrid retrieval and intent handling. |
-| [`src/pcad/agent/`](src/pcad/agent/) | Conversation orchestration and workflow-backed chat behavior. |
-| [`src/pcad/api/static/`](src/pcad/api/static/) | Vanilla HTML/CSS/JS demo UI and landing page. |
-| [`sql/migrations/`](sql/migrations/) | Versioned Postgres migrations. |
+| [`src/company_ai/api/`](src/company_ai/api/) | FastAPI app, routes, sessions, rate limiting, static frontend serving. |
+| [`src/company_ai/ingestion/`](src/company_ai/ingestion/) | Parsers, normalization, OCR path, AI-ready document construction, embedding indexing. |
+| [`src/company_ai/retrieval/`](src/company_ai/retrieval/) | Hybrid retrieval and intent handling. |
+| [`src/company_ai/agent/`](src/company_ai/agent/) | Conversation orchestration and workflow-backed chat behavior. |
+| [`src/company_ai/api/static/`](src/company_ai/api/static/) | Vanilla HTML/CSS/JS demo UI and landing page. |
+| [`sql/init.sql`](sql/migrations/) | Single-file Postgres schema applied by `company-ai migrate`. |
 | [`deploy/`](deploy/) | Caddy, Docker, and sovereign vLLM deployment notes. |
 
 ## Quickstart
@@ -102,9 +96,9 @@ Prerequisites: Python 3.11+, `uv`, Docker, and local Postgres through the includ
 ```bash
 uv sync
 docker compose up -d postgres
-uv run pcad migrate
-uv run pcad ingest-demo --clean
-uv run pcad serve
+uv run company-ai migrate
+uv run company-ai ingest-demo --clean
+uv run company-ai serve
 ```
 
 Open:
@@ -125,8 +119,8 @@ Create a real `.env` from `.env.example`. Keep secrets out of git.
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Postgres connection string. |
-| `OPENROUTER_API_KEY` or `LLM_API_KEY` | Hosted LLM and embedding provider key. |
-| `LLM_BASE_URL` | OpenAI-compatible endpoint, usually OpenRouter or local vLLM. |
+| `LLM_API_KEY` | Hosted LLM and embedding provider key. |
+| `LLM_BASE_URL` | OpenAI-compatible endpoint, any OpenAI-compatible endpoint (OpenRouter, OpenAI, vLLM, etc.). |
 | `LLM_MODEL` | Chat model. |
 | `EMBEDDING_MODEL` | Embedding model. |
 | `DAILY_TOKEN_BUDGET` | Public-demo spend guardrail. |
@@ -167,9 +161,9 @@ Those are paid implementation concerns, not public-demo features.
 
 ## Media To Add Later
 
-- Replace `docs/assets/readme/video-placeholder.svg` with a short walkthrough GIF or MP4 once the hosted demo is recorded.
-- Add a screenshot of a streamed answer with visible citations after the public model route is finalized.
-- Add one scanned-PDF artifact preview once the synthetic document rendering path is stable enough to show.
+- A short walkthrough GIF or MP4 of the hosted demo.
+- A screenshot of a streamed answer with visible citations.
+- A scanned-PDF artifact preview.
 
 ## License And Credits
 

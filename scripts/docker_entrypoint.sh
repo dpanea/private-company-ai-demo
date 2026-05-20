@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-uv run pcad migrate
-uv run pcad bootstrap-demo
+uv run company-ai migrate
+uv run company-ai bootstrap-demo
 
 exec "$@"

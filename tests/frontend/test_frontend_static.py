@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-STATIC_ROOT = Path(__file__).resolve().parents[2] / "src" / "pcad" / "api" / "static"
+STATIC_ROOT = Path(__file__).resolve().parents[2] / "src" / "company_ai" / "api" / "static"
 
 
 def test_frontend_static_entrypoints_exist() -> None:
@@ -31,7 +31,7 @@ def test_required_microcopy_is_present() -> None:
         for path in [
             STATIC_ROOT / "index.html",
             STATIC_ROOT / "landing" / "index.html",
-            STATIC_ROOT / "js" / "views" / "fake_note_modal.js",
+            STATIC_ROOT / "js" / "views" / "demo_note_modal.js",
             STATIC_ROOT / "js" / "views" / "conversation_panel.js",
         ]
     )
@@ -62,7 +62,7 @@ def test_demo_layout_uses_inline_citations_and_grouped_sources() -> None:
     assert "renderAlertsPanel" not in account_detail
     assert 'aria-label="Source artifacts"' in account_detail
     assert "<details" in account_detail
-    assert "data-pcad-account-select" in account_detail
+    assert "data-company_ai-account-select" in account_detail
     assert "Knowledge context" in account_detail
     assert "All company knowledge" in account_detail
     assert "Internal company knowledge" in account_detail

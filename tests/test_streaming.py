@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from pcad.llm.streaming import StructuredAnswerStreamer
+from company_ai.llm.streaming import StructuredAnswerStreamer
 
 
 def _stream(streamer: StructuredAnswerStreamer, payload: dict) -> str:

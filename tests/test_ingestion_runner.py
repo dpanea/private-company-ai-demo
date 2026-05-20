@@ -10,9 +10,9 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from pcad.config import Settings
-from pcad.ingestion.runner import run_demo_ingestion
-from pcad.migrations import apply_migrations
+from company_ai.config import Settings
+from company_ai.ingestion.runner import run_demo_ingestion
+from company_ai.migrations import apply_migrations
 
 
 def test_run_demo_ingestion_populates_expected_tables(empty_db: str, tmp_path: Path) -> None:
@@ -64,19 +64,18 @@ def test_run_demo_ingestion_clean_rerun_is_stable_and_unclean_fails(empty_db: st
 def _settings(db_url: str) -> Settings:
     return Settings(
         database_url=db_url,
-        openrouter_api_key=None,
-        openrouter_base_url="https://openrouter.ai/api/v1",
+        llm_api_key=None,
+        llm_base_url="https://openrouter.ai/api/v1",
         llm_model="qwen/qwen-2.5-7b-instruct",
         llm_reasoning_effort="low",
         embedding_model="qwen/qwen3-embedding-8b",
         embedding_dimensions=1536,
-        app_title="Private Company Memory Demo",
+        app_title="The Company Knowledge AI",
         http_referer=None,
         log_level="INFO",
         log_color=False,
-        session_cookie_name="pcad_session",
+        session_cookie_name="company_ai_session",
         session_ttl_days=7,
-        session_ttl_hours=4,
         session_secret="test-secret",
         rate_limit_per_ip_per_minute=20,
         rate_limit_per_session_per_hour=50,

@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS fake_notes (
+CREATE TABLE IF NOT EXISTS demo_notes (
     note_id text PRIMARY KEY,
     session_id text NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
     account_id text NOT NULL REFERENCES accounts(account_id) ON DELETE CASCADE,
@@ -11,5 +11,5 @@ CREATE TABLE IF NOT EXISTS fake_notes (
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_fake_notes_session_account
-    ON fake_notes(session_id, account_id);
+CREATE INDEX IF NOT EXISTS idx_demo_notes_session_account
+    ON demo_notes(session_id, account_id);
