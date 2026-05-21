@@ -98,7 +98,11 @@ See [`docs/architecture.md`](docs/architecture.md) for the full walkthrough.
 
 ## Quickstart
 
-Prerequisites: Python 3.11+, `uv`, Docker, and local Postgres through the included compose file.
+Prerequisites: Python 3.11+, `uv`, Docker, and local Postgres through the included compose file. PDF ingestion shells out to `poppler-utils` and `tesseract-ocr`, so install them on the host before running the `uv` commands:
+
+```bash
+sudo apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-eng
+```
 
 ```bash
 uv sync
