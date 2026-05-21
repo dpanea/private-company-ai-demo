@@ -471,8 +471,9 @@
     })();
   </script>
 
-  <!-- Add your own analytics here if you fork this. Example (Cloudflare Web Analytics):
-       <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
-               data-cf-beacon='{"token": "YOUR_TOKEN"}'></script> -->
+  <!-- Cloudflare Web Analytics with opt-out support.
+       Mirrors danielpanea.com: ?analytics=off sets a localStorage flag; ?analytics=on clears it.
+       Forks: replace the token in landing/analytics.js, or set window.CF_WEB_ANALYTICS_TOKEN before this script. -->
+  <script defer src="/static/landing/analytics.js"></script>
 </body>
 </html>

@@ -147,6 +147,12 @@ The app container runs migrations and bootstraps the demo corpus on first boot w
 
 [`deploy/vllm/`](deploy/vllm/) contains the sovereign deployment path: a parallel compose file that swaps hosted chat completions for a local vLLM OpenAI-compatible server. The public demo does not use that stack.
 
+### Analytics
+
+The landing page and demo app ship with a small [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) loader in [`src/company_ai/api/static/landing/analytics.js`](src/company_ai/api/static/landing/analytics.js). Visiting any page with `?analytics=off` sets a local opt-out flag; `?analytics=on` clears it.
+
+The token committed in that file belongs to `demo.danielpanea.com`. Cloudflare Web Analytics tokens are public identifiers (they ship in every page), not secrets — but if you fork this repo and deploy your own demo, replace the token with your own.
+
 ## Demo Scope vs. Production Scope
 
 This repository is a reference architecture, not a turnkey product. It intentionally does not include:
