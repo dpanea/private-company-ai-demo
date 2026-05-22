@@ -1232,6 +1232,202 @@ h2 strong {
   }
 }
 
+/* Mobile cleanup (≤768px): tighter rhythm, even card grids, icons paired with headings. */
+@media (max-width: 768px) {
+  .hero {
+    padding: 56px clamp(16px, 4vw, 28px) 40px;
+    gap: 32px;
+  }
+
+  .board-column {
+    padding: 18px 18px 16px;
+    gap: 8px;
+  }
+
+  /* Source constellation: clean 2-column grid instead of overlapping absolute cards */
+  .source-constellation {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    height: auto;
+    margin-top: 2px;
+  }
+
+  .source-connector {
+    display: none;
+  }
+
+  .source-card {
+    position: static;
+    transform: none !important;
+    width: 100%;
+    justify-items: start;
+    grid-template-columns: 18px 1fr;
+    padding: 10px 12px;
+    box-shadow: none;
+    white-space: normal;
+  }
+
+  .source-card:hover {
+    transform: none;
+  }
+
+  /* Architecture step cards: pair the icon with the step number on one row, then title + body. */
+  .three-step article {
+    display: grid;
+    grid-template-areas:
+      "icon num"
+      "title title"
+      "body body";
+    grid-template-columns: max-content 1fr;
+    align-items: center;
+    column-gap: 14px;
+    row-gap: 8px;
+    min-height: 0;
+    padding: 22px 20px 24px;
+  }
+
+  .three-step .card-icon {
+    grid-area: icon;
+    margin: 0;
+    width: 28px;
+    height: 28px;
+  }
+
+  .three-step span {
+    grid-area: num;
+    justify-self: end;
+    align-self: center;
+  }
+
+  .three-step h3 {
+    grid-area: title;
+    margin: 6px 0 0;
+    font-size: 21px;
+    line-height: 1.2;
+  }
+
+  .three-step p {
+    grid-area: body;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* Compact steps (demo-moment): override .three-step rules — these have no icon, render as a list. */
+  .compact-steps {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .compact-steps article {
+    display: grid;
+    grid-template-areas:
+      "num title"
+      "num body";
+    grid-template-columns: max-content 1fr;
+    align-items: baseline;
+    column-gap: 14px;
+    row-gap: 4px;
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .compact-steps article:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .compact-steps span {
+    grid-area: num;
+    justify-self: start;
+    align-self: start;
+    padding-top: 6px;
+  }
+
+  .compact-steps h3 {
+    grid-area: title;
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.25;
+  }
+
+  .compact-steps p {
+    grid-area: body;
+    margin: 0;
+  }
+
+  /* Workflow cards: icon inline with the heading rather than floating above. */
+  .workflow-shot {
+    display: grid;
+    grid-template-areas:
+      "icon title"
+      "body  body";
+    grid-template-columns: 28px 1fr;
+    align-items: center;
+    column-gap: 14px;
+    row-gap: 8px;
+    min-height: 0;
+    padding: 22px 20px 24px;
+  }
+
+  .workflow-shot .card-icon {
+    grid-area: icon;
+    margin: 0;
+    width: 28px;
+    height: 28px;
+  }
+
+  .workflow-shot h3 {
+    grid-area: title;
+    margin: 0;
+    font-size: 21px;
+    line-height: 1.2;
+  }
+
+  .workflow-shot p {
+    grid-area: body;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* Inline icon list (Recognition / Privacy): tighter, sharper alignment with the first text line. */
+  .proof-list,
+  .icon-list {
+    padding-left: 0;
+    gap: 14px;
+  }
+
+  .icon-list li {
+    grid-template-columns: 22px 1fr;
+    gap: 12px;
+    padding-bottom: 14px;
+  }
+
+  .list-icon {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+  }
+
+  h1 {
+    font-size: clamp(32px, 8vw, 40px);
+    line-height: 1.08;
+  }
+
+  .lede {
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  .audience-grid {
+    margin-top: 32px;
+    row-gap: 24px;
+  }
+}
+
 @media (max-width: 560px) {
   .landing-header nav {
     display: grid;
@@ -1259,23 +1455,6 @@ h2 strong {
     overflow: hidden;
   }
 
-  .hero-copy,
-  .hero-board,
-  .cta-row,
-  .section-heading,
-  .copy-stack,
-  .proof-list,
-  .icon-list,
-  .demo-script,
-  .live-note-copy,
-  .three-step,
-  .workflow-grid,
-  .prompt-box {
-    width: 100%;
-    max-width: 350px;
-    justify-self: stretch;
-  }
-
   .video-band-inner,
   .video-band-copy,
   .video-band .demo-video-card,
@@ -1296,18 +1475,8 @@ h2 strong {
     overflow-wrap: anywhere;
   }
 
-  .compact-steps {
-    grid-template-columns: 1fr;
-  }
-
   .strip span {
     overflow-wrap: anywhere;
-  }
-
-  h1 {
-    font-size: 40px;
-    line-height: 1.08;
-    text-wrap: normal;
   }
 
   .lede,
@@ -1327,22 +1496,5 @@ h2 strong {
 
   .button {
     width: 100%;
-  }
-
-  .source-constellation {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    height: auto;
-    margin-top: 8px;
-  }
-
-  .source-connector {
-    display: none;
-  }
-
-  .source-card {
-    position: static;
-    transform: none !important;
   }
 }

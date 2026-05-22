@@ -3,6 +3,7 @@ import { state } from "../state.js";
 import { accountPath, artifactPath, threadPath, navigate } from "../router.js";
 import { accountName, artifactIconSvg, artifactMeta, formatArtifactType, workflowLabel } from "../util/format.js";
 import { emptyState, escapeHtml, showToast } from "../util/dom.js";
+import { bindDrawerHandlers } from "../util/drawers.js";
 import { bindConversationPanel, renderConversationPanel, startThread } from "./conversation_panel.js";
 import { openDemoNoteModal } from "./demo_note_modal.js";
 import { openArtifactModal } from "./artifact_modal.js";
@@ -148,6 +149,7 @@ export function bindAccountDetail(root, account, accounts = [], options = {}) {
     });
   });
   bindConversationPanel(root, account, { loadArtifactsForAccount });
+  bindDrawerHandlers(root);
 }
 
 function renderThreadHistory(threads, currentThreadId) {

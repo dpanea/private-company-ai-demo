@@ -15,6 +15,21 @@ export function renderConversationPanel(account, threads, currentThreadId, messa
     <section class="conversation" data-app-conversation>
       <div class="middle-top">
         ${budgetReached ? '<div class="budget-banner">The public demo has reached its daily budget. The architecture is still here to explore — try again tomorrow, or book a private walkthrough for live interaction.</div>' : ""}
+        <div class="mobile-drawer-bar" data-app-drawer-bar>
+          <button type="button" class="mobile-drawer-toggle" data-app-drawer-toggle="left" aria-label="Open chats and controls" aria-expanded="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <span class="title">${escapeHtml(account?.account_name || "All company knowledge")}</span>
+          <button type="button" class="mobile-drawer-toggle" data-app-drawer-toggle="right" aria-label="Open source artifacts" aria-expanded="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5h11l3 3v11H5z"/>
+              <path d="M16 5v3h3"/>
+              <path d="M8 12h8M8 15h6"/>
+            </svg>
+          </button>
+        </div>
         <div class="thread-context">
           <div class="thread-context-copy">
             <p class="kicker">${escapeHtml(account?.industry || "Unified company memory")}</p>

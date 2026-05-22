@@ -2440,3 +2440,213 @@ dialog {
     height: calc(100vh - 93px);
   }
 }
+
+/* Mobile drawer pattern (≤768px): conversation goes fullscreen, controls and sources slide in as off-canvas drawers. */
+
+.mobile-drawer-bar {
+  display: none;
+}
+
+.mobile-drawer-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--d-line-strong);
+  border-radius: var(--d-radius);
+  background: var(--d-surface);
+  color: var(--d-text-2);
+  cursor: pointer;
+}
+
+.mobile-drawer-toggle:hover {
+  color: var(--d-text);
+}
+
+.mobile-drawer-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(26, 24, 21, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+body.drawer-left-open #mobile-drawer-backdrop,
+body.drawer-right-open #mobile-drawer-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  html,
+  body {
+    overflow: hidden;
+  }
+
+  /* Keep the header compact on phones — we want maximum chat real estate */
+  .site-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 52px;
+    min-height: 52px;
+    padding: 0 12px;
+  }
+
+  .site-header .top-nav {
+    justify-self: end;
+    flex-wrap: nowrap;
+  }
+
+  .site-header .top-nav a {
+    display: none;
+  }
+
+  .brand strong {
+    font-size: 13px;
+  }
+
+  #app-root {
+    height: calc(100dvh - 52px);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .detail-view-page {
+    height: 100%;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .detail-shell,
+  .memory-shell {
+    display: block;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Conversation fills the screen */
+  .detail-panel[aria-label="Conversation"] {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    border: 0;
+  }
+
+  /* Side panels become off-canvas drawers */
+  .detail-panel.control-panel,
+  .detail-panel.source-panel {
+    position: fixed;
+    top: 52px;
+    bottom: 0;
+    width: min(86vw, 360px);
+    z-index: 35;
+    margin: 0;
+    border: 0;
+    background: var(--d-bg-sunken);
+    box-shadow: 0 12px 36px rgba(26, 24, 21, 0.22);
+    overflow-y: auto;
+    transition: transform 240ms ease;
+    will-change: transform;
+  }
+
+  .detail-panel.control-panel {
+    left: 0;
+    border-right: 1px solid var(--d-line);
+    transform: translateX(-105%);
+  }
+
+  .detail-panel.source-panel {
+    right: 0;
+    border-left: 1px solid var(--d-line);
+    transform: translateX(105%);
+  }
+
+  body.drawer-left-open .detail-panel.control-panel {
+    transform: translateX(0);
+  }
+
+  body.drawer-right-open .detail-panel.source-panel {
+    transform: translateX(0);
+  }
+
+  /* Show the mobile toggle bar inside the conversation header */
+  .mobile-drawer-bar {
+    display: grid;
+    grid-template-columns: 36px 1fr 36px;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px 4px;
+  }
+
+  .mobile-drawer-bar .title {
+    overflow: hidden;
+    color: var(--d-text-3);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Tighten conversation header padding on mobile */
+  .thread-context {
+    padding: 14px 18px 8px;
+  }
+
+  .thread-context h2 {
+    max-width: none;
+    font-size: 20px;
+  }
+
+  .thread-context .sub {
+    max-width: none;
+    font-size: 12.5px;
+  }
+
+  .workflow-row {
+    padding: 0 18px 8px;
+  }
+
+  .composer {
+    padding: 10px 14px 14px;
+  }
+
+  /* Slightly tighter inner padding for the drawer bodies */
+  .control-panel-body {
+    padding: 14px 16px 16px;
+  }
+
+  .source-panel .panel-header {
+    padding: 0 14px;
+  }
+
+  .source-panel .artifact-group summary {
+    padding: 10px 14px;
+  }
+
+  .source-panel .artifact-row {
+    padding: 7px 14px;
+  }
+}
