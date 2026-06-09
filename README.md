@@ -15,6 +15,8 @@
   |
   <a href="docs/architecture.md"><strong>Architecture</strong></a>
   |
+  <a href="#sovereign-deployment-with-vllm"><strong>Sovereign vLLM</strong></a>
+  |
   <a href="#demo-scope-vs-production-scope"><strong>Scope boundaries</strong></a>
 </p>
 
@@ -67,6 +69,7 @@ The intended public deployment is [demo.danielpanea.com](https://demo.danielpane
 - **Guided workflows over a blank chat box:** topic catch-up, decision archaeology, meeting prep, open risks, and follow-up drafting, all aware of the selected knowledge scope.
 - **Scope control:** the same assistant can answer across all company knowledge, only internal company knowledge, or one specific account, with retrieval and citations staying inside the selected boundary.
 - **Visitor-safe public demo:** anonymous session cookies, visitor-scoped synthetic notes, no user accounts, and a daily token budget guardrail on the public deployment.
+- **Private inference path:** the same OpenAI-compatible client can point at a local vLLM server, with current Gemma and Qwen model-sizing notes under [`deploy/vllm/`](deploy/vllm/).
 - **Honest scope boundary:** enough architecture to learn from and clone, without pretending to be a turnkey production product.
 
 ## Architecture
@@ -149,7 +152,17 @@ The app container runs migrations and bootstraps the demo corpus on first boot w
 
 ### Sovereign Deployment With vLLM
 
-[`deploy/vllm/`](deploy/vllm/) contains the sovereign deployment path: a parallel compose file that swaps hosted chat completions for a local vLLM OpenAI-compatible server. The public demo does not use that stack.
+[`deploy/vllm/`](deploy/vllm/) contains the sovereign deployment path: a parallel compose file that swaps hosted chat completions for a local vLLM OpenAI-compatible server. It keeps the app code unchanged by setting `LLM_BASE_URL=http://vllm:8080/v1` and `LLM_MODEL` from `LLM_MODEL_VLLM`.
+
+For current single-GPU starting points, use:
+
+- 8-12 GB: `Qwen/Qwen3-4B` as the safe ungated default.
+- 12-16 GB: `google/gemma-4-E2B-it` if you want Gemma and have a Hugging Face token.
+- 24 GB: `google/gemma-4-E4B-it` or `Qwen/Qwen3.5-9B`.
+- 40-48 GB: `google/gemma-4-12B-it` or `Qwen/Qwen3.6-27B-FP8`.
+- 64 GB+: `google/gemma-4-26B-A4B-it` or `Qwen/Qwen3.6-35B-A3B-FP8`.
+
+See [`deploy/vllm/README.md`](deploy/vllm/README.md) for the full VRAM sizing table, the weight/KV-cache assumptions, and the vLLM knobs for context length, batching, and FP8 KV cache. The public demo does not use that stack.
 
 ### Analytics
 
